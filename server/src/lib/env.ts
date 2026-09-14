@@ -1,8 +1,18 @@
 /* Server-only reads of the environment. No key is ever returned to a
    response: the routes only ask whether a source is configured. */
 
+/* Names the owner's Vercel settings use for the same things (Vercel's
+   Upstash integration writes KV_REST_API_URL and KV_REST_API_TOKEN);
+   the alias wins when both are set. */
+const ALIASES: Record<string, string> = {
+  OPENAI_API_KEY: "CHATGPT",
+  YOUTUBE_API_KEY: "YOUTUBE",
+  UPSTASH_REDIS_REST_URL: "KV_REST_API_URL",
+  UPSTASH_REDIS_REST_TOKEN: "KV_REST_API_TOKEN",
+};
+
 export function env(name: string): string | undefined {
-  const alias = name === "OPENAI_API_KEY" ? "CHATGPT" : name === "YOUTUBE_API_KEY" ? "YOUTUBE" : undefined;
+  const alias = ALIASES[name];
   const v = (alias ? process.env[alias]?.trim() : undefined) || process.env[name];
   return v && v.trim() ? v.trim() : undefined;
 }
