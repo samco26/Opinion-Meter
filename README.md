@@ -301,7 +301,19 @@ Every door answers any origin; the install token (`X-Install-Token`) and the rat
 | 2026-09-14 | The extension is bundled by esbuild with a small build script rather than WXT: fewer moving parts while building without a local Node. |
 | 2026-09-14 | No Node is installed on the owner's machines; GitHub Actions is the build and test machine, Vercel the server. The extension packages are downloaded from the Actions run and loaded unpacked. |
 
-## 17. Open questions
+## 17. Trying it
+
+Nothing here needs Node on your machine.
+
+**The server.** In Vercel: Add New Project → import `samco26/Opinion-Meter` → set **Root Directory** to `server` → deploy. Add environment variables (names in `.env.example`) whenever you have them; none are needed for a first look. For the memory, add Upstash Redis from Vercel's Marketplace (Storage tab) and it fills in the two `UPSTASH_*` variables itself. The server's address becomes `https://<project-name>.vercel.app`; the extension expects `https://opinion-meter.vercel.app` unless told otherwise on its settings page. Open `/dev` on the deployed server to knock on the gauge door by hand.
+
+**The extension.** GitHub → Actions → the latest `ci` run → download `opinion-meter-chrome` → unzip → `chrome://extensions` → Developer mode → Load unpacked → the unzipped folder. Then search Google. Details in `extension/README.md`.
+
+**When a run is red.** Open the failed step in Actions and paste the red lines into the conversation; that is the feedback loop that replaces a local Node.
+
+**The kill switch.** In Upstash's data browser, set the key `config:override` to `{"enabled":false}` and every copy of the extension goes quiet within an hour (the config's `ttlMinutes`); delete the key to resume. The same key patches the Google selectors when Google changes its page.
+
+## 18. Open questions
 
 - Final name and whether to buy a domain.
 - Monetisation stance (to be settled before ~1,000 users).

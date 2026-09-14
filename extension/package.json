@@ -1,0 +1,14 @@
+{
+  "name": "opinion-meter-extension",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Opinion Meter: the installed half. Bars beside Google results; a drawer with the full card.",
+  "scripts": {
+    "build": "node build.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "esbuild": ">=0.24.0 <1.0.0",
+    "typescript": "^5.6.2"
+  }
+}

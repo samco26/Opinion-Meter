@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Opinion Meter settings</title>
+<style>
+  body{font:14px/1.5 Helvetica,"Helvetica Neue",Arial,sans-serif;color:#153f43;background:#f2efe2;margin:0;padding:18px;min-width:340px}
+  h1{font-size:16px;font-weight:500;margin:0 0 12px}
+  label{display:block;font-size:12px;color:#426366;margin-bottom:4px}
+  input{width:100%;box-sizing:border-box;font:inherit;padding:8px 10px;border:1px solid #16464c33;border-radius:10px;background:#fff}
+  button{font:inherit;margin-top:10px;margin-right:6px;padding:7px 14px;border-radius:99px;border:1px solid #ffe6dc;background:linear-gradient(135deg,#f9d6c5,#f4b49f);color:#153f43;cursor:pointer}
+  button.quiet{background:#fff;border-color:#16464c33}
+  p{font-size:12px;color:#426366;margin:12px 0 0}
+  code{font-size:11px}
+</style>
+</head>
+<body>
+<h1>Opinion Meter</h1>
+<label for="server">Server address</label>
+<input id="server" type="url" placeholder="https://opinion-meter.vercel.app" spellcheck="false">
+<div><button id="save" type="button">Save</button><button id="reset" type="button" class="quiet">Use the default</button></div>
+<p id="status"></p>
+<p>Install token: <code id="token"></code></p>
+<script src="options.js"></script>
+</body>
+</html>
