@@ -51,7 +51,7 @@ export function shorten(name: string): string {
 export const headline = (title: string) => cut(title, /\s+[-|–—]\s+[^-|–—]{2,40}$/);
 
 const NEWS = /(^|\.)(cnn|bbc|reuters|apnews|nytimes|washingtonpost|theguardian|wsj|bloomberg|ft|forbes|cnbc|nbcnews|cbsnews|foxnews|npr|politico|axios|theatlantic|newyorker|economist|time|abc\.net|news\.com|smh\.com|theage\.com|9news\.com|sbs\.com|theaustralian|afr|theconversation|stuff\.co|nzherald|businessinsider|vox|huffpost|dailymail|telegraph|independent|skynews|aljazeera|dw|france24|scmp|cbc|ctvnews|theglobeandmail|substack|medium)\.[a-z.]+$/;
-const NEVER = /(^|\.)(google|bing|duckduckgo|facebook|instagram|tiktok|linkedin|pinterest|wikihow|w3schools|stackoverflow|stackexchange|microsoft|apple\.com\/support)\b/;
+const NEVER = /(^|\.)(google|bing|duckduckgo|facebook|instagram|tiktok|linkedin|pinterest|wikihow|w3schools|stackoverflow|stackexchange|microsoft)\./;
 const GITHUB_RESERVED = new Set(["features", "topics", "marketplace", "orgs", "settings", "login", "explore", "sponsors", "about", "pricing", "collections", "events", "trending", "search", "issues", "pulls"]);
 
 type Rule = (u: URL, host: string, title: string) => RuleOutcome;
