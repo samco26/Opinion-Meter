@@ -7,8 +7,8 @@ import { normaliseUrl } from "../subject";
 import { getJson, getOnce, inWindow, reasonFor, statusFor, stripHtml, type Collected, type CollectOptions, type Connector } from "../http";
 
 const API = "https://hn.algolia.com/api/v1/search";
-const MAX_STORIES = 8;
-const PER_STORY = 12;
+const MAX_STORIES = 15;
+const PER_STORY = 30;
 
 interface Hits<T> { hits?: T[]; nbPages?: number; nbHits?: number }
 interface Story { objectID?: string; title?: string; url?: string; author?: string; points?: number; created_at?: string; story_text?: string }
@@ -22,6 +22,9 @@ async function collect(opts: CollectOptions): Promise<Collected> {
   if (opts.link) {
     const u = new URL(opts.link);
     search.searchParams.set("query", `${u.hostname.replace(/^www\./, "")}${u.pathname.replace(/\/$/, "")}`);
+    search.searchParams.set("restrictSearchableAttributes", "url");
+  } else if (opts.domain) {
+    search.searchParams.set("query", opts.domain);
     search.searchParams.set("restrictSearchableAttributes", "url");
   } else {
     search.searchParams.set("query", opts.subject);
@@ -90,8 +93,8 @@ async function collectFull(opts: CollectOptions): Promise<Collected> {
   };
   try {
     const u = opts.link ? new URL(opts.link) : null;
-    const query = u ? `${u.hostname.replace(/^www\./, "")}${u.pathname.replace(/\/$/, "")}` : opts.subject;
-    const stories = (await request<Story>({ query, tags: "story", ...(u ? { restrictSearchableAttributes: "url" } : {}) }))
+    const query = u ? `${u.hostname.replace(/^www\./, "")}${u.pathname.replace(/\/$/, "")}` : opts.domain ?? opts.subject;
+    const stories = (await request<Story>({ query, tags: "story", ...(u || opts.domain ? { restrictSearchableAttributes: "url" } : {}) }))
       .filter((s): s is Story & { objectID: string; title: string } => Boolean(s.objectID && s.title))
       .filter(s => !opts.link || (s.url && normaliseUrl(s.url) === normaliseUrl(opts.link)));
     for (const s of stories) selected.set(`hn:story:${s.objectID}`, { id: `hn:story:${s.objectID}`, source: "hn", kind: "thread", title: s.title, text: `${s.title}\n${stripHtml(s.story_text ?? "")}`.trim(), author: s.author, url: item(s.objectID), publishedAt: s.created_at, engagement: s.points });

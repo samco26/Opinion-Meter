@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { buildEvidence, reactionWeight, sourceUrl } from "../src/lib/analysis/evidence.ts";
 import { sentimentPercentages, verdictOf } from "../src/lib/sentiment.ts";
 import { heuristicClassify } from "../src/lib/analysis/heuristic.ts";
+import { sample } from "../src/lib/analysis/prompt.ts";
 
 const item = (id, source, text, extra = {}) => ({ id, source, kind: "comment", text, ...extra });
 
@@ -64,4 +65,23 @@ test("the word-count stand-in leans the obvious way and skips videos", () => {
     item("c", "hn", "Does it come in blue?"),
   ]);
   assert.deepEqual(labels.map((l) => [l.ref, l.sentiment]), [[1, "positive"], [2, "negative"], [3, "neutral"]]);
+});
+
+test("the sample gives every platform a turn and caps any one thread", () => {
+  const items = [{ id: "youtube:video:v", source: "youtube", kind: "video", text: "context" }];
+  for (let i = 0; i < 50; i++) items.push(item(`hn:comment:${i}`, "hn", `hn ${i}`, { parentId: "hn:story:1", engagement: 1000 - i }));
+  for (let i = 0; i < 10; i++) items.push(item(`youtube:comment:${i}`, "youtube", `yt ${i}`, { parentId: "youtube:video:v", engagement: 1 }));
+  for (let i = 0; i < 10; i++) items.push(item(`bluesky:post:${i}`, "bluesky", `bs ${i}`, { engagement: 0 }));
+  const chosen = sample(items, 20);
+  const opinions = chosen.filter((entry) => entry.kind !== "video");
+  const count = (source) => opinions.filter((entry) => entry.source === source).length;
+  assert.equal(opinions.length, 20);
+  assert.deepEqual([count("hn"), count("youtube"), count("bluesky")], [7, 7, 6]);
+  assert.ok(chosen.some((entry) => entry.id === "youtube:video:v"));
+  assert.equal(opinions.find((entry) => entry.source === "hn").id, "hn:comment:0");
+  /* One thread may fill at most two fifths of the sample. */
+  const thin = items.filter((entry) => entry.source === "hn" || entry.id === "youtube:comment:0" || entry.id === "bluesky:post:0");
+  const capped = sample(thin, 20).filter((entry) => entry.kind !== "video");
+  assert.equal(capped.filter((entry) => entry.source === "hn").length, 8);
+  assert.equal(capped.length, 10);
 });

@@ -1,35 +1,42 @@
-/* What the hands draw: the bar under a result (and the larger one for the
-   query), and the drawer that opens over the page. Everything lives in
-   its own shadow root so Google's styles and ours never touch, in the
-   palette and glass of the card it opens. */
+/* What the hands draw: the bar beside a result's title (and the larger
+   one for the query), and the drawer that opens over the page. Everything
+   lives in its own shadow root so Google's styles and ours never touch,
+   in the palette and glass of the card it opens. A result's bar stays
+   invisible until a reading exists: no placeholders, no empty outlines. */
 
 import type { Gauge } from "./shared";
 
 const BAR_CSS = `
-:host{all:initial;display:block}
-.bar{display:inline-flex;align-items:center;gap:8px;margin:6px 0 2px;padding:5px 11px 5px 8px;border-radius:99px;background:#f2efe2d9;border:1px solid #ffffffb3;box-shadow:inset 0 1px 0 #ffffffd9,0 6px 16px #17424a1f;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);font:12px/1.2 Helvetica,"Helvetica Neue",Arial,sans-serif;color:#153f43;cursor:pointer;position:relative;max-width:100%;text-align:left;transition:transform 200ms cubic-bezier(.16,1,.3,1),background 180ms}
-.bar:hover{background:#f7f4e8f2;transform:translateY(-1px)}.bar:focus-visible{outline:3px solid #16565e;outline-offset:3px}
-.seg{display:flex;width:72px;height:8px;border-radius:99px;overflow:hidden;background:#19464c18;flex-shrink:0}.seg span{display:block;height:100%;transition:flex-basis 500ms cubic-bezier(.16,1,.3,1)}.pos{background:#53866a}.neu{background:#525a5f}.neg{background:#bc716b}
-.count{white-space:nowrap}.count b{font-weight:700}.muted{color:#426366}
+:host{all:initial;display:inline-block;vertical-align:middle;margin-left:10px}
+:host([data-opinion-meter="query"]){display:block;margin:0}
+:host([hidden]){display:none!important}
+.bar{display:inline-flex;align-items:center;gap:8px;margin:0;padding:0;border:0;background:transparent;font:12px/1.2 Helvetica,"Helvetica Neue",Arial,sans-serif;color:#153f43;cursor:pointer;position:relative;white-space:nowrap;vertical-align:middle;text-align:left;opacity:0;transition:opacity 280ms ease}
+.bar.shown{opacity:1}
+.bar:hover .seg{box-shadow:0 0 0 2px #17565f26}
+.bar:focus-visible{outline:3px solid #16565e;outline-offset:4px;border-radius:99px}
+.seg{display:flex;width:88px;height:14px;border-radius:99px;overflow:hidden;background:#19464c22;flex-shrink:0;transition:box-shadow 180ms ease}
+.seg span{display:block;height:100%;transition:flex-basis 500ms cubic-bezier(.16,1,.3,1)}.pos{background:#53866a}.neu{background:#525a5f}.neg{background:#bc716b}
+.count{white-space:nowrap;color:#5f6368}.count b{font-weight:700;color:#153f43}
+:host([data-dark]) .count{color:#bdc1c6}:host([data-dark]) .count b{color:#e8eaed}:host([data-dark]) .seg{background:#ffffff1f}
+.muted{color:#426366}
 .tag{font-size:9.5px;letter-spacing:.6px;text-transform:uppercase;color:#426366;border:1px solid #16464c33;border-radius:8px;padding:2px 5px;white-space:nowrap}
-.tip{position:absolute;left:0;top:calc(100% + 6px);z-index:10;width:max-content;max-width:min(440px,80vw);padding:10px 14px;border-radius:18px;background:#f7f4e8f7;border:1px solid #ffffffb3;box-shadow:0 10px 28px #163e4926;font-size:12.5px;line-height:1.45;color:#153f43;white-space:normal;display:none}
-.bar:hover .tip,.bar:focus-visible .tip{display:block}
+:host([data-dark]) .tag{color:#bdc1c6;border-color:#ffffff40}
+.tip{position:fixed;left:0;top:0;z-index:2147483647;width:max-content;max-width:min(440px,80vw);padding:10px 14px;border-radius:18px;background:#f7f4e8f7;border:1px solid #ffffffb3;box-shadow:0 10px 28px #163e4926;font:12.5px/1.45 Helvetica,"Helvetica Neue",Arial,sans-serif;color:#153f43;white-space:normal;text-align:left;pointer-events:none;opacity:0;visibility:hidden;transform:translateY(-4px);transition:opacity 160ms ease,transform 160ms ease,visibility 0s linear 160ms}
+.tip.on{opacity:1;visibility:visible;transform:none;transition:opacity 160ms ease,transform 160ms ease,visibility 0s}
 .loading .seg{position:relative;background:#17565f1c}.loading .seg:before{content:"";position:absolute;inset:0;width:55%;border-radius:99px;background:linear-gradient(90deg,transparent,#8bb9b5 15%,#ffd7c2 55%,#edaa99 80%,transparent);animation:flow 1600ms ease-in-out infinite}
 @keyframes flow{0%{transform:translateX(-110%)}100%{transform:translateX(220%)}}
-.big{margin:0 0 16px;padding:11px 18px 11px 14px;gap:12px;font-size:13px;flex-wrap:wrap;border-radius:26px}
-.big .seg{width:120px;height:10px}.big .title{flex-basis:100%;font-size:14px;letter-spacing:-.2px}.big .title b{font-weight:700}
+.big{display:flex;width:100%;box-sizing:border-box;max-width:700px;margin:0 0 16px;padding:14px 16px;gap:12px;font-size:13px;flex-wrap:wrap;white-space:normal;border-radius:22px;background:#f2efe2c2;border:1px solid #ffffffb3;box-shadow:inset 0 1px 0 #ffffffd9,0 6px 16px #17424a1f;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);transition:opacity 280ms ease,background 180ms ease}
+.big:hover{background:#f7f4e8f2}.big:hover .seg{box-shadow:none}
+.big .seg{width:120px;height:14px}.big .title{flex-basis:100%;font-size:14px;letter-spacing:-.2px}.big .title b{font-weight:700}
+.big .count{color:#153f43}
 .big .sentence{flex-basis:100%;font-size:13px;line-height:1.45;color:#2b5a5e;margin-top:2px}
-.bar:not(.big){padding:8px 0;margin:2px 0;border:0;background:transparent;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;min-height:28px}
-.bar:not(.big):hover{background:transparent}.bar:not(.big) .seg{width:96px;height:7px}
-.bar:not(.big)>.count,.bar:not(.big)>.tag{display:none}
 .empty .seg{background:transparent;outline:1px solid #8a949b88;outline-offset:-1px}
 .estimated .seg{outline:1px dashed #c99b6f;outline-offset:2px}
-.big{display:flex;width:100%;box-sizing:border-box;max-width:700px;padding:14px 16px;background:#f2efe2c2;border-radius:22px}
-:host([data-side]) .big{max-width:none;border-radius:22px;border:1px solid #88888866;background:#ffffff08;color:#e8eaed;box-shadow:none;backdrop-filter:none}
-:host([data-side]) .big .tag,:host([data-side]) .big .muted{color:inherit}
+:host([data-side]) .big{max-width:none;border-radius:22px;border:1px solid #88888866;background:#ffffff08;color:#e8eaed;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none}
+:host([data-side]) .big .tag,:host([data-side]) .big .muted,:host([data-side]) .big .count,:host([data-side]) .big .count b{color:inherit}
 :host([data-side]) .big .seg{flex:1;width:100%;min-width:70px}
 @media(prefers-color-scheme:light){:host([data-side]) .big{color:#202124;background:#ffffff88}}
-@media(prefers-reduced-motion:reduce){.loading .seg:before{animation:none;width:100%;opacity:.6}.bar,.seg span{transition:none}}
+@media(prefers-reduced-motion:reduce){.loading .seg:before{animation:none;width:100%;opacity:.6}.bar,.seg,.seg span,.tip{transition:none}}
 `;
 
 const OVERLAY_CSS = `
@@ -38,10 +45,11 @@ const OVERLAY_CSS = `
 .panel{position:fixed;z-index:2147483647;border-radius:24px;overflow:hidden;border:1px solid #ffffff66;box-shadow:0 24px 72px #0005;background:#e8f0ebaa;backdrop-filter:blur(22px) saturate(1.15);-webkit-backdrop-filter:blur(22px) saturate(1.15);animation:in 240ms cubic-bezier(.16,1,.3,1) both;transition:height 180ms ease}
 @keyframes in{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:none}}
 iframe{display:block;width:100%;height:100%;border:0;background:transparent;color-scheme:light}
-.veil{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:#edf2ec66;color:#153f43;font:13px Helvetica,"Helvetica Neue",Arial,sans-serif}
+.veil{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:#edf2ec66;color:#153f43;font:13px Helvetica,"Helvetica Neue",Arial,sans-serif;transition:opacity 200ms ease}
 .veil[hidden]{display:none}.veil a{color:#ffd7c2}
 .track{width:180px;height:12px;border-radius:99px;position:relative;overflow:hidden;background:#17565f55}.track:before{content:"";position:absolute;inset:0;width:55%;border-radius:99px;background:linear-gradient(90deg,transparent,#8bb9b5 15%,#ffd7c2 55%,#edaa99 80%,transparent);animation:flow 1800ms ease-in-out infinite}
 @keyframes flow{0%{transform:translateX(-110%)}100%{transform:translateX(220%)}}
+button{font:14px Helvetica,"Helvetica Neue",Arial,sans-serif;margin-top:12px;padding:8px 16px;border-radius:99px;border:1px solid #ffe6dc;background:#f4b49f;color:#153f43;cursor:pointer;transition:opacity 180ms ease}button:hover{opacity:.85}
 @media(prefers-reduced-motion:reduce){.panel{animation:none}.track:before{animation:none;width:100%}}
 `;
 
@@ -93,40 +101,72 @@ function countText(gauge: Gauge): HTMLElement {
   return count;
 }
 
-export function createBar(opts: { big?: boolean; title?: string; onOpen: (gauge: Gauge | undefined, anchor: DOMRect) => void }): Bar {
+const SWALLOW = ["mousedown", "mouseup", "pointerdown", "pointerup", "auxclick", "touchstart", "touchend"] as const;
+
+export function createBar(opts: { big?: boolean; title?: string; dark?: boolean; onOpen: (gauge: Gauge | undefined, anchor: DOMRect) => void }): Bar {
   const host = el("div");
   host.setAttribute("data-opinion-meter", opts.big ? "query" : "result");
+  if (opts.dark) host.setAttribute("data-dark", "");
   const root = host.attachShadow({ mode: "open" });
   const style = el("style");
   style.textContent = BAR_CSS;
   const bar = el("button", `bar${opts.big ? " big" : ""} loading`);
   bar.type = "button";
-  root.append(style, bar);
+  /* The tip sits beside the button, fixed to the viewport, so no clipped,
+     flipped or transformed ancestor can distort it. */
+  const tip = el("span", "tip");
+  tip.setAttribute("role", "tooltip");
+  root.append(style, bar, tip);
   let current: Gauge | undefined;
+  /* A bar inside a result's link must never act as the link. */
+  for (const type of SWALLOW) bar.addEventListener(type, (event) => event.stopPropagation());
   bar.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
     opts.onOpen(current, bar.getBoundingClientRect());
   });
+  const place = () => {
+    const r = bar.getBoundingClientRect();
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const width = tip.offsetWidth, height = tip.offsetHeight;
+    const below = r.bottom + 8;
+    tip.style.left = `${Math.max(8, Math.min(r.left, vw - width - 8))}px`;
+    tip.style.top = `${below + height <= vh - 8 ? below : Math.max(8, r.top - height - 8)}px`;
+  };
+  const showTip = () => { if (!tip.textContent) return; place(); tip.classList.add("on"); };
+  const hideTip = () => tip.classList.remove("on");
+  bar.addEventListener("mouseenter", showTip);
+  bar.addEventListener("mouseleave", hideTip);
+  bar.addEventListener("focus", showTip);
+  bar.addEventListener("blur", hideTip);
+  const reveal = () => requestAnimationFrame(() => requestAnimationFrame(() => bar.classList.add("shown")));
   const render = (state: BarState) => {
     bar.replaceChildren();
+    tip.textContent = "";
+    hideTip();
     bar.classList.toggle("loading", state.kind === "loading");
     bar.classList.toggle("empty", state.kind === "empty");
     bar.classList.toggle("estimated", state.kind === "ready" && Boolean(state.gauge.simulated));
+    if (!opts.big && state.kind !== "ready") {
+      current = undefined;
+      host.hidden = true;
+      bar.classList.remove("shown");
+      return;
+    }
+    host.hidden = false;
     if (state.kind === "empty") {
       current = undefined;
-      if (opts.big) bar.append(el("span", "title", `What people think of ${opts.title ?? "this search"}`));
-      bar.append(segments());
-      if (opts.big) bar.append(el("span", "count muted", "No verdict yet"));
-      bar.append(el("span", "tip", state.reason));
-      bar.setAttribute("aria-label", `${opts.title ?? "This link"}: no verdict. ${state.reason}`);
+      bar.append(el("span", "title", `What people think of ${opts.title ?? "this search"}`), segments(), el("span", "count muted", "No verdict yet"));
+      tip.textContent = state.reason;
+      bar.setAttribute("aria-label", `${opts.title ?? "This search"}: no verdict. ${state.reason}`);
+      reveal();
       return;
     }
     if (state.kind === "loading") {
-      if (opts.big) bar.append(el("span", "title", "What people think of what you searched for"));
-      bar.append(segments(), el("span", "count muted", "reading the crowd…"));
+      bar.append(el("span", "title", "What people think of what you searched for"), segments(), el("span", "count muted", "reading the crowd…"));
       bar.setAttribute("aria-label", "Reading what people think");
       current = undefined;
+      reveal();
       return;
     }
     const { gauge } = state;
@@ -138,10 +178,10 @@ export function createBar(opts: { big?: boolean; title?: string; onOpen: (gauge:
     }
     bar.append(segments(gauge), countText(gauge));
     if (gauge.simulated) bar.append(el("span", "tag", "estimated"));
-    const scope = gauge.scope === "domain" ? `Website fallback: ${gauge.domain}. Not a verdict on this specific page. ` : gauge.scope === "link" ? "This specific page. " : "";
-    const detail = `${scope}${gauge.count} opinions. ${gauge.simulated ? "Unverified word-count estimate. " : ""}${gauge.sentence}`;
-    bar.append(el("span", "tip", detail));
+    const detail = `${gauge.count} opinions. ${gauge.simulated ? "Unverified word-count estimate. " : ""}${gauge.sentence}`;
+    tip.textContent = detail;
     bar.setAttribute("aria-label", `${gauge.name}: ${detail} Open what people think.`);
+    reveal();
   };
   render({ kind: "loading" });
   return { host, set: render, remove: () => host.remove() };

@@ -1,6 +1,9 @@
-/* Distinct placements share readings, including ads and product tiles. */
+/* Reading Google's results page: every titled result — organic headings,
+   sponsored results and product tiles — with the heading element the bar
+   sits in. Knowledge-panel images, source carousels and other untitled
+   links get nothing. Distinct placements share readings. */
 import type { ExtensionConfig } from "./shared";
-export interface Found { url: string; title: string; anchor: HTMLElement; unavailable?: string }
+export interface Found { url: string; title: string; anchor: HTMLElement; heading?: HTMLElement; unavailable?: string }
 const PRODUCT = "[data-product-id], [data-docid], [data-pv-entrypoint], .sh-dgr__grid-result, .sh-dlr__list-result, .pla-unit";
 const clean = (s: string | null | undefined) => (s ?? "").replace(/\s+/g, " ").trim().slice(0, 300);
 const google = (host: string) => /(^|\.)google\.[a-z.]+$/.test(host);
@@ -23,17 +26,16 @@ export function destination(raw: string): string | null {
 const visible = (node: HTMLElement) => !node.closest('[hidden], [aria-hidden="true"], [data-opinion-meter]') && node.getClientRects().length > 0;
 export function readResults(config: ExtensionConfig, seen: WeakMap<Element, string>): Found[] {
   const found: Found[] = [];
-  const roots = new Set([...document.querySelectorAll<HTMLElement>("#search, #rso, #tads, #tadsb, #bottomads, #rhs, [data-mcpr]"), ...document.querySelectorAll<HTMLElement>(config.google.results)]);
+  const roots = new Set([...document.querySelectorAll<HTMLElement>("#search, #rso, #tads, #tadsb, #bottomads"), ...document.querySelectorAll<HTMLElement>(config.google.results)]);
   const candidates = new Set<HTMLElement>();
   for (const root of roots) for (const node of root.querySelectorAll<HTMLElement>(`a[href], ${PRODUCT}`)) candidates.add(node);
   const selected = new Set<Element>();
   for (const node of candidates) {
-    if (!visible(node) || node.closest('nav, [role="navigation"], form')) continue;
+    if (!visible(node) || node.closest('nav, [role="navigation"], form, #rhs, [data-attrid], [data-mcpr], [data-aim], [data-sgrd]')) continue;
     const product = node.closest<HTMLElement>(PRODUCT);
     const headline = node.querySelector<HTMLElement>('h3, [role="heading"]');
-    const ad = node.closest(config.google.ads);
-    const reference = node.closest('#rhs, [data-attrid], [data-mcpr], [data-aim], [data-sgrd]');
-    if (!headline && !product && !ad && !reference && !node.matches(config.google.anchor)) continue;
+    /* Only a titled result gets a bar: a heading of its own, or a product tile. */
+    if (!headline && !product) continue;
     const anchor = product ?? node;
     if (selected.has(anchor)) continue;
     const a = node instanceof HTMLAnchorElement ? node : node.querySelector<HTMLAnchorElement>('a[href]');
@@ -47,7 +49,7 @@ export function readResults(config: ExtensionConfig, seen: WeakMap<Element, stri
     selected.add(anchor);
     if (seen.get(anchor) === signature) continue;
     seen.set(anchor, signature);
-    found.push({ url: url ?? "", title, anchor, unavailable });
+    found.push({ url: url ?? "", title, anchor, heading: productTitle ?? headline ?? undefined, unavailable });
   }
   return found;
 }

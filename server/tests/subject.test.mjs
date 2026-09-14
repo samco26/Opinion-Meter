@@ -53,3 +53,16 @@ test("without an AI key a short, non-question query stands as typed", () => {
   assert.equal(queryFallback("is the xm6 worth it?"), null);
   assert.equal(queryFallback("a very long query with many many words in it indeed"), null);
 });
+
+test("a site's front page names the site itself, merging with the query's subject", () => {
+  const home = resolve("https://www.youtube.com/", "YouTube");
+  assert.deepEqual(home, { key: "name:youtube", name: "YouTube", kind: "company", category: "general" });
+  assert.equal(resolve("https://www.netflix.com/au/", "Netflix Australia - Watch TV Shows Online, Watch Movies Online").name, "Netflix Australia");
+  assert.equal(resolve("https://www.example.com/", "Home | Example Corp").name, "Example Corp");
+  assert.equal(resolve("https://www.cnn.com/", "Breaking News, Latest News and Videos | CNN").name, "CNN");
+  assert.equal(resolve("https://www.google.com/", "Google"), null);
+  const video = resolve("https://www.youtube.com/watch?v=abcdefghijk", "A video - YouTube");
+  assert.equal(video.key, "yt:abcdefghijk");
+  assert.equal(video.name, "A video");
+  assert.equal(video.link, "https://www.youtube.com/watch?v=abcdefghijk");
+});

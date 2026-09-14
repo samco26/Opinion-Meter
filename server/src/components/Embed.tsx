@@ -88,7 +88,7 @@ export function Embed({ subjectKey }: { subjectKey: string }) {
             <h2>Sources and confidence</h2>
             <p className="quiet">{card.confidence.level} confidence · {card.confidence.reason}</p>
             <p className="quiet">Agreement: {card.agreement}. Positive reactions do not necessarily mean strong agreement.</p>
-            <p className="quiet">The main bar describes the search subject. Result bars look for opinions about the exact page, then the website if there is too little page-specific discussion. Website fallbacks are labelled.</p>
+            <p className="quiet">The main bar describes what you searched for. A result's bar describes the thing its page is about — a product, a service, a film, a site — as people regard it over time. A notable recent development, when there is one, is noted separately under the summary.</p>
             <p className="quiet">Percentages come from classified posts and comments, weighted by reactions. These selected online comments are not a representative public survey. Fewer than eight relevant opinions means no verdict.</p>
             <p className="quiet">Open a platform or an opinion to see original posts and excerpts. Full analysis and evidence are fetched only when a bar is opened.</p>
             {card.sources.map(status => <p className="quiet" key={status.source}><strong>{sourceName(status.source)}</strong> · {status.relevant ?? 0} relevant of {status.itemsAnalysed} analysed. {status.note}</p>)}

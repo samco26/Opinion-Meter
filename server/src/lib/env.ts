@@ -21,6 +21,7 @@ export const configured = {
   reddit: () => Boolean(env("REDDIT_CLIENT_ID") && env("REDDIT_CLIENT_SECRET") && env("REDDIT_USER_AGENT")),
   hn: () => true,
   bluesky: () => true,
+  blueskyLogin: () => Boolean(env("BLUESKY_IDENTIFIER") && env("BLUESKY_APP_PASSWORD")),
   memory: () => Boolean(env("UPSTASH_REDIS_REST_URL") && env("UPSTASH_REDIS_REST_TOKEN")),
 };
 

@@ -8,12 +8,14 @@ import { configured, settings } from "./env";
 import { claimFresh } from "./limits";
 import { memory } from "./memory";
 import { collectAdaptive } from "./sources/adaptive";
-import { domainSubject, linkSubject } from "./target";
+import { domainSubject, resultSubjects } from "./target";
 import { liteGauge } from "./analysis/lite";
-import { nameSubjects } from "./analysis/name";
 import { youtubeVideoId } from "./sources/youtube";
 import type { Gauge, GaugeRequest, GaugeResponse, SourceId, Subject, SubjectStates } from "./types";
 
+/* Every connected platform reads every subject by name; a page is also
+   looked up by link on the platforms that can, and a linked video's own
+   comments are read. */
 export const LITE_SOURCES: SourceId[] = ["reddit", "youtube", "hn", "bluesky"];
 export const LINK_SOURCES: SourceId[] = ["reddit", "hn", "bluesky"];
 export const sourcesFor = (subject: Subject): SourceId[] => subject.link ? [...LINK_SOURCES, ...(youtubeVideoId(subject.link) ? ["youtube" as const] : [])] : LITE_SOURCES;
@@ -41,7 +43,7 @@ export async function computeGauge(subject: Subject): Promise<Stored> {
         if (cached?.state === "ready") {
           stored = { state: "ready", gauge: { ...cached.gauge, key: subject.key, targetUrl: subject.link } }; break;
         }
-        const { items, window } = await collectAdaptive(target.name, sourcesFor(target), { link: target.link, budgetMs: 10_000 });
+        const { items, window } = await collectAdaptive(target.name, sourcesFor(target), { link: target.link, domain: target.scope === "domain" ? target.domain : undefined, budgetMs: 10_000 });
         if (items.filter(item => item.kind !== "video").length < settings.minItems()) continue;
         const gauge = await liteGauge(target, items, window, 12_000);
         if (!gauge) continue;
@@ -60,11 +62,7 @@ export async function computeGauge(subject: Subject): Promise<Stored> {
 export async function gaugeFor(req: GaugeRequest, budgetMs: number, keepAlive: (work: Promise<unknown>) => void): Promise<GaugeResponse> {
   const started = Date.now();
   const results = req.results.slice(0, MAX_RESULTS).map((r, i) => ({ ...r, i }));
-  const byIndex = new Map<number, Subject | null>();
-  for (const r of results) {
-    byIndex.set(r.i, linkSubject(r));
-  }
-  const naming = await nameSubjects(req.query, [], Math.min(8000, budgetMs / 3));
+  const naming = await resultSubjects(req.query, results, Math.min(8000, budgetMs / 3));
 
   const subjects = new Map<string, Subject>();
   const add = (s: Subject | null) => {
@@ -73,7 +71,7 @@ export async function gaugeFor(req: GaugeRequest, budgetMs: number, keepAlive: (
   };
   const response: GaugeResponse = {
     query: { key: add(naming.query) },
-    results: results.map((r) => ({ url: r.url, key: add(byIndex.get(r.i) ?? null) })),
+    results: results.map((r) => ({ url: r.url, key: add(naming.results.get(r.i) ?? null) })),
     subjects: {},
   };
 

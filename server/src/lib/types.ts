@@ -170,6 +170,8 @@ export interface Card {
   category: Category;
   window?: SearchWindow;
   summary: string;
+  /* A notable recent development changing how people feel, when there is one. */
+  recent?: string;
   opinions: RecurringOpinion[];
   sentiment: SentimentSplit;
   verdict: Verdict;

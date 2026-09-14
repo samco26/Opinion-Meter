@@ -15,7 +15,7 @@ export type Message =
 
 export interface ConfigReply { server: string; config: ExtensionConfig }
 
-export function send<T>(message: Message): Promise<T> {
+function once<T>(message: Message): Promise<T> {
   return new Promise((resolve, reject) => {
     chrome.runtime.sendMessage(message, (response) => {
       const failure = chrome.runtime.lastError?.message ?? (response as { error?: string } | undefined)?.error;
@@ -23,6 +23,21 @@ export function send<T>(message: Message): Promise<T> {
       else resolve(response as T);
     });
   });
+}
+
+/* The brain is a background worker the browser may put to sleep between
+   messages; a message that lands while it wakes is simply sent again. */
+export async function send<T>(message: Message, attempt = 0): Promise<T> {
+  try {
+    return await once<T>(message);
+  } catch (err) {
+    const transient = /message channel closed|Receiving end does not exist|message port closed/i.test(String(err));
+    if (transient && attempt < 2) {
+      await new Promise((resolve) => setTimeout(resolve, 400 * (attempt + 1)));
+      return send<T>(message, attempt + 1);
+    }
+    throw err;
+  }
 }
 
 export const storage = {

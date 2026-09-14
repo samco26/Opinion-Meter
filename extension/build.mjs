@@ -1,6 +1,12 @@
 /* Builds the extension: one bundle each for the hands, the brain and the
    options page, then a Chrome package and a Firefox package with their
-   own manifests. dist/<target>/ is what "Load unpacked" points at. */
+   own manifests. dist/<target>/ is what "Load unpacked" points at.
+
+   The Chrome package is the one for every Chromium browser: Chrome, Edge,
+   Brave, Opera, Vivaldi and Arc all install it unchanged. Firefox needs
+   its own manifest (a background script instead of a service worker, an
+   add-on id, and host permissions spelt out so Firefox can ask for them).
+   Safari would need Apple's converter on a Mac; not built here. */
 
 import { build } from "esbuild";
 import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -19,11 +25,12 @@ const manifest = (target) => ({
   description,
   icons: { 16: "icons/icon16.png", 32: "icons/icon32.png", 48: "icons/icon48.png", 128: "icons/icon128.png" },
   permissions: ["storage"],
+  ...(target === "firefox" ? { host_permissions: matches } : {}),
   background: target === "firefox" ? { scripts: ["background.js"] } : { service_worker: "background.js" },
   content_scripts: [{ matches, js: ["content.js"], run_at: "document_idle" }],
   options_ui: { page: "options.html", open_in_tab: false },
   action: { default_title: "Opinion Meter" },
-  ...(target === "firefox" ? { browser_specific_settings: { gecko: { id: "opinion-meter@samco26.github.io", strict_min_version: "121.0" } } } : {}),
+  ...(target === "firefox" ? { browser_specific_settings: { gecko: { id: "opinion-meter@samco26.github.io", strict_min_version: "121.0" } } } : { minimum_chrome_version: "111" }),
 });
 
 for (const target of ["chrome", "firefox"]) {
@@ -32,7 +39,7 @@ for (const target of ["chrome", "firefox"]) {
   mkdirSync(out, { recursive: true });
   await build({
     entryPoints: { content: "src/content.ts", background: "src/background.ts", options: "src/options.ts" },
-    bundle: true, format: "iife", outdir: out, target: ["chrome110", "firefox121", "safari16"], logLevel: "info",
+    bundle: true, format: "iife", outdir: out, target: ["chrome111", "firefox121", "safari16"], logLevel: "info",
   });
   cpSync("src/options.html", `${out}/options.html`);
   cpSync("icons", `${out}/icons`, { recursive: true });

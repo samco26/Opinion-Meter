@@ -3,7 +3,7 @@ import { queryPlacement, readResults, type Found } from "./google";
 import { send, type ConfigReply, type ExtensionConfig, type Gauge, type GaugeRequest, type GaugeResponse, type SubjectStates } from "./shared";
 
 let config: ExtensionConfig;
-let server = "", query = "", generation = 0;
+let server = "", query = "", generation = 0, dark = false;
 let queryBar: Bar | null = null;
 let seen = new WeakMap<Element, string>();
 let queue: Found[] = [];
@@ -12,6 +12,13 @@ const bars = new Map<string, Bar[]>();
 const placements = new Map<HTMLElement, Bar>();
 const pending = new Set<string>();
 const currentQuery = () => (new URL(location.href).searchParams.get("q")?.trim() ?? "").slice(0, 200);
+
+/* Google's dark theme is a page background, not a media query. */
+function isDark(): boolean {
+  const rgb = getComputedStyle(document.body).backgroundColor.match(/\d+(\.\d+)?/g)?.map(Number) ?? [];
+  if (rgb.length < 3 || (rgb.length === 4 && rgb[3] === 0)) return matchMedia("(prefers-color-scheme: dark)").matches;
+  return (0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]) / 255 < 0.5;
+}
 
 const open = (context: GaugeRequest, title: string) => (gauge: Gauge | undefined, anchor: DOMRect) => {
   // No iframe or full reading until a click. Fragment avoids query/title URL logs.
@@ -33,6 +40,12 @@ function positionQuery() {
   queryBar.host.toggleAttribute("data-side", place.side);
   if (queryBar.host.parentElement !== place.parent || place.parent.firstElementChild !== queryBar.host) place.parent.insertBefore(queryBar.host, place.before);
 }
+/* A result's bar sits inside its heading, right after the title's last
+   word; a tile without a heading gets it after the link instead. */
+function place(result: Found, bar: Bar) {
+  if (result.heading?.isConnected) result.heading.append(bar.host);
+  else (result.anchor.closest('a, button') ?? result.anchor).insertAdjacentElement("afterend", bar.host);
+}
 async function drain() {
   if (busy) return;
   busy = true;
@@ -44,17 +57,15 @@ async function drain() {
       const requestQuery = query;
       const drawn = new Map<Found, Bar>();
       for (const result of results) {
-        if (!result.anchor.isConnected) continue;
+        if (!result.anchor.isConnected || result.unavailable) continue;
         placements.get(result.anchor)?.remove();
         const context = { query: requestQuery, results: [{ url: result.url, title: result.title }] };
-        const bar = createBar({ title: result.title, onOpen: result.unavailable ? (_gauge, anchor) => openOverlay({ url: server, anchor, title: result.title, message: result.unavailable }) : open(context, result.title) });
-        const target = result.anchor.closest('a, button') ?? result.anchor;
-        target.insertAdjacentElement("afterend", bar.host);
+        const bar = createBar({ title: result.title, dark, onOpen: open(context, result.title) });
+        place(result, bar);
         placements.set(result.anchor, bar); drawn.set(result, bar);
-        if (result.unavailable) bar.set({ kind: "empty", reason: result.unavailable });
       }
       if (initial && config.google.queryBar) {
-        queryBar = createBar({ big: true, title: requestQuery, onOpen: open({ query: requestQuery, results: [] }, requestQuery) });
+        queryBar = createBar({ big: true, title: requestQuery, dark, onOpen: open({ query: requestQuery, results: [] }, requestQuery) });
         positionQuery();
       }
       try {
@@ -64,10 +75,9 @@ async function drain() {
         if (epoch !== generation) continue;
         const keys = new Map(response.results.map(r => [r.url, r.key]));
         for (const [result, bar] of drawn) {
-          if (result.unavailable) continue;
           const key = keys.get(result.url);
           if (key) attach(key, bar);
-          else bar.set({ kind: "empty", reason: "No reading available for this link. Open to check." });
+          else bar.set({ kind: "empty", reason: "No reading available for this link." });
         }
         if (initial && queryBar) {
           if (response.query.key) attach(response.query.key, queryBar);
@@ -76,7 +86,7 @@ async function drain() {
         apply(response.subjects);
       } catch {
         if (epoch !== generation) continue;
-        for (const bar of drawn.values()) bar.set({ kind: "empty", reason: "The reading could not finish. Click to retry." });
+        for (const bar of drawn.values()) bar.set({ kind: "empty", reason: "The reading could not finish." });
         if (initial) queryBar?.set({ kind: "empty", reason: "The reading could not finish. Click to retry." });
       }
     }
@@ -97,7 +107,7 @@ async function main() {
   if (window.top !== window || !currentQuery()) return;
   const reply = await send<ConfigReply>({ type: "config" }).catch(() => null);
   if (!reply?.config.enabled || !reply.config.google.enabled) return;
-  ({ server, config } = reply); query = currentQuery(); scan();
+  ({ server, config } = reply); query = currentQuery(); dark = isDark(); scan();
   let timer: number | undefined;
   new MutationObserver(records => {
     if (records.every(record => (record.target as Element).closest?.('[data-opinion-meter]') || (record.type === "childList" && [...record.addedNodes, ...record.removedNodes].every(node => node instanceof Element && node.hasAttribute('data-opinion-meter'))))) return;
@@ -121,7 +131,7 @@ async function main() {
         rounds.set(key, (rounds.get(key) ?? 0) + 1);
         if (pending.has(key) && rounds.get(key)! >= config.polls) {
           pending.delete(key);
-          for (const bar of bars.get(key) ?? []) bar.set({ kind: "empty", reason: "Reading timed out. Click to try the full reading." });
+          for (const bar of bars.get(key) ?? []) bar.set({ kind: "empty", reason: "Reading timed out." });
         }
       }
       polling = false;

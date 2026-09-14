@@ -4,9 +4,15 @@ The product and the repository (`samco26/Opinion-Meter`) are called Opinion Mete
 
 A browser extension that shows, beside anything you are about to click, what people actually think of it: a small bar, how many voices, one sentence — and the full picture on click.
 
-### Current behaviour — 14 September 2026, v0.2
+### Current behaviour — 15 September 2026, v0.3
 
-The main card summarises opinion about the **search query**. Individual result bars measure opinion about the **exact linked page**, falling back to its **website/domain** only when fewer than eight relevant page-specific opinions are found. They never borrow the query's or product's sentiment. A domain fallback is explicitly labelled in the tooltip and drawer; AI separates website reputation from opinions about products the website mentions. Links to Google's internal shopping viewer have a neutral unavailable bar until a real destination can be identified.
+The main card summarises opinion about the **search query**. A result's bar is about **the thing its page represents** — a product, a service, a film, an app, a company, a site's front page, a video, an article — as people regard it over time, named by rules where a site's address carries the identity and by one batched AI call otherwise. The query and a result about the same thing share one reading (the `youtube.com` result and the query "youtube" are both YouTube). A page about nothing in particular (a how-to, a login page) gets no bar. Only without an AI key does an unnamed page fall back to a reading of the page itself, then its website.
+
+Summaries and the bar's sentence describe the subject's **general standing**, never the news of the moment; a separate **"Lately"** line appears only when the newest entries show a notable recent development, with roughly when it happened. Momentary "is it down?" reports do not count as opinions. The sample the model reads takes turns across platforms and caps any single thread, so one busy platform or one outage thread cannot drown the rest; search windows widen platform by platform.
+
+Result bars sit inside the title, right after its last word, with "42% positive · 43 opinions", fade in, adapt to Google's dark theme, and are invisible until a reading exists — no placeholders, nothing drawn over images or untitled links. The tooltip is fixed to the viewport. The drawer shows the three percentages under the bar, a "Lately" line when there is one, a quiet scrollbar and fades; the "specific page / open page" line is gone. One Chrome package serves Chrome, Edge, Brave, Opera, Vivaldi and Arc; the Firefox package declares its host permissions.
+
+Previously (v0.2, 14 September): result bars measured the exact linked page with a labelled website fallback and never borrowed the query's sentiment; result controls were bare bars with placeholders while loading.
 
 The hands cover organic headings, sponsored results, product tiles and AI Overview references. Result controls are bare bars, with counts and scope on hover/focus; unavailable readings are neutral outlines. The main card has no summary subtext. It sits above the right-hand reference column when one can be recognised, otherwise above the main results. Dynamic results are processed in bounded batches, including repeated destinations and results after the first batch.
 
@@ -102,7 +108,11 @@ Readers see bars about a second after the results for anything already in memory
 
 ### 4.3 How a verdict is made
 
-**Naming the subject.** AI names the subject of the main query. Result readings use a canonical destination URL as their identity, not a product inferred from the headline. Tracking variants share a reading; different pages remain separate. Domain fallback readings can share a cache within the same hostname.
+**Naming the subject.** AI names the subject of the main query. Each result names the thing its page represents: rules first (a shop's product page → the product; IMDb → the film; an app store → the app; GitHub → the tool; a YouTube address → that video; a site's front page → the site), then one batched AI call for the rest (a review names its product; a news story names the article, found by link; a how-to, a person or a page about nothing names nothing). Tracking variants of an address share a reading. Without an AI key an unnamed page falls back to a reading of the page, then of its website.
+
+**General versus recent.** The summary and the bar's sentence describe how people regard the subject over time and never hinge on an incident the reader has no context for. When the newest entries show a notable recent development — an outage, a redesign, a controversy, a price change — one "Lately" sentence names it with roughly when it happened; otherwise nothing. A bare report that something is down right now is not an opinion of it.
+
+**A fair sample.** The model reads a bounded sample taken in turns from each platform's most-reacted-to opinions, with no single thread allowed more than two fifths of the places, so a platform with thousands of entries cannot crowd out one with dozens. Search windows widen platform by platform until each has about 25 opinions or runs out of history.
 
 **Finding the discussion.** By name on Reddit, YouTube, Hacker News and Bluesky; by link where the subject is an article or a video (Reddit's `url:` search, Hacker News's URL search, Bluesky's URL filter). Search windows widen from 3 to 12 to 36 months until enough is found. A bounded sample: at most a fixed number of threads per platform and comments per thread.
 
@@ -320,6 +330,12 @@ That word-count fallback applies only to main-query readings. Website/link reput
 | 2026-09-14 | The drawer is an in-page overlay framing the server's embed page, not a side panel: one behaviour on every browser, and the card UI updates without a store review. |
 | 2026-09-14 | The extension is bundled by esbuild with a small build script rather than WXT: fewer moving parts while building without a local Node. |
 | 2026-09-14 | No Node is installed on the owner's machines; GitHub Actions is the build and test machine, Vercel the server. The extension packages are downloaded from the Actions run and loaded unpacked. |
+| 2026-09-15 | Reverses the 14 September separation: a result's bar is about the thing its page represents (rules, then AI naming), so a site's front page and the query about that site share one reading. The page-then-website reading remains only as the no-AI fallback. |
+| 2026-09-15 | Summaries describe general standing, never the news of the moment; a separate "Lately" line carries a notable recent development when there is one. Momentary outage reports are not opinions. |
+| 2026-09-15 | The sample is taken in turns across platforms with a per-thread cap; windows widen platform by platform. Every connected platform is read for every subject. |
+| 2026-09-15 | Result bars sit inside the title after its last word, with the count text, and are invisible until a reading exists. No placeholders. Tooltip fixed to the viewport. |
+| 2026-09-15 | Bluesky may be read signed in with an app password when the public door refuses; YouTube reads up to 20 videos × 100–200 comments and a linked video five pages deep; outgoing requests carry a User-Agent. |
+| 2026-09-15 | One Chrome package for every Chromium browser; the Firefox package declares host permissions. Safari deferred (needs a Mac). |
 
 ## 17. Trying it
 

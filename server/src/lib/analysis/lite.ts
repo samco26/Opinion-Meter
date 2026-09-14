@@ -13,7 +13,7 @@ import { heuristicClassify, heuristicSentence } from "./heuristic";
 import { CLASSIFY_RULES, formatItems, sample } from "./prompt";
 import { targetInstructions } from "../target";
 
-const LITE_MAX = 60;
+const LITE_MAX = 80;
 const Refs = z.array(z.number().int());
 const Lite = z.object({
   classified: z.object({ positive: Refs, neutral: Refs, negative: Refs, irrelevant: Refs }),
@@ -24,6 +24,7 @@ const Lite = z.object({
 const INSTRUCTIONS = `You read a sample of public discussion about a subject and say where opinion sits, for a general reader, in plain English.
 - ${CLASSIFY_RULES}
 - The sentence is one sentence of at most 160 characters, written the way a person who had read all of it would tell a friend what people think, with the subject as the grammatical subject and the views stated directly: "The XM6 sounds superb and cancels noise better than anything, but the price and the folding hinge draw complaints." No percentages, no "people say", no "opinion", no "sample".
+- The sentence is about how people regard the subject in general — what they value and what they complain about over time — never the news of the moment. Never anchor it to an event, outage, launch, update or date the reader has no context for; if the newest entries are all about one incident, describe the lasting view and leave the incident out.
 - If almost nothing is about the subject, the sentence says so plainly.
 - Confidence is about the evidence: how much there is, how consistent it is, how much is on topic.`;
 

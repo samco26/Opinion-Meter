@@ -26,7 +26,7 @@ export async function cardFor(key: string, budgetMs: number, context?: GaugeRequ
   for (const target of [subject, ...(fallback ? [fallback] : [])]) {
   if (Date.now() - started > budgetMs - 5000) break;
   const sources = [...sourcesFor(target), "x" as const];
-  const { items, statuses, window } = await collectAdaptive(target.name, sources, { link: target.link, depth: "full", budgetMs: Math.min(target.scope === "link" ? 10_000 : 16_000, Math.max(1, budgetMs - (Date.now() - started) - 8000)) });
+  const { items, statuses, window } = await collectAdaptive(target.name, sources, { link: target.link, domain: target.scope === "domain" ? target.domain : undefined, depth: "full", budgetMs: Math.min(target.scope === "link" ? 10_000 : 16_000, Math.max(1, budgetMs - (Date.now() - started) - 8000)) });
   const opinions = items.filter((item) => item.kind !== "video").length;
   const minItems = settings.minItems();
   if (opinions < minItems) {

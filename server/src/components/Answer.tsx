@@ -20,7 +20,8 @@ const shownSources = (sources: SourceStatus[]) => SOURCES.filter((source) => {
 export function Coverage({ sources }: { sources: SourceStatus[] }) {
   const missing = shownSources(sources).map((source) => sources.find((s) => s.source === source.id)!).filter((status) => status.availability !== "ok");
   if (!missing.length) return null;
-  return <p className="coverage-note">{missing.map((status) => `${sourceName(status.source)} ${status.availability === "unavailable" ? "returned nothing" : "has limited coverage"}`).join(". ")}.</p>;
+  const say = (status: SourceStatus) => status.availability !== "unavailable" ? "has limited coverage" : /refused|sign the server in/i.test(status.note ?? "") ? "could not be read" : "returned nothing";
+  return <p className="coverage-note">{missing.map((status) => `${sourceName(status.source)} ${say(status)}`).join(". ")}.</p>;
 }
 
 export function SourceButtons({ sources, bySource, onChoose, className = "source-buttons" }: { sources: SourceStatus[]; bySource: SourceId[]; onChoose?: (id: SourceId) => void; className?: string }) {
@@ -48,13 +49,13 @@ export function Answer({ card, onChoose }: { card: Card; onChoose: (id: SourceId
   const rating = !card.scope && card.category !== "general" ? starRating(card.sentiment, analysed) : null;
   return <div className="result-copy">
     {card.simulated && <p className="sample-label">Estimated from word counts · the server has no AI key</p>}
-    {card.scope && <p className="scope-label">{card.scope === "domain" ? `Website fallback · ${card.domain}. Not a verdict on this specific page.` : "Opinions about this specific page"}{card.targetUrl && <a href={card.targetUrl} target="_blank" rel="noopener noreferrer">Open page ↗</a>}</p>}
     <p className="overall-answer">{card.summary}</p>
+    {card.recent && <p className="recent-note"><span className="recent-tag">Lately</span><span>{card.recent}</span></p>}
     <p className="reading-count">{analysed} relevant opinions · {card.confidence.level} confidence</p>
     <div className="source-row">
       {rating && <span className="rating-pill" title="Sentiment score, not submitted star reviews"><Stars value={rating.stars} /> {rating.stars.toFixed(1)}/5</span>}
       <SourceButtons sources={card.sources} bySource={card.bySource.map((reading) => reading.source)} onChoose={onChoose} />
-      <SentimentBar compact split={card.sentiment} note={analysed < LIMITED_BELOW ? "Limited results on subject found" : undefined} />
+      <SentimentBar compact figures split={card.sentiment} note={analysed < LIMITED_BELOW ? "Limited results on subject found" : undefined} />
     </div>
     <Coverage sources={card.sources} />
   </div>;

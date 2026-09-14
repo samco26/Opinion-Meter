@@ -2,10 +2,15 @@
 
 import type { SourceId, SourceItem, SourceStatus } from "./types";
 
+/* Some public doors refuse requests that do not say who is asking. */
+export const USER_AGENT = "OpinionMeter/0.3 (+https://opinionmeter.vercel.app)";
+
 export interface CollectOptions {
   subject: string;
   /* An article's address: readers that can search by link do, instead of by name. */
   link?: string;
+  /* A website's hostname, when the subject is the site itself rather than a page on it. */
+  domain?: string;
   depth?: "lite" | "full";
   timeoutMs?: number;
   from?: Date;
@@ -37,8 +42,9 @@ export class HttpError extends Error {
 /* Keep only the provider's short error explanation; never a URL or a key. */
 function responseDetail(body: string): string | undefined {
   try {
-    const parsed = JSON.parse(body) as { title?: unknown; detail?: unknown; message?: unknown; error?: { message?: unknown }; errors?: Array<{ message?: unknown; detail?: unknown }> };
-    const found = [parsed.errors?.[0]?.message, parsed.errors?.[0]?.detail, parsed.error?.message, parsed.message, parsed.detail, parsed.title]
+    const parsed = JSON.parse(body) as { title?: unknown; detail?: unknown; message?: unknown; error?: { message?: unknown } | string; errors?: Array<{ message?: unknown; detail?: unknown }> };
+    const error = typeof parsed.error === "object" && parsed.error ? parsed.error.message : parsed.error;
+    const found = [parsed.errors?.[0]?.message, parsed.errors?.[0]?.detail, error, parsed.message, parsed.detail, parsed.title]
       .find((value): value is string => typeof value === "string" && value.trim().length > 0);
     return found ? tidy(found, 300) : undefined;
   } catch {
@@ -47,7 +53,7 @@ function responseDetail(body: string): string | undefined {
 }
 
 export async function getJson<T>(url: string, init: RequestInit): Promise<T> {
-  const res = await fetch(url, { ...init, cache: "no-store" });
+  const res = await fetch(url, { ...init, cache: "no-store", headers: { "User-Agent": USER_AGENT, Accept: "application/json", ...((init.headers as Record<string, string> | undefined) ?? {}) } });
   if (!res.ok) {
     const detail = responseDetail(await res.text());
     const host = new URL(url).host;

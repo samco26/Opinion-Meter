@@ -1,7 +1,7 @@
 /* A drawer can land on a different server instance. Re-name the original
    query/result if memory has expired; never trust a client-supplied subject. */
 import { nameSubjects } from "./analysis/name";
-import { linkSubject } from "./target";
+import { resultSubjects } from "./target";
 import type { GaugeRequest, Subject } from "./types";
 
 export function readContext(value: unknown): GaugeRequest | null {
@@ -17,11 +17,8 @@ export function readContext(value: unknown): GaugeRequest | null {
 
 export async function recoverSubject(key: string, context: GaugeRequest): Promise<Subject | null> {
   const result = context.results[0];
-  let found: Subject | null;
-  if (result) {
-    found = linkSubject(result);
-  } else {
-    found = (await nameSubjects(context.query, [], 8000)).query;
-  }
+  const found = result
+    ? (await resultSubjects(context.query, [{ ...result, i: 0 }], 8000)).results.get(0) ?? null
+    : (await nameSubjects(context.query, [], 8000)).query;
   return found && (!key || found.key === key) ? found : null;
 }

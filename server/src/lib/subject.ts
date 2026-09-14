@@ -1,7 +1,8 @@
 /* Naming the subject behind a search result without an AI call where a
    rule can: the sites people check for a kind of thing carry the thing's
-   identity in their addresses. Anything else is "ask" (the batched AI
-   call decides) or null (a page that is never about one thing). */
+   identity in their addresses, and a site's front page stands for the
+   site itself. Anything else is "ask" (the batched AI call decides) or
+   null (a page that is never about one thing). */
 
 import { createHash } from "node:crypto";
 import type { Category, Subject, SubjectKind } from "./types";
@@ -50,8 +51,26 @@ export function shorten(name: string): string {
 /* A headline without the site name that Google appends after the last separator. */
 export const headline = (title: string) => cut(title, /\s+[-|–—]\s+[^-|–—]{2,40}$/);
 
+const SITE_NOISE = /^(home|homepage|official (web)?site|welcome( to)?|the official (web)?site)$/i;
+
+/* A front page's title, reduced to the name of the site: the part that
+   echoes the address ("CNN" from "Breaking News … | CNN"), else the
+   shortest part, else the address's own label. */
+export function siteName(title: string, host: string): string {
+  const label = host.replace(/^(www|m)\./, "").split(".")[0];
+  const parts = title.split(/\s+[|–—-]\s+|\s*:\s+|\s+·\s+/).map((part) => part.trim()).filter((part) => part && !SITE_NOISE.test(part));
+  const byHost = parts.find((part) => part.toLowerCase().replace(/[^a-z0-9]/g, "").includes(label.toLowerCase()));
+  const chosen = byHost ?? [...parts].sort((a, b) => a.length - b.length)[0] ?? "";
+  if (chosen && chosen.length <= 40) return chosen;
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
 const NEWS = /(^|\.)(cnn|bbc|reuters|apnews|nytimes|washingtonpost|theguardian|wsj|bloomberg|ft|forbes|cnbc|nbcnews|cbsnews|foxnews|npr|politico|axios|theatlantic|newyorker|economist|time|abc\.net|news\.com|smh\.com|theage\.com|9news\.com|sbs\.com|theaustralian|afr|theconversation|stuff\.co|nzherald|businessinsider|vox|huffpost|dailymail|telegraph|independent|skynews|aljazeera|dw|france24|scmp|cbc|ctvnews|theglobeandmail|substack|medium)\.[a-z.]+$/;
 const NEVER = /(^|\.)(google|bing|duckduckgo|facebook|instagram|tiktok|linkedin|pinterest|wikihow|w3schools|stackoverflow|stackexchange|microsoft)\./;
+const SEARCH_ENGINES = /(^|\.)(google|bing|duckduckgo|yahoo|yandex|baidu)\./;
+/* "/", "/au/", "/en-gb": a site's front page, possibly for one country. */
+const FRONT = /^\/(?:[a-z]{2}(?:[-_][a-z]{2})?\/?)?$/i;
+const UTILITY_HOST = /^(support|docs|developer|help|login|accounts?)\./;
 const GITHUB_RESERVED = new Set(["features", "topics", "marketplace", "orgs", "settings", "login", "explore", "sponsors", "about", "pricing", "collections", "events", "trending", "search", "issues", "pulls"]);
 
 type Rule = (u: URL, host: string, title: string) => RuleOutcome;
@@ -118,8 +137,17 @@ const RULES: Rule[] = [
     const m = host === "goodreads.com" ? u.pathname.match(/\/book\/show\/(\d+)/) : null;
     return m ? subject(cut(title, /\s*\|\s*goodreads$/i), "book", `goodreads:${m[1]}`) : null;
   },
+  /* A YouTube video: the video itself, found by its ID (its own comments
+     and the posts that link to it). */
+  (u, host, title) => {
+    const id = host === "youtu.be" ? u.pathname.slice(1) : host === "youtube.com" ? (u.searchParams.get("v") ?? u.pathname.match(/^\/(?:shorts)\/([^/]+)/)?.[1]) : null;
+    if (!id || !/^[\w-]{11}$/.test(id)) return null;
+    const name = cut(title, /\s*[-|]\s*youtube\s*$/i);
+    return name ? subject(name, "article", `yt:${id}`, `https://www.youtube.com/watch?v=${id}`) : null;
+  },
   (_u, host) => (/(^|\.)wikipedia\.org$/.test(host) ? "ask" : null),
   (u, host, title) => {
+    if (u.pathname === "/" || u.pathname === "") return null;
     if (!NEWS.test(host) && !/\/20\d\d\/\d\d\//.test(u.pathname)) return null;
     const link = normaliseUrl(u.toString())!;
     const name = headline(title);
@@ -142,7 +170,13 @@ export function resolveByRule(result: RawResult): RuleOutcome {
     const out = rule(u, host, title);
     if (out) return out;
   }
-  if (NEVER.test(host) || /^(support|docs|developer|help|login|accounts?)\./.test(host)) return null;
+  /* A site's front page (or its country front page, /au/ or /en-gb/) is
+     the site itself, which people do have views on. */
+  if (FRONT.test(u.pathname) && !u.search) {
+    if (SEARCH_ENGINES.test(host) || UTILITY_HOST.test(host)) return null;
+    return subject(siteName(title, host), "company");
+  }
+  if (NEVER.test(host) || UTILITY_HOST.test(host)) return null;
   return "ask";
 }
 

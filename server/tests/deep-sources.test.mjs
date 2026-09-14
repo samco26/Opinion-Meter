@@ -24,7 +24,8 @@ test("Bluesky retains early pages after a later error and stops repeated cursors
   assert.equal(partial.items.length, 1); assert.equal(partial.status.availability, "partial");
   count = 0;
   await mock(() => { count++; return { posts: [post("one", "1")], cursor: "same" }; }, () => bluesky.collect(opts));
-  assert.equal(count, 2);
+  // Two most-liked pages (the repeated cursor stops the second) and one page of the newest.
+  assert.equal(count, 3);
 });
 test("Hacker News exact-link matches do not include sibling pages", async () => {
   const calls = [];
