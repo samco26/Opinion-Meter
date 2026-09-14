@@ -7,9 +7,9 @@ import { memory } from "./memory";
 import type { ExtensionConfig } from "./types";
 
 export const DEFAULT_CONFIG: ExtensionConfig = {
-  version: 1,
+  version: 2,
   enabled: true,
-  minExtensionVersion: "0.1.0",
+  minExtensionVersion: "0.2.0",
   ttlMinutes: 60,
   pollMs: 8000,
   polls: 4,

@@ -4,6 +4,7 @@
 import { callerId, json, preflight } from "@/lib/api";
 import { cardFor } from "@/lib/card";
 import { checkLimit } from "@/lib/limits";
+import { readContext } from "@/lib/card-context";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -11,6 +12,17 @@ export const maxDuration = 60;
 const BUDGET_MS = 55_000;
 
 export const OPTIONS = () => preflight();
+
+export async function POST(request: Request) {
+  const limit = await checkLimit(callerId(request));
+  if (!limit.ok) return json({ error: limit.reason }, { status: 429, headers: { "Retry-After": String(limit.retryAfter) } });
+  const body = await request.json().catch(() => null);
+  const key = body?.key ?? "";
+  const context = readContext(body?.context);
+  if (typeof key !== "string" || key.length > 120 || !context) return json({ error: "Send the original query and at most one result." }, { status: 400 });
+  try { return json(await cardFor(key, BUDGET_MS, context)); }
+  catch (err) { return json({ error: err instanceof Error ? err.message : "The analysis failed." }, { status: 502 }); }
+}
 
 export async function GET(request: Request) {
   const limit = await checkLimit(callerId(request));

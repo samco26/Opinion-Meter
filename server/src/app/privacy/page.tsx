@@ -8,6 +8,7 @@ export default function Privacy() {
         <p>Opinion Meter is a browser extension that shows what people think of the things in your search results. This page says exactly what it sends and keeps.</p>
         <h2>What the extension sends</h2>
         <p>On Google search result pages only: the titles and addresses of the results on the page and the words you searched for. Nothing from any other page, ever. No page content, no cookies, no account details, no browsing history.</p>
+        <p>This includes sponsored results, shopping tiles and AI Overview reference links. The main reading concerns the search query; individual result readings concern the linked page, with a clearly labelled website fallback. Opening a result resends that one result&apos;s title and address and the original query to recover the reading if necessary.</p>
         <p>Each install makes a random token so the server can limit how often one copy asks. The token identifies an install, not a person, and is never linked to an account.</p>
         <h2>What the server keeps</h2>
         <p>The server keeps only what it works out: the split of opinion, the count, the summary sentence and links to the public posts it read, for up to 24 hours per subject. It does not keep the posts themselves. The quotes shown when you open a subject are fetched live, so a post deleted on its platform disappears from Opinion Meter at once.</p>

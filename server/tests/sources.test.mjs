@@ -41,7 +41,7 @@ test("Bluesky posts become items with profile links and combined reactions", asy
     { uri: "at://did:plc:abc/app.bsky.feed.post/3m", author: { handle: "x" }, record: { text: "   " } },
   ] }), () => bluesky.collect(opts()));
   assert.equal(collected.items.length, 1);
-  assert.deepEqual(collected.items[0], { id: "bluesky:post:3k", source: "bluesky", kind: "post", text: "The K2 is lovely", author: "@sam.bsky.social", url: "https://bsky.app/profile/sam.bsky.social/post/3k", publishedAt: "2026-08-01T00:00:00Z", engagement: 5 });
+  assert.deepEqual(collected.items[0], { id: "bluesky:post:at://did:plc:abc/app.bsky.feed.post/3k", source: "bluesky", kind: "post", text: "The K2 is lovely", author: "@sam.bsky.social", url: "https://bsky.app/profile/sam.bsky.social/post/3k", publishedAt: "2026-08-01T00:00:00Z", engagement: 5 });
 });
 
 test("link searches strip www, tracking and trailing slashes", () => {

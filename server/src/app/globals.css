@@ -136,4 +136,29 @@ a{color:inherit}
   .pbody .pstack{gap:5px}.pbody .pstack .srcbtn{width:44px}.pbody .answer-small{font-size:13px;line-height:1.4;margin-top:0}
 }
 @supports not(backdrop-filter:blur(1px)){.glass{background:#e8e9df}.ctl{background:#f0ede3}}
+/* The blur belongs to the outer drawer so it can sample Google's page.
+   Both the document and iframe content must stay transparent. */
+html:has(.embed),body:has(.embed){background:transparent}
+body:has(.embed)>.ground{display:none}
+.embed{padding:0}
+.embed-card{padding:10px 14px 12px;background:transparent;border:0;border-radius:22px;max-height:100%}
+.embed-scroll{overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;min-height:0}
+.embed-content{display:flow-root}
+.embed .opinion-list{overflow:visible;max-height:none;margin:0;padding:4px 2px 6px;mask-image:none;-webkit-mask-image:none;gap:7px}
+.embed .opinion-pill{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 13px;font-size:13px;border-radius:18px;animation:none}
+.embed .opinion-pill small{white-space:nowrap;opacity:.8}
+.embed .result-copy{padding:10px 2px 12px;animation:none}
+.embed .overall-answer{font-size:18px;line-height:1.45}
+.embed .source-row{margin-top:14px;gap:12px;flex-wrap:wrap}
+.embed .source-row .sentiment{min-width:160px;margin:0}
+.embed .srcbtn{width:36px;height:36px}
+.embed .source-buttons{gap:6px}
+.section-label{font-size:11px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;margin:8px 2px}
+.reading-count{font-size:11px;color:var(--muted);margin-top:8px}
+.scope-label{font-size:12px;line-height:1.4;color:var(--muted);margin-bottom:10px}
+.scope-label a{display:block;margin-top:4px}
+.detail-content{padding:10px 2px;outline:none}.detail-content h2{font-size:20px;line-height:1.3;margin-bottom:14px}
+.detail-content .post-section{padding:14px;border-radius:18px}.detail-content .post-section h3{font-size:15px}
+.detail-content .comment-pill{font-size:12px;padding:9px 12px}
+.detail-content .platform-heading{gap:10px;margin-bottom:18px}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}.liquid-track span{transform:none;width:100%;opacity:.7}}

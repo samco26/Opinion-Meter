@@ -12,6 +12,7 @@ import type { Card, SearchWindow, SourceId, SourceItem, SourceStatus, Subject } 
 import { buildEvidence, type Classification } from "./evidence";
 import { heuristicClassify, heuristicSentence } from "./heuristic";
 import { CLASSIFY_RULES, formatItems, sample } from "./prompt";
+import { targetInstructions } from "../target";
 
 const CARD_MAX = 250;
 const Refs = z.array(z.number().int());
@@ -47,7 +48,7 @@ export async function analyseCard(subject: Subject, items: SourceItem[], statuse
   const entries = sample(items, CARD_MAX);
   const live = configured.openai();
   const out = live
-    ? await structured(Analysis, "card_analysis", INSTRUCTIONS,
+    ? await structured(Analysis, "card_analysis", `${INSTRUCTIONS}\n${targetInstructions(subject)}`,
       `Subject: ${JSON.stringify(subject.name)} (${subject.kind})\nOpinion window: ${window.from.slice(0, 10)} to ${window.to.slice(0, 10)} (${window.months} months)\nPlatforms with opinions: ${[...new Set(entries.filter((e) => e.kind !== "video").map((e) => e.source))].join(", ")}\n\n${entries.length} entries (JSON lines):\n${formatItems(entries)}`,
       { model: cardModel(), maxTokens: 16000, timeoutMs })
     : null;
@@ -74,6 +75,7 @@ export async function analyseCard(subject: Subject, items: SourceItem[], statuse
       bySource: bySource.map((source) => ({ source, sentiment: normalise(evidence.splits[source]), threads: evidence.threadsFor(source) })),
       ...(live ? {} : { simulated: true }),
       updatedAt: new Date().toISOString(),
+      scope: subject.scope, domain: subject.domain, targetUrl: subject.link,
     },
   };
 }

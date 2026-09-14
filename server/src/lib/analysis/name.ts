@@ -28,7 +28,7 @@ Rules:
 - For the query, do the same with the words the person typed: "sony xm6 review" is the product Sony WH-1000XM6; "how to boil eggs" is topic.
 - Return every result index you were given, once.`;
 
-const TTL = 7 * 86_400;
+const TTL = 86_400;
 const NAMEABLE = new Set<string>(["product", "film", "app", "place", "game", "book", "tool", "company", "article", "entity"]);
 type Stored = { subject: Subject | null };
 

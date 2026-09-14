@@ -1,87 +1,101 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
-import type { CardResponse, RecurringOpinion, SourceId } from "@/lib/types";
+import { useEffect, useRef, useState } from "react";
+import { sourceName, type CardResponse, type RecurringOpinion, type SourceId } from "@/lib/types";
 import { Answer, Insufficient } from "./Answer";
-import { CategoryCard, isCategoryCard, usePhone } from "./CategoryCard";
 import { OpinionPills } from "./OpinionPills";
 import { PlatformEvidence, PostList } from "./PlatformEvidence";
 import { Logo } from "./Logo";
 
-/* The card the drawer frames. It asks the card door for its subject, draws
-   the answer (a category card when the subject is a film, product, place or
-   app), lists the recurring opinions under it, and opens the platform or
-   opinion evidence over itself. It tells the page around it when it is
-   ready and when the reader asks to close it. */
-
 type Phase = { name: "loading" } | { name: "done"; response: CardResponse } | { name: "error"; message: string };
-type View = { kind: "source"; source: SourceId } | { kind: "opinion"; opinion: RecurringOpinion };
-
+type View = { kind: "source"; source: SourceId } | { kind: "opinion"; opinion: RecurringOpinion } | { kind: "how" };
 const tell = (message: Record<string, unknown>) => { if (window.parent !== window) window.parent.postMessage({ om: true, ...message }, "*"); };
 
 export function Embed({ subjectKey }: { subjectKey: string }) {
   const [phase, setPhase] = useState<Phase>({ name: "loading" });
-  const [history, setHistory] = useState<View[]>([]);
-  const [general, setGeneral] = useState(false);
-  const phone = usePhone();
-  const panel = useRef<HTMLElement>(null);
-  const view = history.at(-1);
+  const [view, setView] = useState<View | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  const content = useRef<HTMLDivElement>(null);
+  const viewHeading = useRef<HTMLDivElement>(null);
   const card = phase.name === "done" && phase.response.kind === "card" ? phase.response.card : null;
-  const category = Boolean(card && isCategoryCard(card) && !general);
-  const name = card?.subject ?? (phase.name === "done" && phase.response.kind === "insufficient" ? phase.response.subject : undefined);
-
+  const name = card?.subject ?? (phase.name === "done" && phase.response.kind === "insufficient" ? phase.response.subject : "Opinion Meter");
   useEffect(() => {
     tell({ type: "ready" });
-    if (!subjectKey) { setPhase({ name: "error", message: "No subject was given." }); return; }
+    let context: unknown;
+    try { context = JSON.parse(new URLSearchParams(window.location.hash.slice(1)).get("context") ?? "null"); } catch { context = null; }
+    if (!subjectKey && !context) { setPhase({ name: "error", message: "No subject was given." }); return; }
+    setPhase({ name: "loading" });
     const controller = new AbortController();
-    fetch(`/api/card?key=${encodeURIComponent(subjectKey)}`, { signal: controller.signal, cache: "no-store" })
-      .then(async (res) => {
-        const data = await res.json() as CardResponse | { error: string };
-        if (!res.ok || "error" in data) throw new Error("error" in data ? data.error : `The server answered ${res.status}.`);
-        setPhase({ name: "done", response: data });
-      })
-      .catch((err: unknown) => { if (!controller.signal.aborted) setPhase({ name: "error", message: err instanceof Error ? err.message : "The reading failed." }); });
+    fetch(context ? "/api/card" : `/api/card?key=${encodeURIComponent(subjectKey)}`, {
+      signal: controller.signal, cache: "no-store",
+      ...(context ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key: subjectKey, context }) } : {}),
+    }).then(async res => {
+      const data = await res.json() as CardResponse | { error: string };
+      if (!res.ok || "error" in data) throw new Error("error" in data ? data.error : `The server answered ${res.status}.`);
+      if (!controller.signal.aborted) setPhase({ name: "done", response: data });
+    }).catch((err: unknown) => { if (!controller.signal.aborted) setPhase({ name: "error", message: err instanceof Error ? err.message : "The reading failed." }); });
     return () => controller.abort();
-  }, [subjectKey]);
-
-  const back = useCallback(() => setHistory((current) => current.slice(0, -1)), []);
-  const close = useCallback(() => tell({ type: "close" }), []);
+  }, [subjectKey, attempt]);
   useEffect(() => {
-    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") { event.preventDefault(); if (history.length) back(); else close(); } };
+    const node = content.current;
+    if (!node) return;
+    const measure = () => tell({ type: "resize", height: Math.ceil(node.scrollHeight + 76) });
+    const observer = new ResizeObserver(measure);
+    observer.observe(node); measure();
+    return () => observer.disconnect();
+  }, [phase, view]);
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") { event.preventDefault(); if (view) setView(null); else tell({ type: "close" }); }
+      if (event.key === "Tab") {
+        const nodes = [...document.querySelectorAll<HTMLElement>('button:not(:disabled), a[href]')];
+        const first = nodes[0], last = nodes.at(-1);
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+      }
+    };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [history.length, back, close]);
-  useEffect(() => { if (view) panel.current?.focus({ preventScroll: true }); }, [view]);
-
-  const open = (next: View) => setHistory((current) => [...current, next]);
-  const source = view?.kind === "source" ? card?.bySource.find((reading) => reading.source === view.source) : undefined;
+  }, [view]);
+  useEffect(() => { if (view) viewHeading.current?.focus({ preventScroll: true }); }, [view]);
+  const source = view?.kind === "source" ? card?.bySource.find(reading => reading.source === view.source) : undefined;
 
   return <div className="embed">
-    <section className="glass embed-card" aria-label="What people think">
+    <section className="embed-card" aria-label="What people think">
       <header className="embed-head">
-        <span className="subject-chip ctl"><span>{name ?? (phase.name === "loading" ? "Reading…" : "Opinion Meter")}</span></span>
-        <button type="button" className="close ctl" onClick={close} aria-label="Close">×</button>
+        {view ? <button className="back-button" onClick={() => setView(null)}>← Back</button> : <span className="subject-chip ctl"><span>{name}</span></span>}
+        <button type="button" className="close ctl" onClick={() => tell({ type: "close" })} aria-label="Close">×</button>
       </header>
-      <div className="embed-body">
-        {phase.name === "loading" && <div className="loading-state"><div className="liquid-track" role="progressbar" aria-label="Reading discussion" aria-valuetext="Reading"><span /><span /></div><p>Finding what people think…</p></div>}
-        {phase.name === "error" && <div className="result-copy"><p className="overall-answer">Something interrupted the reading.</p><p className="quiet">{phase.message}</p></div>}
-        {phase.name === "done" && phase.response.kind === "unknown" && <div className="result-copy"><p className="overall-answer">This subject is no longer in memory.</p><p className="quiet">{phase.response.message}</p></div>}
-        {phase.name === "done" && phase.response.kind === "insufficient" && <Insufficient response={phase.response} />}
-        {card && (category
-          ? <CategoryCard card={card} onChoose={(id) => open({ kind: "source", source: id })} onOpinion={(opinion) => open({ kind: "opinion", opinion })} onGeneral={() => setGeneral(true)} />
-          : <Answer card={card} onChoose={(id) => open({ kind: "source", source: id })} />)}
-      </div>
-      {card && (!category || phone) && <OpinionPills opinions={card.opinions} onSelect={(opinion) => open({ kind: "opinion", opinion })} />}
-      {view && <section className="glass evidence-screen" ref={panel} tabIndex={-1} aria-label={view.kind === "source" ? `${view.source} evidence` : "Supporting posts"}>
-        <div className="evidence-nav"><button type="button" className="back-button" onClick={back}><span aria-hidden="true">←</span> Back</button><span className="subject-chip ctl"><span>{name}</span></span></div>
-        <div className="evidence-scroll" key={view.kind === "source" ? view.source : view.opinion.id}>
+      <div className="embed-scroll"><div className="embed-content" ref={content}>
+        {!view && <>
+          {phase.name === "loading" && <div className="loading-state"><div className="liquid-track" role="progressbar" aria-label="Reading discussion"><span /><span /></div><p>Finding what people think…</p></div>}
+          {phase.name === "error" && <div className="result-copy"><p className="overall-answer">Something interrupted the reading.</p><p className="quiet">{phase.message}</p><button className="text-action" onClick={() => setAttempt(value => value + 1)}>Try again</button></div>}
+          {phase.name === "done" && phase.response.kind === "unknown" && <div className="result-copy"><p className="overall-answer">No reading available yet.</p><p className="quiet">{phase.response.message}</p></div>}
+          {phase.name === "done" && phase.response.kind === "insufficient" && <Insufficient response={phase.response} />}
+          {card && <>
+            <Answer card={card} onChoose={source => setView({ kind: "source", source })} />
+            <h2 className="section-label">Recurring opinions</h2>
+            <OpinionPills opinions={card.opinions} onSelect={opinion => setView({ kind: "opinion", opinion })} />
+            <button className="text-action" onClick={() => setView({ kind: "how" })}>How it works · sources and confidence</button>
+          </>}
+        </>}
+        {view && <div className="detail-content" ref={viewHeading} tabIndex={-1}>
           {source && <PlatformEvidence analysis={source} />}
-          {view.kind === "opinion" && <><h2 className="opinion-heading">{view.opinion.sentence}</h2>{card?.bySource.map((reading) => {
-            const threads = reading.threads.filter((thread) => thread.id && view.opinion.evidenceIds.includes(thread.id));
-            return threads.length ? <section key={reading.source} className="opinion-evidence" aria-label={reading.source}><Logo id={reading.source} size={24} /><PostList threads={threads} source={reading.source} /></section> : null;
+          {view.kind === "opinion" && <><h2 className="opinion-heading">{view.opinion.sentence}</h2>{card?.bySource.map(reading => {
+            const threads = reading.threads.filter(thread => thread.id && view.opinion.evidenceIds.includes(thread.id));
+            return threads.length ? <section key={reading.source} className="opinion-evidence" aria-label={sourceName(reading.source)}><Logo id={reading.source} size={24} /><PostList threads={threads} source={reading.source} /></section> : null;
           })}</>}
-        </div>
-        {card?.simulated && <p className="evidence-footer">Estimated from word counts: the server has no AI key.</p>}
-      </section>}
+          {view.kind === "how" && card && <>
+            <h2>Sources and confidence</h2>
+            <p className="quiet">{card.confidence.level} confidence · {card.confidence.reason}</p>
+            <p className="quiet">Agreement: {card.agreement}. Positive reactions do not necessarily mean strong agreement.</p>
+            <p className="quiet">The main bar describes the search subject. Result bars look for opinions about the exact page, then the website if there is too little page-specific discussion. Website fallbacks are labelled.</p>
+            <p className="quiet">Percentages come from classified posts and comments, weighted by reactions. These selected online comments are not a representative public survey. Fewer than eight relevant opinions means no verdict.</p>
+            <p className="quiet">Open a platform or an opinion to see original posts and excerpts. Full analysis and evidence are fetched only when a bar is opened.</p>
+            {card.sources.map(status => <p className="quiet" key={status.source}><strong>{sourceName(status.source)}</strong> · {status.relevant ?? 0} relevant of {status.itemsAnalysed} analysed. {status.note}</p>)}
+          </>}
+          {card?.simulated && <p className="quiet">Unverified word-count estimate. The server has no AI key.</p>}
+        </div>}
+      </div></div>
     </section>
     <span className="sr-only" role="status" aria-live="polite">{phase.name === "loading" ? "Reading discussion." : phase.name === "done" ? "Reading complete." : "Reading failed."}</span>
   </div>;

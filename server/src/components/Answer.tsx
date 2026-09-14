@@ -2,6 +2,8 @@
 import { SOURCES, sourceName, type Card, type CardResponse, type SourceId, type SourceStatus } from "@/lib/types";
 import { Logo } from "./Logo";
 import { SentimentBar } from "./SentimentBar";
+import { Stars } from "./Stars";
+import { starRating } from "@/lib/stars";
 
 /* Below this many opinions the answer says the sample was thin. */
 const LIMITED_BELOW = 50;
@@ -43,10 +45,14 @@ export function Insufficient({ response }: { response: Extract<CardResponse, { k
 
 export function Answer({ card, onChoose }: { card: Card; onChoose: (id: SourceId) => void }) {
   const analysed = analysedCount(card);
+  const rating = !card.scope && card.category !== "general" ? starRating(card.sentiment, analysed) : null;
   return <div className="result-copy">
     {card.simulated && <p className="sample-label">Estimated from word counts · the server has no AI key</p>}
+    {card.scope && <p className="scope-label">{card.scope === "domain" ? `Website fallback · ${card.domain}. Not a verdict on this specific page.` : "Opinions about this specific page"}{card.targetUrl && <a href={card.targetUrl} target="_blank" rel="noopener noreferrer">Open page ↗</a>}</p>}
     <p className="overall-answer">{card.summary}</p>
+    <p className="reading-count">{analysed} relevant opinions · {card.confidence.level} confidence</p>
     <div className="source-row">
+      {rating && <span className="rating-pill" title="Sentiment score, not submitted star reviews"><Stars value={rating.stars} /> {rating.stars.toFixed(1)}/5</span>}
       <SourceButtons sources={card.sources} bySource={card.bySource.map((reading) => reading.source)} onChoose={onChoose} />
       <SentimentBar compact split={card.sentiment} note={analysed < LIMITED_BELOW ? "Limited results on subject found" : undefined} />
     </div>

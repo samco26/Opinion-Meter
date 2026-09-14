@@ -4,6 +4,18 @@ The product and the repository (`samco26/Opinion-Meter`) are called Opinion Mete
 
 A browser extension that shows, beside anything you are about to click, what people actually think of it: a small bar, how many voices, one sentence — and the full picture on click.
 
+### Current behaviour — 14 September 2026, v0.2
+
+The main card summarises opinion about the **search query**. Individual result bars measure opinion about the **exact linked page**, falling back to its **website/domain** only when fewer than eight relevant page-specific opinions are found. They never borrow the query's or product's sentiment. A domain fallback is explicitly labelled in the tooltip and drawer; AI separates website reputation from opinions about products the website mentions. Links to Google's internal shopping viewer have a neutral unavailable bar until a real destination can be identified.
+
+The hands cover organic headings, sponsored results, product tiles and AI Overview references. Result controls are bare bars, with counts and scope on hover/focus; unavailable readings are neutral outlines. The main card has no summary subtext. It sits above the right-hand reference column when one can be recognised, otherwise above the main results. Dynamic results are processed in bounded batches, including repeated destinations and results after the first batch.
+
+The drawer preserves the earlier site's summary, category sentiment score, platform buttons, recurring opinions and linked original excerpts. It is created and fetches the full analysis **only on click**, with no prefetch or background full-card analysis. Its frosted background blurs the underlying Google page; its height follows the content up to the viewport limit. Original query/result context recovers a lost subject on another server instance. Full cards containing excerpts are not cached; gauges and subject identities last at most 24 hours.
+
+Expanded readings search all available indexed dates on Hacker News and Bluesky. Hacker News requests up to 1,000 matches and reads up to 1,000 comments per reading, including comment-text searches. Bluesky uses its maximum 100 posts per page and follows up to ten cursor pages. Both retain partial results on timeouts and disclose limits; this does not guarantee every historical post. See [Bluesky's API contract](https://github.com/bluesky-social/atproto/blob/main/lexicons/app/bsky/feed/searchPosts.json) and [Algolia's pagination limit](https://www.algolia.com/doc/api-reference/api-parameters/paginationLimitedTo). The AI still classifies a bounded sample (60 for a bar, 250 for a full card); collected counts and analysed counts are distinct.
+
+Production server: **https://opinionmeter.vercel.app**. The owner's `CHATGPT` and `YOUTUBE` environment variables take precedence over `OPENAI_API_KEY` and `YOUTUBE_API_KEY`. `/api/health` reports configuration booleans, never key values. Adding keys requires a new deployment. Existing estimates are recomputed after AI is connected. Shared Upstash memory is still needed for reliable polling and global limits across Vercel instances.
+
 This document is the specification. It is written for a reader with no computer-science background and doubles as the brief for anyone (or any AI assistant) working in this repository. Read it before changing anything.
 
 ---
@@ -81,7 +93,7 @@ Two halves. The server half updates itself every time code is pushed to GitHub. 
 3. The hands pick out the result links — title and address of each — and the query itself.
 4. The hands bundle those and pass them to the brain, which sends one message to the server's gauge door: "ten results for *sony xm6 review*; what do people think of each?"
 5. The server names the subject behind each result (section 4.3), merges duplicates (six of ten results about the same headphones are one subject), and checks its memory.
-6. Known subjects come straight from memory. New subjects get a quick **lite gauge** now and a full card computed in the background and saved for the next person.
+6. Known readings come straight from memory. New readings get a quick **lite gauge**. The full card is computed only when clicked.
 7. The server replies with a short list: result 1 → 72% positive, 340 opinions, one sentence; result 2 → same subject; result 4 → nothing found.
 8. The hands draw a bar beside each result that has one, inside a protected bubble (Shadow DOM) so Google's own styling cannot disturb it. Hover shows the sentence. Click opens the drawer with the card.
 9. When Google swaps results without reloading, or the reader moves to page two, the hands notice and repeat from step 3.
@@ -90,7 +102,7 @@ Readers see bars about a second after the results for anything already in memory
 
 ### 4.3 How a verdict is made
 
-**Naming the subject.** A rule table handles the sites that matter most — Amazon `/dp/` → the product; IMDb `/title/` → the film; the App Store and Google Play → the app; Google Maps `/place/` → the place; Steam `/app/` → the game; GitHub `owner/repo` → the tool; Wikipedia → the entity; a news address → that article; wikiHow, documentation, forums → nothing. Everything else goes to one batched AI call per page (all remaining titles and snippets in, subject names out). Where a canonical identifier exists (Wikidata ID, ASIN, IMDb ID) it becomes the memory key, so "Sony XM6" and "WH-1000XM6" are one subject.
+**Naming the subject.** AI names the subject of the main query. Result readings use a canonical destination URL as their identity, not a product inferred from the headline. Tracking variants share a reading; different pages remain separate. Domain fallback readings can share a cache within the same hostname.
 
 **Finding the discussion.** By name on Reddit, YouTube, Hacker News and Bluesky; by link where the subject is an article or a video (Reddit's `url:` search, Hacker News's URL search, Bluesky's URL filter). Search windows widen from 3 to 12 to 36 months until enough is found. A bounded sample: at most a fixed number of threads per platform and comments per thread.
 
@@ -99,7 +111,7 @@ Readers see bars about a second after the results for anything already in memory
 | Tier | When | What it reads | Model | Cost |
 |---|---|---|---|---|
 | Lite gauge | for the bar, on first sight | counts, reaction scores, the top comments | a small, cheap model | a fraction of a cent |
-| Full card | on click, and in the background for popular subjects | the full bounded sample | a capable model | a few cents |
+| Full card | only on click | the full bounded sample | a capable model | a few cents |
 
 **Counting.** The model classifies each opinion (positive / neutral / negative, on-topic or not). The split is counted from those classifications, weighted by reactions on a log scale. Fewer than eight on-topic opinions → "not enough to say", drawn as a grey bar or nothing. A confidence level with a one-line reason travels with every answer.
 
@@ -277,17 +289,25 @@ opinion-extension/
 |---|---|---|
 | `/api/gauge` | POST `{ query, results: [{ url, title, snippet? }] }` | Names the subject behind each result and the query, answers with a quick gauge per subject: from memory, computed within a 20-second budget, or `pending` with the work kept alive. |
 | `/api/gauge?keys=a,b` | GET | The poll for pending subjects: memory only. |
-| `/api/card?key=` | GET | The full card for one subject, from memory or computed within 55 seconds. X is read here only. |
+| `/api/card?key=` or POST `{ key, context: { query, results } }` | GET / POST | Full card computed on click within a bounded budget. POST recovers missing subjects from the original query or single result. X is read here only. |
 | `/api/config` | GET | The settings the extension reads on start, including the kill switch. Override instantly by writing JSON to the memory key `config:override`. |
 | `/embed?key=` | page | The card the drawer frames. |
+| `/api/health` | GET | AI/source configuration and memory reachability; no credentials. |
 | `/dev` | page | Pretend to be the extension and knock on the gauge door. |
 
 Every door answers any origin; the install token (`X-Install-Token`) and the rate limits are the protection. Without an AI key the gauge and the card still work, from a word-count estimate marked `simulated`, so the whole flow can be tried before a single key exists.
+
+That word-count fallback applies only to main-query readings. Website/link reputation stays unavailable until AI is connected, since counting positive words cannot establish which site a post evaluates.
 
 ## 16. Decisions log
 
 | Date | Decision |
 |---|---|
+| 2026-09-14 | Main-query opinion and individual URL reputation are separate; use an explicit domain fallback only when page-specific evidence is thin. |
+| 2026-09-14 | Include sponsored results, product tiles and AI Overview references. Bare result bars; no main-card summary subtext. |
+| 2026-09-14 | Full content loads only on expansion. Drawer is transparent frosted glass, sized to its content with a viewport ceiling. |
+| 2026-09-14 | Deeper HN/Bluesky searches use full history and API-sized pages, retaining and disclosing bounded partial results. |
+| 2026-09-14 | Accept CHATGPT/YOUTUBE deployment variable names; support exact YouTube-video comment lookup and cache-independent drawer recovery. |
 | 2026-09-14 | Treat this as a fresh project: a browser extension, not a search page. New repository. |
 | 2026-09-14 | Version 1 is Google results only; other surfaces are added as skills of the hands. |
 | 2026-09-14 | The extension stays dumb; keys, thinking and memory on a server rented from Vercel. |
@@ -305,7 +325,7 @@ Every door answers any origin; the install token (`X-Install-Token`) and the rat
 
 Nothing here needs Node on your machine.
 
-**The server.** In Vercel: Add New Project → import `samco26/Opinion-Meter` → set **Root Directory** to `server` → deploy. Add environment variables (names in `.env.example`) whenever you have them; none are needed for a first look. For the memory, add Upstash Redis from Vercel's Marketplace (Storage tab) and it fills in the two `UPSTASH_*` variables itself. The server's address becomes `https://<project-name>.vercel.app`; the extension expects `https://opinion-meter.vercel.app` unless told otherwise on its settings page. Open `/dev` on the deployed server to knock on the gauge door by hand.
+**The server.** The existing Vercel project is `opinion_meter`, rooted at `server/`, at **https://opinionmeter.vercel.app**. The extension now uses that address by default. Set keys from `.env.example` (or the `CHATGPT`/`YOUTUBE` aliases), then redeploy. `/api/health` shows which are configured. Connect Upstash for persistent memory. Open `/dev` to test the gauge door.
 
 **The extension.** GitHub → Actions → the latest `ci` run → download `opinion-meter-chrome` → unzip → `chrome://extensions` → Developer mode → Load unpacked → the unzipped folder. Then search Google. Details in `extension/README.md`.
 

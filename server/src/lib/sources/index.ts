@@ -21,7 +21,7 @@ export async function collectAll(sources: SourceId[], opts: Omit<CollectOptions,
     const c = CONNECTORS[id];
     if (!c.configured()) return { items: [], canExpand: false, status: { source: id, availability: "unavailable", itemsAnalysed: 0, note: "Not connected yet." } };
     const ctl = new AbortController();
-    const timer = setTimeout(() => ctl.abort(), SOURCE_TIMEOUT_MS);
+    const timer = setTimeout(() => ctl.abort(), opts.timeoutMs ?? SOURCE_TIMEOUT_MS);
     try {
       return await c.collect({ ...opts, signal: ctl.signal });
     } catch (err) {

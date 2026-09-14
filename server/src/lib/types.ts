@@ -115,6 +115,8 @@ export interface Subject {
   category: Category;
   /* Set for an article: discussion is found by link rather than by name. */
   link?: string;
+  scope?: "link" | "domain";
+  domain?: string;
 }
 
 /* The quick answer behind the bar. */
@@ -134,6 +136,9 @@ export interface Gauge {
   /* True when no AI key exists and the split came from a word-count estimate. */
   simulated?: boolean;
   updatedAt: string;
+  scope?: "link" | "domain";
+  targetUrl?: string;
+  domain?: string;
 }
 
 export type GaugeState =
@@ -176,6 +181,9 @@ export interface Card {
   bySource: SourceAnalysis[];
   simulated?: boolean;
   updatedAt: string;
+  scope?: "link" | "domain";
+  targetUrl?: string;
+  domain?: string;
 }
 
 export type CardResponse =

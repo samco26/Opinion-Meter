@@ -1,5 +1,15 @@
 # Handoff — 14 September 2026
 
+## v0.2 update
+
+The production URL is **https://opinionmeter.vercel.app**, project `opinion_meter` under `samco7`; the extension default is corrected. Main-query sentiment and exact-link/domain reputation are now separate. Ads, product tiles and AI Overview references have minimalist controls; no subtext under the main card. Full analysis only happens on expansion. The drawer has a transparent frosted background and content-driven height, and can recover its subject after a server-instance memory loss.
+
+HN/Bluesky full readings search all indexed dates with larger requests and bounded pagination, preserving partial results. AI classification remains sampled and all limits are disclosed. Exact YouTube URLs read that video's comments directly. The owner's new Vercel keys were entered as `CHATGPT` and `YOUTUBE`; aliases now activate the existing connectors. `/api/health` provides non-secret configuration diagnostics.
+
+Local verification: server production build; Chrome and Firefox bundles; 27 server regression tests at the first checkpoint, with further connector checks added. Browser fixture verifies six independent placements (including a duplicate URL), query placement above the sidebar, no pre-click iframe/full request, short drawer sizing, and opinion-to-reference navigation. It uses **labelled synthetic test data**, never production data. Run it with `node tests/preview.mjs` from `extension/` after dependencies are installed. The repository has no hand-reviewed `server/golden/` set, so live semantic accuracy is not yet certified.
+
+The older notes below describe the original v0.1 handoff and are retained as history. In particular, the server address is now known, Node is available through Codex's bundled runtime, and full-card caching/background precomputation has been removed. Persistent Upstash configuration still needs live verification.
+
 Where Opinion Meter is up to, for whoever (or whatever) picks it up next. README.md is the specification; AGENTS.md the rules; this is the state.
 
 ## Done

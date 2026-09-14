@@ -21,5 +21,5 @@ export function heuristicClassify(items: SourceItem[]): Classification[] {
 
 export function heuristicSentence(name: string, split: SentimentSplit, opinions: number): string {
   const lean = { positive: "mostly positive", negative: "mostly negative", mixed: "split" }[verdictOf(split)];
-  return `Talk about ${name} is ${lean} across ${opinions} posts and comments. Estimated from word counts: no AI key is set.`;
+  return `${name}: ${opinions} collected posts and comments, ${lean} by word counts. This is an unverified estimate, not AI analysis.`;
 }

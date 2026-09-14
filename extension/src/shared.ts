@@ -6,7 +6,7 @@ import type { ExtensionConfig, Gauge, GaugeRequest, GaugeResponse, SubjectStates
 
 export type { ExtensionConfig, Gauge, GaugeRequest, GaugeResponse, SubjectStates };
 
-export const DEFAULT_SERVER = "https://opinion-meter.vercel.app";
+export const DEFAULT_SERVER = "https://opinionmeter.vercel.app";
 
 export type Message =
   | { type: "config" }

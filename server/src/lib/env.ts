@@ -2,7 +2,8 @@
    response: the routes only ask whether a source is configured. */
 
 export function env(name: string): string | undefined {
-  const v = process.env[name];
+  const alias = name === "OPENAI_API_KEY" ? "CHATGPT" : name === "YOUTUBE_API_KEY" ? "YOUTUBE" : undefined;
+  const v = (alias ? process.env[alias]?.trim() : undefined) || process.env[name];
   return v && v.trim() ? v.trim() : undefined;
 }
 
@@ -25,7 +26,7 @@ export const configured = {
 
 export const settings = {
   minItems: () => envInt("MIN_ITEMS", 8, 1, 100),
-  cacheTtlSeconds: () => envInt("CACHE_TTL_HOURS", 24, 1, 168) * 3600,
+  cacheTtlSeconds: () => envInt("CACHE_TTL_HOURS", 24, 1, 24) * 3600,
   freshPerDay: () => envInt("FRESH_SUBJECTS_PER_DAY", 5000, 1, 1_000_000),
   perMinute: () => envInt("RATE_PER_TOKEN_MINUTE", 20, 1, 10_000),
   perDay: () => envInt("RATE_PER_TOKEN_DAY", 500, 1, 1_000_000),

@@ -11,6 +11,7 @@ import { SOURCE_IDS, type Gauge, type SearchWindow, type SourceItem, type Subjec
 import { buildEvidence, type Classification } from "./evidence";
 import { heuristicClassify, heuristicSentence } from "./heuristic";
 import { CLASSIFY_RULES, formatItems, sample } from "./prompt";
+import { targetInstructions } from "../target";
 
 const LITE_MAX = 60;
 const Refs = z.array(z.number().int());
@@ -33,7 +34,7 @@ export async function liteGauge(subject: Subject, items: SourceItem[], window: S
   let sentence: string;
   let confidence: Gauge["confidence"];
   if (live) {
-    const out = await structured(Lite, "lite_reading", INSTRUCTIONS,
+    const out = await structured(Lite, "lite_reading", `${INSTRUCTIONS}\n${targetInstructions(subject)}`,
       `Subject: ${JSON.stringify(subject.name)} (${subject.kind})\nOpinion window: ${window.from.slice(0, 10)} to ${window.to.slice(0, 10)}\n\n${entries.length} entries (JSON lines):\n${formatItems(entries)}`,
       { model: liteModel(), maxTokens: 2500, timeoutMs });
     classifications = (["positive", "neutral", "negative", "irrelevant"] as const).flatMap((sentiment) => out.classified[sentiment].map((ref) => ({ ref, sentiment })));
@@ -56,5 +57,6 @@ export async function liteGauge(subject: Subject, items: SourceItem[], window: S
     window,
     ...(live ? {} : { simulated: true }),
     updatedAt: new Date().toISOString(),
+    scope: subject.scope, domain: subject.domain, targetUrl: subject.link,
   };
 }

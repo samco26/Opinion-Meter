@@ -19,6 +19,15 @@ interface CommentThreadsResponse {
   items?: Array<{ snippet?: { topLevelComment?: { id?: string; snippet?: { textOriginal?: string; textDisplay?: string; likeCount?: number; publishedAt?: string; authorDisplayName?: string } } } }>;
 }
 
+export function youtubeVideoId(link: string | undefined): string | null {
+  if (!link) return null;
+  try {
+    const u = new URL(link), host = u.hostname.replace(/^(www|m)\./, "");
+    const id = host === "youtu.be" ? u.pathname.slice(1) : host === "youtube.com" ? (u.searchParams.get("v") ?? u.pathname.match(/^\/(?:shorts|embed)\/([^/]+)/)?.[1]) : null;
+    return id && /^[\w-]{11}$/.test(id) ? id : null;
+  } catch { return null; }
+}
+
 async function collect(opts: CollectOptions): Promise<Collected> {
   const key = env("YOUTUBE_API_KEY") ?? "";
   const search = new URL(`${API}/search`);
@@ -33,7 +42,10 @@ async function collect(opts: CollectOptions): Promise<Collected> {
   if (opts.to) search.searchParams.set("publishedBefore", opts.to.toISOString());
   search.searchParams.set("key", key);
 
-  const found = await getOnce("youtube:videos", opts, () => getJson<SearchResponse>(search.toString(), { signal: opts.signal }));
+  const videoId = youtubeVideoId(opts.link);
+  const found: SearchResponse = videoId
+    ? { items: [{ id: { videoId }, snippet: { title: opts.subject } }] }
+    : await getOnce("youtube:videos", opts, () => getJson<SearchResponse>(search.toString(), { signal: opts.signal }));
   const videos = (found.items ?? []).filter((v) => v.id?.videoId && v.snippet);
   const items: SourceItem[] = videos.map((v) => ({
     id: `youtube:video:${v.id!.videoId}`, source: "youtube", kind: "video",

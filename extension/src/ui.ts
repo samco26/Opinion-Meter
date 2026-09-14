@@ -19,23 +19,33 @@ const BAR_CSS = `
 .big{margin:0 0 16px;padding:11px 18px 11px 14px;gap:12px;font-size:13px;flex-wrap:wrap;border-radius:26px}
 .big .seg{width:120px;height:10px}.big .title{flex-basis:100%;font-size:14px;letter-spacing:-.2px}.big .title b{font-weight:700}
 .big .sentence{flex-basis:100%;font-size:13px;line-height:1.45;color:#2b5a5e;margin-top:2px}
+.bar:not(.big){padding:8px 0;margin:2px 0;border:0;background:transparent;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;min-height:28px}
+.bar:not(.big):hover{background:transparent}.bar:not(.big) .seg{width:96px;height:7px}
+.bar:not(.big)>.count,.bar:not(.big)>.tag{display:none}
+.empty .seg{background:transparent;outline:1px solid #8a949b88;outline-offset:-1px}
+.estimated .seg{outline:1px dashed #c99b6f;outline-offset:2px}
+.big{display:flex;width:100%;box-sizing:border-box;max-width:700px;padding:14px 16px;background:#f2efe2c2;border-radius:22px}
+:host([data-side]) .big{max-width:none;border-radius:22px;border:1px solid #88888866;background:#ffffff08;color:#e8eaed;box-shadow:none;backdrop-filter:none}
+:host([data-side]) .big .tag,:host([data-side]) .big .muted{color:inherit}
+:host([data-side]) .big .seg{flex:1;width:100%;min-width:70px}
+@media(prefers-color-scheme:light){:host([data-side]) .big{color:#202124;background:#ffffff88}}
 @media(prefers-reduced-motion:reduce){.loading .seg:before{animation:none;width:100%;opacity:.6}.bar,.seg span{transition:none}}
 `;
 
 const OVERLAY_CSS = `
 :host{all:initial}
 .back{position:fixed;inset:0;z-index:2147483646}
-.panel{position:fixed;z-index:2147483647;border-radius:30px;overflow:hidden;box-shadow:0 30px 80px #0f333a55;background:#78a3a0;animation:in 380ms cubic-bezier(.16,1,.3,1) both}
+.panel{position:fixed;z-index:2147483647;border-radius:24px;overflow:hidden;border:1px solid #ffffff66;box-shadow:0 24px 72px #0005;background:#e8f0ebaa;backdrop-filter:blur(22px) saturate(1.15);-webkit-backdrop-filter:blur(22px) saturate(1.15);animation:in 240ms cubic-bezier(.16,1,.3,1) both;transition:height 180ms ease}
 @keyframes in{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:none}}
 iframe{display:block;width:100%;height:100%;border:0;background:transparent}
-.veil{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:linear-gradient(147deg,#adc5bc,#77a7a7 39%,#417f83 76%,#20555f);color:#f2efe2;font:13px Helvetica,"Helvetica Neue",Arial,sans-serif}
+.veil{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:#edf2ec66;color:#153f43;font:13px Helvetica,"Helvetica Neue",Arial,sans-serif}
 .veil[hidden]{display:none}.veil a{color:#ffd7c2}
 .track{width:180px;height:12px;border-radius:99px;position:relative;overflow:hidden;background:#17565f55}.track:before{content:"";position:absolute;inset:0;width:55%;border-radius:99px;background:linear-gradient(90deg,transparent,#8bb9b5 15%,#ffd7c2 55%,#edaa99 80%,transparent);animation:flow 1800ms ease-in-out infinite}
 @keyframes flow{0%{transform:translateX(-110%)}100%{transform:translateX(220%)}}
 @media(prefers-reduced-motion:reduce){.panel{animation:none}.track:before{animation:none;width:100%}}
 `;
 
-export type BarState = { kind: "loading" } | { kind: "ready"; gauge: Gauge };
+export type BarState = { kind: "loading" } | { kind: "ready"; gauge: Gauge } | { kind: "empty"; reason: string };
 
 export interface Bar {
   host: HTMLElement;
@@ -83,10 +93,10 @@ function countText(gauge: Gauge): HTMLElement {
   return count;
 }
 
-export function createBar(opts: { big?: boolean; onOpen: (gauge: Gauge, anchor: DOMRect) => void }): Bar {
+export function createBar(opts: { big?: boolean; title?: string; onOpen: (gauge: Gauge | undefined, anchor: DOMRect) => void }): Bar {
   const host = el("div");
   host.setAttribute("data-opinion-meter", opts.big ? "query" : "result");
-  const root = host.attachShadow({ mode: "closed" });
+  const root = host.attachShadow({ mode: "open" });
   const style = el("style");
   style.textContent = BAR_CSS;
   const bar = el("button", `bar${opts.big ? " big" : ""} loading`);
@@ -96,11 +106,22 @@ export function createBar(opts: { big?: boolean; onOpen: (gauge: Gauge, anchor: 
   bar.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
-    if (current) opts.onOpen(current, bar.getBoundingClientRect());
+    opts.onOpen(current, bar.getBoundingClientRect());
   });
   const render = (state: BarState) => {
     bar.replaceChildren();
     bar.classList.toggle("loading", state.kind === "loading");
+    bar.classList.toggle("empty", state.kind === "empty");
+    bar.classList.toggle("estimated", state.kind === "ready" && Boolean(state.gauge.simulated));
+    if (state.kind === "empty") {
+      current = undefined;
+      if (opts.big) bar.append(el("span", "title", `What people think of ${opts.title ?? "this search"}`));
+      bar.append(segments());
+      if (opts.big) bar.append(el("span", "count muted", "No verdict yet"));
+      bar.append(el("span", "tip", state.reason));
+      bar.setAttribute("aria-label", `${opts.title ?? "This link"}: no verdict. ${state.reason}`);
+      return;
+    }
     if (state.kind === "loading") {
       if (opts.big) bar.append(el("span", "title", "What people think of what you searched for"));
       bar.append(segments(), el("span", "count muted", "reading the crowd…"));
@@ -117,9 +138,10 @@ export function createBar(opts: { big?: boolean; onOpen: (gauge: Gauge, anchor: 
     }
     bar.append(segments(gauge), countText(gauge));
     if (gauge.simulated) bar.append(el("span", "tag", "estimated"));
-    if (opts.big) bar.append(el("span", "sentence", gauge.sentence));
-    else bar.append(el("span", "tip", gauge.sentence));
-    bar.setAttribute("aria-label", `${gauge.name}: ${gauge.sentence} ${gauge.count} opinions. Open what people think.`);
+    const scope = gauge.scope === "domain" ? `Website fallback: ${gauge.domain}. Not a verdict on this specific page. ` : gauge.scope === "link" ? "This specific page. " : "";
+    const detail = `${scope}${gauge.count} opinions. ${gauge.simulated ? "Unverified word-count estimate. " : ""}${gauge.sentence}`;
+    bar.append(el("span", "tip", detail));
+    bar.setAttribute("aria-label", `${gauge.name}: ${detail} Open what people think.`);
   };
   render({ kind: "loading" });
   return { host, set: render, remove: () => host.remove() };
@@ -128,10 +150,13 @@ export function createBar(opts: { big?: boolean; onOpen: (gauge: Gauge, anchor: 
 /* The drawer: a panel over the page, near the bar that opened it, framing
    the server's embed page. Closes on the embed's say-so, Escape, or a
    click anywhere outside. Returns the close function. */
+let activeOverlay: (() => void) | undefined;
 export function openOverlay(opts: { url: string; anchor: DOMRect; title: string }): () => void {
+  activeOverlay?.();
+  const previousFocus = document.activeElement as HTMLElement | null;
   const host = el("div");
   host.setAttribute("data-opinion-meter", "drawer");
-  const root = host.attachShadow({ mode: "closed" });
+  const root = host.attachShadow({ mode: "open" });
   const style = el("style");
   style.textContent = OVERLAY_CSS;
   const back = el("div", "back");
@@ -140,7 +165,7 @@ export function openOverlay(opts: { url: string; anchor: DOMRect; title: string 
   panel.setAttribute("aria-modal", "true");
   panel.setAttribute("aria-label", `What people think of ${opts.title}`);
   const vw = window.innerWidth, vh = window.innerHeight;
-  const width = Math.min(760, vw - 24), height = Math.min(680, vh - 24);
+  const width = Math.min(600, vw - 24), height = Math.min(210, vh - 24);
   const below = opts.anchor.bottom + 8;
   panel.style.width = `${width}px`;
   panel.style.height = `${height}px`;
@@ -161,12 +186,19 @@ export function openOverlay(opts: { url: string; anchor: DOMRect; title: string 
     window.removeEventListener("keydown", onKey);
     clearTimeout(fallback);
     host.remove();
+    previousFocus?.focus({ preventScroll: true });
+    activeOverlay = undefined;
   };
   const onMessage = (event: MessageEvent) => {
-    const data = event.data as { om?: boolean; type?: string } | null;
-    if (event.source !== frame.contentWindow || !data?.om) return;
+    const data = event.data as { om?: boolean; type?: string; height?: number } | null;
+    if (event.source !== frame.contentWindow || event.origin !== new URL(opts.url).origin || !data?.om) return;
     if (data.type === "ready") veil.hidden = true;
     if (data.type === "close") close();
+    if (data.type === "resize" && typeof data.height === "number" && Number.isFinite(data.height)) {
+      const height = Math.min(Math.max(140, data.height), window.innerHeight - 24, 720);
+      panel.style.height = `${height}px`;
+      panel.style.top = `${Math.max(12, Math.min(below, window.innerHeight - height - 12))}px`;
+    }
   };
   const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") close(); };
   const fallback = setTimeout(() => {
@@ -177,5 +209,6 @@ export function openOverlay(opts: { url: string; anchor: DOMRect; title: string 
   window.addEventListener("message", onMessage);
   window.addEventListener("keydown", onKey);
   frame.focus();
+  activeOverlay = close;
   return close;
 }

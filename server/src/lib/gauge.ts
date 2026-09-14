@@ -4,21 +4,23 @@
    ends is kept alive by the caller and finished into memory; the
    extension polls for it. */
 
-import { settings } from "./env";
+import { configured, settings } from "./env";
 import { claimFresh } from "./limits";
 import { memory } from "./memory";
 import { collectAdaptive } from "./sources/adaptive";
-import { resolveByRule, type RawResult } from "./subject";
+import { domainSubject, linkSubject } from "./target";
 import { liteGauge } from "./analysis/lite";
 import { nameSubjects } from "./analysis/name";
+import { youtubeVideoId } from "./sources/youtube";
 import type { Gauge, GaugeRequest, GaugeResponse, SourceId, Subject, SubjectStates } from "./types";
 
 export const LITE_SOURCES: SourceId[] = ["reddit", "youtube", "hn", "bluesky"];
 export const LINK_SOURCES: SourceId[] = ["reddit", "hn", "bluesky"];
-const MAX_RESULTS = 12;
+export const sourcesFor = (subject: Subject): SourceId[] => subject.link ? [...LINK_SOURCES, ...(youtubeVideoId(subject.link) ? ["youtube" as const] : [])] : LITE_SOURCES;
+const MAX_RESULTS = 20;
 const PENDING_TTL = 120;
 const NONE_TTL = 6 * 3600;
-const SUBJECT_TTL = 7 * 86_400;
+const SUBJECT_TTL = 86_400;
 
 export type Stored = { state: "ready"; gauge: Gauge } | { state: "none"; reason: string };
 
@@ -26,16 +28,25 @@ export async function computeGauge(subject: Subject): Promise<Stored> {
   const m = memory();
   let stored: Stored;
   try {
-    if (!(await claimFresh())) {
+    if (subject.scope && !configured.openai()) {
+      stored = { state: "none", reason: "Website/link opinions need AI analysis. The server's AI key is not connected yet." };
+    } else if (!(await claimFresh())) {
       stored = { state: "none", reason: "Today's budget for new subjects is used up." };
     } else {
-      const { items, window } = await collectAdaptive(subject.name, subject.link ? LINK_SOURCES : LITE_SOURCES, { link: subject.link });
-      const opinions = items.filter((item) => item.kind !== "video").length;
-      if (opinions < settings.minItems()) {
-        stored = { state: "none", reason: opinions ? `Only ${opinions} opinions were found.` : "Nothing was found on the connected platforms." };
-      } else {
-        const gauge = await liteGauge(subject, items, window, 20_000);
-        stored = gauge ? { state: "ready", gauge } : { state: "none", reason: "Too little of what was found is about the subject." };
+      stored = { state: "none", reason: "Not enough relevant opinions about this page or its website." };
+      const fallback = domainSubject(subject);
+      for (const target of [subject, ...(fallback ? [fallback] : [])]) {
+        // Different pages on the same domain reuse the domain reading.
+        const cached = target.scope === "domain" ? await m.get<Stored>(`gauge:${target.key}`) : null;
+        if (cached?.state === "ready") {
+          stored = { state: "ready", gauge: { ...cached.gauge, key: subject.key, targetUrl: subject.link } }; break;
+        }
+        const { items, window } = await collectAdaptive(target.name, sourcesFor(target), { link: target.link, budgetMs: 10_000 });
+        if (items.filter(item => item.kind !== "video").length < settings.minItems()) continue;
+        const gauge = await liteGauge(target, items, window, 12_000);
+        if (!gauge) continue;
+        if (target.scope === "domain") await m.set(`gauge:${target.key}`, { state: "ready", gauge }, settings.cacheTtlSeconds());
+        stored = { state: "ready", gauge: { ...gauge, key: subject.key, targetUrl: subject.link } }; break;
       }
     }
   } catch (err) {
@@ -50,14 +61,10 @@ export async function gaugeFor(req: GaugeRequest, budgetMs: number, keepAlive: (
   const started = Date.now();
   const results = req.results.slice(0, MAX_RESULTS).map((r, i) => ({ ...r, i }));
   const byIndex = new Map<number, Subject | null>();
-  const unknown: Array<RawResult & { i: number }> = [];
   for (const r of results) {
-    const out = resolveByRule(r);
-    if (out === "ask") unknown.push(r);
-    else byIndex.set(r.i, out);
+    byIndex.set(r.i, linkSubject(r));
   }
-  const naming = await nameSubjects(req.query, unknown, Math.min(8000, budgetMs / 3));
-  for (const [i, s] of naming.results) byIndex.set(i, s);
+  const naming = await nameSubjects(req.query, [], Math.min(8000, budgetMs / 3));
 
   const subjects = new Map<string, Subject>();
   const add = (s: Subject | null) => {
@@ -74,9 +81,10 @@ export async function gaugeFor(req: GaugeRequest, budgetMs: number, keepAlive: (
   const remaining = () => Math.max(0, budgetMs - (Date.now() - started));
   await Promise.all([...subjects.values()].map(async (subject) => {
     const base = { name: subject.name, kind: subject.kind, category: subject.category };
-    keepAlive(m.set(`subject:${subject.key}`, subject, SUBJECT_TTL));
+    await m.set(`subject:${subject.key}`, subject, SUBJECT_TTL);
     const stored = await m.get<Stored>(`gauge:${subject.key}`);
-    if (stored) {
+    const outdated = configured.openai() && (stored?.state === "ready" ? stored.gauge.simulated : stored?.state === "none" && /AI key|AI analysis/.test(stored.reason));
+    if (stored && !outdated) {
       response.subjects[subject.key] = { ...base, ...stored };
       return;
     }

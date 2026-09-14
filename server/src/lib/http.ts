@@ -6,6 +6,8 @@ export interface CollectOptions {
   subject: string;
   /* An article's address: readers that can search by link do, instead of by name. */
   link?: string;
+  depth?: "lite" | "full";
+  timeoutMs?: number;
   from?: Date;
   to?: Date;
   signal: AbortSignal;

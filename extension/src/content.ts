@@ -1,165 +1,128 @@
-/* The hands, on a Google results page: read the results and the query,
-   ask the brain, draw a bar under each result that has one and a larger
-   one for the query, keep asking while any is still being read, and open
-   the drawer on a click. Fails closed: no config, or a page it cannot
-   read with confidence, and it draws nothing. */
-
 import { createBar, openOverlay, type Bar } from "./ui";
-import { send, type ConfigReply, type ExtensionConfig, type Gauge, type GaugeResponse, type SubjectStates } from "./shared";
-
-interface Found { url: string; title: string; anchor: HTMLAnchorElement }
+import { queryPlacement, readResults, type Found } from "./google";
+import { send, type ConfigReply, type ExtensionConfig, type Gauge, type GaugeRequest, type GaugeResponse, type SubjectStates } from "./shared";
 
 let config: ExtensionConfig;
-let server = "";
-let query = "";
+let server = "", query = "", generation = 0;
 let queryBar: Bar | null = null;
-let polling = false;
-const seen = new WeakSet<Element>();
+let seen = new WeakMap<Element, string>();
+let queue: Found[] = [];
+let busy = false, first = true;
 const bars = new Map<string, Bar[]>();
+const placements = new Map<HTMLElement, Bar>();
 const pending = new Set<string>();
+const currentQuery = () => (new URL(location.href).searchParams.get("q")?.trim() ?? "").slice(0, 200);
 
-const currentQuery = () => new URL(location.href).searchParams.get("q")?.trim() ?? "";
-const resultsRoot = () => document.querySelector<HTMLElement>(config.google.results) ?? document.body;
-
-/* Google links straight to the destination, or through /url; its own
-   pages are not results, except a Maps place. */
-function destination(a: HTMLAnchorElement): string | null {
-  try {
-    const u = new URL(a.href);
-    if (!/^https?:$/.test(u.protocol)) return null;
-    if (/(^|\.)google\.[a-z.]+$/.test(u.hostname)) {
-      if (u.pathname === "/url") {
-        const target = u.searchParams.get("q") ?? u.searchParams.get("url") ?? "";
-        return /^https?:\/\//.test(target) ? target : null;
-      }
-      return u.pathname.startsWith("/maps/") ? u.href : null;
-    }
-    return u.href;
-  } catch {
-    return null;
-  }
-}
-
-function readResults(): Found[] {
-  const found: Found[] = [];
-  const urls = new Set<string>();
-  for (const anchor of resultsRoot().querySelectorAll<HTMLAnchorElement>(config.google.anchor)) {
-    if (seen.has(anchor)) continue;
-    if (found.length >= config.google.maxResults) break;
-    seen.add(anchor);
-    if (anchor.closest(config.google.ads)) continue;
-    const url = destination(anchor);
-    const title = anchor.querySelector("h3")?.textContent?.replace(/\s+/g, " ").trim();
-    if (!url || !title || urls.has(url)) continue;
-    urls.add(url);
-    found.push({ url, title, anchor });
-  }
-  return found;
-}
-
-const open = (fallbackName: string) => (gauge: Gauge, anchor: DOMRect) =>
-  openOverlay({ url: `${server}/embed?key=${encodeURIComponent(gauge.key)}`, anchor, title: gauge.name || fallbackName });
-
-function attach(key: string, bar: Bar) {
-  bars.set(key, [...(bars.get(key) ?? []), bar]);
-}
-
+const open = (context: GaugeRequest, title: string) => (gauge: Gauge | undefined, anchor: DOMRect) => {
+  // No iframe or full reading until a click. Fragment avoids query/title URL logs.
+  const fragment = encodeURIComponent(JSON.stringify(context));
+  openOverlay({ url: `${server}/embed?key=${encodeURIComponent(gauge?.key ?? "")}#context=${fragment}`, anchor, title: gauge?.name || title });
+};
+function attach(key: string, bar: Bar) { bars.set(key, [...(bars.get(key) ?? []), bar]); }
 function apply(states: SubjectStates) {
   for (const [key, state] of Object.entries(states)) {
-    const targets = bars.get(key) ?? [];
-    if (state.state === "ready") {
-      pending.delete(key);
-      for (const bar of targets) bar.set({ kind: "ready", gauge: state.gauge });
-    } else if (state.state === "none") {
-      pending.delete(key);
-      for (const bar of targets) bar.remove();
-      bars.delete(key);
-    } else {
-      pending.add(key);
-    }
+    if (state.state === "pending") { pending.add(key); continue; }
+    pending.delete(key);
+    for (const bar of bars.get(key) ?? []) bar.set(state.state === "ready" ? { kind: "ready", gauge: state.gauge } : { kind: "empty", reason: state.reason });
   }
 }
-
-async function poll() {
-  polling = true;
+function positionQuery() {
+  if (!queryBar || !config.google.queryBar) return;
+  const place = queryPlacement(config);
+  if (!place) return;
+  queryBar.host.toggleAttribute("data-side", place.side);
+  if (queryBar.host.parentElement !== place.parent || place.parent.firstElementChild !== queryBar.host) place.parent.insertBefore(queryBar.host, place.before);
+}
+async function drain() {
+  if (busy) return;
+  busy = true;
   try {
-    for (let round = 0; round < config.polls && pending.size; round++) {
-      await new Promise((resolve) => setTimeout(resolve, config.pollMs));
-      apply((await send<{ subjects: SubjectStates }>({ type: "poll", keys: [...pending] })).subjects);
+    while (queue.length || first) {
+      const epoch = generation, initial = first;
+      first = false;
+      const results = queue.splice(0, Math.min(20, Math.max(1, config.google.maxResults)));
+      const requestQuery = query;
+      const drawn = new Map<Found, Bar>();
+      for (const result of results) {
+        if (!result.anchor.isConnected) continue;
+        placements.get(result.anchor)?.remove();
+        const context = { query: requestQuery, results: [{ url: result.url, title: result.title }] };
+        const bar = createBar({ title: result.title, onOpen: open(context, result.title) });
+        const target = result.anchor.closest('a, button') ?? result.anchor;
+        target.insertAdjacentElement("afterend", bar.host);
+        placements.set(result.anchor, bar); drawn.set(result, bar);
+      }
+      if (initial && config.google.queryBar) {
+        queryBar = createBar({ big: true, title: requestQuery, onOpen: open({ query: requestQuery, results: [] }, requestQuery) });
+        positionQuery();
+      }
+      try {
+        const unique = [...new Map(results.map(r => [r.url, { url: r.url, title: r.title }])).values()];
+        const response = await send<GaugeResponse>({ type: "gauge", request: { query: requestQuery, results: unique } });
+        if (epoch !== generation) continue;
+        const keys = new Map(response.results.map(r => [r.url, r.key]));
+        for (const [result, bar] of drawn) {
+          const key = keys.get(result.url);
+          if (key) attach(key, bar);
+          else bar.set({ kind: "empty", reason: "No reading available for this link. Open to check." });
+        }
+        if (initial && queryBar) {
+          if (response.query.key) attach(response.query.key, queryBar);
+          else queryBar.set({ kind: "empty", reason: "No verdict available for this search." });
+        }
+        apply(response.subjects);
+      } catch {
+        if (epoch !== generation) continue;
+        for (const bar of drawn.values()) bar.set({ kind: "empty", reason: "The reading could not finish. Click to retry." });
+        if (initial) queryBar?.set({ kind: "empty", reason: "The reading could not finish. Click to retry." });
+      }
     }
-  } catch {
-    /* The bars still waiting are cleared below. */
-  } finally {
-    for (const key of pending) {
-      for (const bar of bars.get(key) ?? []) bar.remove();
-      bars.delete(key);
-    }
-    pending.clear();
-    polling = false;
-  }
+  } finally { busy = false; }
 }
-
-async function scan(first: boolean) {
-  const results = readResults();
-  if (!results.length && !first) return;
-  const drawn = new Map<Found, Bar>();
-  for (const result of results) {
-    const bar = createBar({ onOpen: open(result.title) });
-    result.anchor.insertAdjacentElement("afterend", bar.host);
-    drawn.set(result, bar);
+function scan() {
+  const now = currentQuery();
+  if (now !== query) {
+    generation++; query = now; first = true; queue = []; seen = new WeakMap();
+    for (const bar of placements.values()) bar.remove();
+    placements.clear(); bars.clear(); pending.clear(); queryBar?.remove(); queryBar = null;
   }
-  if (first && config.google.queryBar) {
-    queryBar = createBar({ big: true, onOpen: open(query) });
-    resultsRoot().insertAdjacentElement("afterbegin", queryBar.host);
-  }
-  let response: GaugeResponse;
-  try {
-    response = await send<GaugeResponse>({ type: "gauge", request: { query, results: results.map(({ url, title }) => ({ url, title })) } });
-  } catch {
-    for (const bar of drawn.values()) bar.remove();
-    queryBar?.remove();
-    queryBar = null;
-    return;
-  }
-  const keyOf = new Map(response.results.map((r) => [r.url, r.key]));
-  for (const [result, bar] of drawn) {
-    const key = keyOf.get(result.url);
-    if (key) attach(key, bar);
-    else bar.remove();
-  }
-  if (first && queryBar) {
-    if (response.query.key) attach(response.query.key, queryBar);
-    else { queryBar.remove(); queryBar = null; }
-  }
-  apply(response.subjects);
-  if (pending.size && !polling) void poll();
-}
-
-function reset() {
-  for (const list of bars.values()) for (const bar of list) bar.remove();
-  bars.clear();
-  pending.clear();
-  queryBar?.remove();
-  queryBar = null;
-}
-
-async function main() {
-  if (window.top !== window) return;
-  query = currentQuery();
   if (!query) return;
+  for (const [anchor, bar] of placements) if (!anchor.isConnected) { bar.remove(); placements.delete(anchor); }
+  queue.push(...readResults(config, seen)); positionQuery(); void drain();
+}
+async function main() {
+  if (window.top !== window || !currentQuery()) return;
   const reply = await send<ConfigReply>({ type: "config" }).catch(() => null);
   if (!reply?.config.enabled || !reply.config.google.enabled) return;
-  ({ server, config } = reply);
-  await scan(true);
+  ({ server, config } = reply); query = currentQuery(); scan();
   let timer: number | undefined;
-  new MutationObserver(() => {
-    clearTimeout(timer);
-    timer = window.setTimeout(() => {
-      const now = currentQuery();
-      if (now && now !== query) { query = now; reset(); void scan(true); }
-      else void scan(false);
-    }, 800);
-  }).observe(document.body, { childList: true, subtree: true });
+  new MutationObserver(records => {
+    if (records.every(record => (record.target as Element).closest?.('[data-opinion-meter]') || (record.type === "childList" && [...record.addedNodes, ...record.removedNodes].every(node => node instanceof Element && node.hasAttribute('data-opinion-meter'))))) return;
+    clearTimeout(timer); timer = window.setTimeout(scan, 500);
+  }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["href", "aria-label", "data-docid"] });
+  window.addEventListener("popstate", scan); window.addEventListener("resize", positionQuery);
+  const rounds = new Map<string, number>();
+  let polling = false;
+  window.setInterval(async () => {
+    if (polling || !pending.size) return;
+    polling = true;
+    const epoch = generation;
+    const keys = [...pending].slice(0, 20);
+    try {
+      const response = await send<{ subjects: SubjectStates }>({ type: "poll", keys });
+      if (epoch !== generation) return;
+      apply(response.subjects);
+    } catch { /* Bounded retries below, including network failures. */ }
+    finally {
+      if (epoch === generation) for (const key of keys) {
+        rounds.set(key, (rounds.get(key) ?? 0) + 1);
+        if (pending.has(key) && rounds.get(key)! >= config.polls) {
+          pending.delete(key);
+          for (const bar of bars.get(key) ?? []) bar.set({ kind: "empty", reason: "Reading timed out. Click to try the full reading." });
+        }
+      }
+      polling = false;
+    }
+  }, config.pollMs);
 }
-
 void main();
