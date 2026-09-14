@@ -1,6 +1,6 @@
-# Opinion Extension
+# Opinion Meter
 
-Working title. Product name to be decided; the leading candidate is **What People Think**, which the earlier search site, its privacy page and its Reddit application already use.
+The product and the repository (`samco26/Opinion-Meter`) are called Opinion Meter. The earlier search site, What People Think, is a separate project whose engine this one salvages.
 
 A browser extension that shows, beside anything you are about to click, what people actually think of it: a small bar, how many voices, one sentence — and the full picture on click.
 
@@ -45,7 +45,7 @@ Version 1 does Google results only. YouTube pages, news articles and eventually 
 | **Label** | The extension's manifest file: its name, version, which sites it may touch, what it is allowed to do. The store reads this most carefully. |
 | **Hands** | The content script: the part of the extension that runs on a page, reads it and draws the bars. Each surface (Google, later YouTube, articles) is one skill of the hands. |
 | **Brain** | The background service worker: the part that talks to the server and hands answers back. It runs inside the reader's browser, not on a server. |
-| **Drawer** | The side panel that opens on click and shows the full card, which is a page served by the server. |
+| **Drawer** | The panel that opens over part of the results page when a bar is clicked. It frames the server's embed page, so the full card, the platform evidence and the opinions are drawn by the server and never need a store update. The same behaviour on every browser (Safari has no side panel). |
 | **Subject** | The thing an opinion is about, named canonically ("Sony WH-1000XM6", not `amazon.com/dp/B0…`). |
 | **Gauge** | The quick answer for the bar: split, count, one sentence. |
 | **Card** | The full answer: summary, split, recurring opinions with counts, evidence links. |
@@ -116,7 +116,7 @@ Readers see bars about a second after the results for anything already in memory
 | **Memory** | Upstash Redis (via Vercel Marketplace) or Vercel KV | Answer once, serve everyone; keeps cost and platform usage down | Free tier |
 | **AI key** | OpenAI API key; a small model for lite gauges and subject naming, a capable one for cards | Names subjects, classifies opinions, writes the sentence | Pay per use; cents per new subject |
 | **Source access** | YouTube Data API key (exists); Hacker News and Bluesky need none; a **new** Reddit application (section 10); X optional and paid | Where the opinions come from | Free for v1 |
-| **The extension** | Label, hands (Google skill), brain, drawer, icons; built with WXT so Chrome and Firefox come from one codebase | The thing readers install | Free |
+| **The extension** | Label, hands (Google skill), brain, drawer, icons; plain TypeScript bundled by esbuild with a small build script that writes a Chrome and a Firefox package from one source | The thing readers install | Free |
 | **Config door and kill switch** | A small settings file the extension fetches on start: enabled/disabled per surface, current Google page selectors, request limits | Turn things off or patch selectors without a store update when Google changes its page | Free |
 | **Per-install token and limits** | A random token made on first run, stored in the extension, sent with every request; the server limits per token, per address and per day | Stops someone scripting the doors to burn the AI budget | Free |
 | **Spend caps** | Hard monthly limits in the OpenAI dashboard (and X's, if used) | A surprise becomes an outage, not a bill | Free |
@@ -148,7 +148,9 @@ Re-uploads of a video (the file re-posted rather than linked) cannot be found th
 
 - Google results pages on the Google country domains (google.com, google.com.au, google.co.uk, …; Chrome match patterns cannot wildcard the country ending, so the label lists them).
 - A bar beside results resolved to a named thing or a discussed article; nothing beside anything else.
-- Hover sentence; click → drawer with the full card.
+- One bar for the search query itself above the results when the query names a thing ("sony xm6 review" → Sony WH-1000XM6); nothing for how-to or generic queries.
+- The old site's look everywhere: the turquoise, shell-pink, peach and salmon palette and the glass surfaces on the bars as well as in the drawer.
+- Hover sentence; click → the drawer opens over part of the page with the full card: summary, platform buttons, the bar, the recurring opinions, and the evidence view with the original posts, as on the old site.
 - Lite gauge and full card; memory; config door with kill switch; per-install tokens; spend caps; golden set.
 - Sources: Hacker News, Bluesky, YouTube. Reddit switches on the day the new approval arrives. X off.
 - Chrome, loaded unpacked for development, then an unlisted store listing for a small beta.
@@ -176,7 +178,7 @@ Re-uploads of a video (the file re-posted rather than linked) cannot be found th
 
 ## 9. Privacy and permissions
 
-- **Permissions requested:** the Google search domains only, plus the side panel. No "all sites" permission in v1. Later versions offer "everywhere" as an optional permission the reader turns on inside the extension, never at install.
+- **Permissions requested:** the Google search domains only, plus local storage for the install token and the config. No "all sites" permission in v1. Later versions offer "everywhere" as an optional permission the reader turns on inside the extension, never at install.
 - **What is sent to the server:** the titles and addresses of results on Google search pages and the query. Nothing from any other page, ever. No page content, no cookies, no account details.
 - **What the server keeps:** derived answers for 24 hours; request logs without raw queries beyond what abuse prevention needs, for a short fixed period. The privacy page states the period.
 - **What the server sends to the AI:** comment text and titles for classification; never usernames.
@@ -264,9 +266,23 @@ opinion-extension/
 
 - TypeScript throughout.
 - Server: Next.js route handlers on Vercel; Upstash Redis for memory; Vercel Cron for the nightly job.
-- Extension: WXT (Manifest V3; Chrome first, Firefox from the same build); Shadow DOM for anything drawn on a page; the side panel for the drawer.
+- Extension: plain TypeScript bundled by esbuild (Manifest V3; a Chrome package and a Firefox package from one source; Safari wraps the Chrome package in Xcode); Shadow DOM for anything drawn on a page; the drawer is an in-page overlay framing `/embed`.
 - AI: OpenAI through the Responses API with Structured Outputs, a small model for lite gauges and naming, a capable model for cards.
-- Old code worth salvaging from the earlier search site: the YouTube, Reddit and X readers, the analysis prompt and the counting. Starting from scratch on the product; not on the parts that already work.
+- Salvaged from the earlier search site: the YouTube, Reddit and X readers, the analysis prompt, the counting, the card UI and its stylesheet. Starting from scratch on the product; not on the parts that already work.
+- No Node on the owner's machines: GitHub Actions installs, builds and tests every push and attaches the extension packages to the run; Vercel builds and runs the server from the `server/` folder.
+
+### Doors
+
+| Door | Method | Purpose |
+|---|---|---|
+| `/api/gauge` | POST `{ query, results: [{ url, title, snippet? }] }` | Names the subject behind each result and the query, answers with a quick gauge per subject: from memory, computed within a 20-second budget, or `pending` with the work kept alive. |
+| `/api/gauge?keys=a,b` | GET | The poll for pending subjects: memory only. |
+| `/api/card?key=` | GET | The full card for one subject, from memory or computed within 55 seconds. X is read here only. |
+| `/api/config` | GET | The settings the extension reads on start, including the kill switch. Override instantly by writing JSON to the memory key `config:override`. |
+| `/embed?key=` | page | The card the drawer frames. |
+| `/dev` | page | Pretend to be the extension and knock on the gauge door. |
+
+Every door answers any origin; the install token (`X-Install-Token`) and the rate limits are the protection. Without an AI key the gauge and the card still work, from a word-count estimate marked `simulated`, so the whole flow can be tried before a single key exists.
 
 ## 16. Decisions log
 
@@ -279,6 +295,11 @@ opinion-extension/
 | 2026-09-14 | Sources at launch: Hacker News, Bluesky, YouTube. Reddit when approved. X off by default. Facebook/Instagram/TikTok are not sources. |
 | 2026-09-14 | People are never subjects. |
 | 2026-09-14 | Only derived answers are stored, for at most 24 hours; excerpts fetched live. |
+| 2026-09-14 | Named Opinion Meter; repository `samco26/Opinion-Meter`. |
+| 2026-09-14 | The old site's look everywhere, bars included. The query itself gets a bar in v1. |
+| 2026-09-14 | The drawer is an in-page overlay framing the server's embed page, not a side panel: one behaviour on every browser, and the card UI updates without a store review. |
+| 2026-09-14 | The extension is bundled by esbuild with a small build script rather than WXT: fewer moving parts while building without a local Node. |
+| 2026-09-14 | No Node is installed on the owner's machines; GitHub Actions is the build and test machine, Vercel the server. The extension packages are downloaded from the Actions run and loaded unpacked. |
 
 ## 17. Open questions
 
