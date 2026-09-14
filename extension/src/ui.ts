@@ -37,7 +37,7 @@ const OVERLAY_CSS = `
 .back{position:fixed;inset:0;z-index:2147483646}
 .panel{position:fixed;z-index:2147483647;border-radius:24px;overflow:hidden;border:1px solid #ffffff66;box-shadow:0 24px 72px #0005;background:#e8f0ebaa;backdrop-filter:blur(22px) saturate(1.15);-webkit-backdrop-filter:blur(22px) saturate(1.15);animation:in 240ms cubic-bezier(.16,1,.3,1) both;transition:height 180ms ease}
 @keyframes in{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:none}}
-iframe{display:block;width:100%;height:100%;border:0;background:transparent}
+iframe{display:block;width:100%;height:100%;border:0;background:transparent;color-scheme:light}
 .veil{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:#edf2ec66;color:#153f43;font:13px Helvetica,"Helvetica Neue",Arial,sans-serif}
 .veil[hidden]{display:none}.veil a{color:#ffd7c2}
 .track{width:180px;height:12px;border-radius:99px;position:relative;overflow:hidden;background:#17565f55}.track:before{content:"";position:absolute;inset:0;width:55%;border-radius:99px;background:linear-gradient(90deg,transparent,#8bb9b5 15%,#ffd7c2 55%,#edaa99 80%,transparent);animation:flow 1800ms ease-in-out infinite}
@@ -151,7 +151,7 @@ export function createBar(opts: { big?: boolean; title?: string; onOpen: (gauge:
    the server's embed page. Closes on the embed's say-so, Escape, or a
    click anywhere outside. Returns the close function. */
 let activeOverlay: (() => void) | undefined;
-export function openOverlay(opts: { url: string; anchor: DOMRect; title: string }): () => void {
+export function openOverlay(opts: { url: string; anchor: DOMRect; title: string; message?: string }): () => void {
   activeOverlay?.();
   const previousFocus = document.activeElement as HTMLElement | null;
   const host = el("div");
@@ -172,14 +172,22 @@ export function openOverlay(opts: { url: string; anchor: DOMRect; title: string 
   panel.style.left = `${Math.max(12, Math.min(opts.anchor.left, vw - width - 12))}px`;
   panel.style.top = `${below + height <= vh - 12 ? below : Math.max(12, vh - height - 12)}px`;
   const frame = el("iframe");
-  frame.src = opts.url;
+  if (!opts.message) frame.src = opts.url;
   frame.referrerPolicy = "no-referrer";
   frame.setAttribute("title", `What people think of ${opts.title}`);
   const veil = el("div", "veil");
   veil.append(el("div", "track"), el("span", undefined, "Opening the drawer…"));
-  panel.append(frame, veil);
+  if (opts.message) {
+    const content = el("div");
+    content.style.cssText = "padding:24px;font:14px/1.5 Arial,sans-serif;color:#153f43";
+    content.append(el("strong", undefined, opts.title), el("p", undefined, opts.message));
+    const dismiss = el("button", undefined, "Close");
+    dismiss.addEventListener("click", () => close());
+    content.append(dismiss); panel.append(content); veil.hidden = true;
+  } else panel.append(frame, veil);
   root.append(style, back, panel);
   document.documentElement.append(host);
+  if (opts.message) panel.style.height = `${Math.min(panel.firstElementChild?.scrollHeight ?? height, vh - 24)}px`;
 
   const close = () => {
     window.removeEventListener("message", onMessage);
@@ -208,7 +216,7 @@ export function openOverlay(opts: { url: string; anchor: DOMRect; title: string 
   back.addEventListener("click", close);
   window.addEventListener("message", onMessage);
   window.addEventListener("keydown", onKey);
-  frame.focus();
+  if (opts.message) panel.querySelector('button')?.focus(); else frame.focus();
   activeOverlay = close;
   return close;
 }

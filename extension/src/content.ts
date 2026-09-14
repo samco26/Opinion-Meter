@@ -47,21 +47,24 @@ async function drain() {
         if (!result.anchor.isConnected) continue;
         placements.get(result.anchor)?.remove();
         const context = { query: requestQuery, results: [{ url: result.url, title: result.title }] };
-        const bar = createBar({ title: result.title, onOpen: open(context, result.title) });
+        const bar = createBar({ title: result.title, onOpen: result.unavailable ? (_gauge, anchor) => openOverlay({ url: server, anchor, title: result.title, message: result.unavailable }) : open(context, result.title) });
         const target = result.anchor.closest('a, button') ?? result.anchor;
         target.insertAdjacentElement("afterend", bar.host);
         placements.set(result.anchor, bar); drawn.set(result, bar);
+        if (result.unavailable) bar.set({ kind: "empty", reason: result.unavailable });
       }
       if (initial && config.google.queryBar) {
         queryBar = createBar({ big: true, title: requestQuery, onOpen: open({ query: requestQuery, results: [] }, requestQuery) });
         positionQuery();
       }
       try {
-        const unique = [...new Map(results.map(r => [r.url, { url: r.url, title: r.title }])).values()];
+        const unique = [...new Map(results.filter(r => !r.unavailable).map(r => [r.url, { url: r.url, title: r.title }])).values()];
+        if (!initial && !unique.length) continue;
         const response = await send<GaugeResponse>({ type: "gauge", request: { query: requestQuery, results: unique } });
         if (epoch !== generation) continue;
         const keys = new Map(response.results.map(r => [r.url, r.key]));
         for (const [result, bar] of drawn) {
+          if (result.unavailable) continue;
           const key = keys.get(result.url);
           if (key) attach(key, bar);
           else bar.set({ kind: "empty", reason: "No reading available for this link. Open to check." });

@@ -44,13 +44,15 @@ body{font:16px Arial;background:#202124;color:#e8eaed;margin:40px}header{color:#
 <article><a href="https://cadbury.example/products"><h3>Repeated destination, independent placement</h3></a></article>
 <h2>Popular products</h2><div class="products"><div><div class="product" data-product-id="a"><a href="https://shop.example/dairy"><img alt="Dairy Milk"><h3>Dairy Milk</h3></a></div></div><div><div class="product" data-product-id="b"><a href="https://shop.example/dark"><h3>Dark chocolate</h3></a></div></div></div>
 <nav><a href="https://noise.example"><h3>Navigation — must not receive a bar</h3></a></nav>
+<div data-pv-entrypoint role="button" aria-label="Product without merchant link"><div title="Product without merchant link">Product without merchant link</div></div>
+<div role="list" style="display:flex;width:900px"><div role="listitem" style="margin-left:500px;width:240px"><a href="https://carousel.example/a">Carousel reference — not a sidebar</a></div></div>
 <button id="more">Add result after page load</button>
 </main><aside id="rhs"><div class="source-card"><a href="https://coles.example/shop">Coles · Shop Cadbury Products</a></div></aside></div>
 <script src="/hands.js"></script><script>
 document.getElementById("more").onclick=()=>{const a=document.createElement("a");a.href="https://later.example";a.innerHTML="<h3>Later result</h3>";document.querySelector("main").append(a);};
 setTimeout(()=>{
 const counts={results:document.querySelectorAll('[data-opinion-meter="result"]').length,query:document.querySelectorAll('[data-opinion-meter="query"]').length,side:document.querySelector("#rhs")?.firstElementChild?.getAttribute("data-opinion-meter")==="query",lazy:document.querySelectorAll("iframe").length===0,batches:window.fixtureRequests.filter(x=>x.type==="gauge").length};
-const pass=counts.results===6&&counts.query===1&&counts.side&&counts.lazy;
+const pass=counts.results===7&&counts.query===1&&counts.side&&counts.lazy;
 document.getElementById("checks").textContent=(pass?"PASS":"FAIL")+" initial checks "+JSON.stringify(counts);
 fetch("/report",{method:"POST",body:JSON.stringify({initial:counts,pass})});
 },1500);

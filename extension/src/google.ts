@@ -1,10 +1,11 @@
 /* Distinct placements share readings, including ads and product tiles. */
 import type { ExtensionConfig } from "./shared";
-export interface Found { url: string; title: string; anchor: HTMLElement }
-const PRODUCT = "[data-product-id], [data-docid], .sh-dgr__grid-result, .sh-dlr__list-result, .pla-unit";
+export interface Found { url: string; title: string; anchor: HTMLElement; unavailable?: string }
+const PRODUCT = "[data-product-id], [data-docid], [data-pv-entrypoint], .sh-dgr__grid-result, .sh-dlr__list-result, .pla-unit";
 const clean = (s: string | null | undefined) => (s ?? "").replace(/\s+/g, " ").trim().slice(0, 300);
 const google = (host: string) => /(^|\.)google\.[a-z.]+$/.test(host);
 export function destination(raw: string): string | null {
+  if (!raw.trim()) return null;
   try {
     let u = new URL(raw, location.href);
     if (!/^https?:$/.test(u.protocol)) return null;
@@ -38,16 +39,15 @@ export function readResults(config: ExtensionConfig, seen: WeakMap<Element, stri
     const a = node instanceof HTMLAnchorElement ? node : node.querySelector<HTMLAnchorElement>('a[href]');
     const productLink = product?.querySelector<HTMLAnchorElement>('a[href]:has(h3), a[href]:has([role="heading"]), a[href]');
     let url = destination((productLink ?? a)?.href ?? "");
-    const productTitle = product?.querySelector<HTMLElement>('h3, [role="heading"], .pymv4e, .tAxDx, [data-title]');
-    const title = clean(productTitle?.textContent || headline?.textContent || node.getAttribute("aria-label") || a?.textContent || product?.querySelector('img[alt]')?.getAttribute("alt"));
-    const productId = product?.getAttribute("data-product-id") ?? product?.getAttribute("data-docid");
-    if (!url && productId && /^[\w-]+$/.test(productId)) url = `https://www.google.com/shopping/product/${encodeURIComponent(productId)}`;
-    if (!url || title.length < 3 || /^(show (all|more)|learn more|more|visit|website|feedback|next|previous|cached)$/i.test(title)) continue;
+    const productTitle = product?.querySelector<HTMLElement>('h3, [role="heading"], .pymv4e, .tAxDx, [data-title], [title]');
+    const title = clean(productTitle?.getAttribute('title') || productTitle?.textContent || headline?.textContent || node.getAttribute("aria-label") || a?.textContent || product?.querySelector('img[alt]')?.getAttribute("alt"));
+    const unavailable = !url && product ? "Google has not exposed a merchant link for this product tile. A page or website verdict needs an identifiable destination; this is not a score for the product itself." : undefined;
+    if ((!url && !unavailable) || title.length < 3 || /^(show (all|more)|learn more|more|visit|website|feedback|next|previous|cached)$/i.test(title)) continue;
     const signature = `${url}|${title}`;
     selected.add(anchor);
     if (seen.get(anchor) === signature) continue;
     seen.set(anchor, signature);
-    found.push({ url, title, anchor });
+    found.push({ url: url ?? "", title, anchor, unavailable });
   }
   return found;
 }
@@ -61,7 +61,9 @@ export function queryPlacement(config: ExtensionConfig): { parent: HTMLElement; 
   const left = main.getBoundingClientRect().left;
   const right = candidates.find(node => {
     const box = node.getBoundingClientRect();
-    return visible(node) && box.width >= 180 && box.width <= 450 && box.left > left + 450 && Boolean(node.querySelector('a[href]'));
+    // A horizontal source carousel can have a tile at the same x-position as
+    // a right rail. Never place the main card inside an individual source.
+    return visible(node) && !node.closest('[role="listitem"], li, a, [data-pv-entrypoint]') && box.width >= 180 && box.width <= 450 && box.left > left + 450 && (node.id === 'rhs' ? Boolean(node.querySelector('a[href]')) : node.querySelectorAll('a[href]').length >= 2);
   });
   if (right) return { parent: right, before: right.firstElementChild, side: true };
   return { parent: main, before: main.firstElementChild, side: false };

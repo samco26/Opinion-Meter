@@ -26,3 +26,4 @@ next-env.d.ts
 .DS_Store
 Thumbs.db
 /.pnpm-store/
+/artifacts/
