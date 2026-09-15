@@ -37,7 +37,7 @@ Built from the owner's live tests of v0.4/v0.5 across the All, Images, Videos, N
 
 ## Immediate next actions
 
-1. **Load the v0.8 package**: GitHub → Actions → the top green run ("v0.8: …") → Artifacts → `opinion-meter-chrome` → tell the assistant (it unpacks over `extension/dist/chrome`) → Reload at `chrome://extensions`.
+1. **Load the v0.8 package**: already unpacked over `extension/dist/chrome` (run #25) — the owner presses Reload at `chrome://extensions`. For later builds the assistant fetches the artifact itself: `git credential fill` yields the stored GitHub token (never printed), the Actions API gives the newest run's `opinion-meter-chrome` artifact id, `curl -L` on `/actions/artifacts/<id>/zip` downloads it, PowerShell `Expand-Archive -Force` unpacks it, and the manifest version plus a build marker in `content.js` confirm the swap. No more manual downloads.
 2. **Walk the pages**: "kia" (All: bars beside the names, no phantom, scroll under the header), "youtube" (knowledge panel card on the title lines), "peptides" (AI Overview: bars inside the box, the narrow card's name), "twitter" (News), a drawer (no card scrollbar, short loading strip, no stars).
 3. **X monthly spend cap** — raise it in the X developer portal (Billing); until then X reads nothing. **YouTube quota increase** — still urgent.
 4. Reddit stays parked.
