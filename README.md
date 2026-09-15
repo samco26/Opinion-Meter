@@ -364,7 +364,7 @@ Nothing here needs Node on your machine.
 
 **The server.** The existing Vercel project is `opinion_meter`, rooted at `server/`, at **https://opinionmeter.vercel.app**. The extension now uses that address by default. Set keys from `.env.example` (or the `CHATGPT`/`YOUTUBE` aliases), then redeploy. `/api/health` shows which are configured. Connect Upstash for persistent memory. Open `/dev` to test the gauge door.
 
-**The extension.** GitHub → Actions → the latest `ci` run → download `opinion-meter-chrome` → unzip → `chrome://extensions` → Developer mode → Load unpacked → the unzipped folder. Then search Google. Details in `extension/README.md`.
+**The extension.** GitHub → Actions → the latest `ci` run → download `opinion-meter-chrome` → unzip → `chrome://extensions` → Developer mode → Load unpacked → the unzipped folder. Then search Google. Details in `extension/README.md`. Edge takes `opinion-meter-edge` the same way at `edge://extensions`; Firefox takes `opinion-meter-firefox` at `about:debugging`; **Safari needs the Mac app: follow `SAFARI.md`** (download the `opinion-meter-safari-app` artifact from a run with the `safari-app` job, or build it in Xcode).
 
 **When a run is red.** Open the failed step in Actions and paste the red lines into the conversation; that is the feedback loop that replaces a local Node.
 
