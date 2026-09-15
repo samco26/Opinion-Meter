@@ -59,8 +59,8 @@ function siteLabel(anchor: HTMLElement, container: HTMLElement): HTMLElement | u
 function organic(config: ExtensionConfig, seen: WeakMap<Element, string>): Found[] {
   const found: Found[] = [];
   const roots = new Set([...document.querySelectorAll<HTMLElement>("#search, #rso, #tads, #tadsb, #bottomads"), ...document.querySelectorAll<HTMLElement>(config.google.results)]);
-  const candidates = new Set<HTMLElement>();
-  for (const root of roots) for (const node of root.querySelectorAll<HTMLElement>("a[href]")) candidates.add(node);
+  const candidates = new Set<HTMLAnchorElement>();
+  for (const root of roots) for (const node of root.querySelectorAll<HTMLAnchorElement>("a[href]")) candidates.add(node);
   for (const node of candidates) {
     if (!visible(node) || node.closest('nav, [role="navigation"], form, #rhs, [data-attrid], [data-mcpr], [data-aim], [data-sgrd], ' + PRODUCT)) continue;
     const heading = node.querySelector<HTMLElement>('h3, [role="heading"]');
