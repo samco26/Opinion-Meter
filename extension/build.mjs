@@ -32,7 +32,7 @@ const manifest = (target) => ({
   description,
   icons: { 16: "icons/icon16.png", 32: "icons/icon32.png", 48: "icons/icon48.png", 128: "icons/icon128.png" },
   permissions: ["storage"],
-  ...(target === "firefox" ? { host_permissions: EVERYWHERE } : {}),
+  ...(["firefox", "safari"].includes(target) ? { host_permissions: EVERYWHERE } : {}),
   background: target === "firefox" ? { scripts: ["background.js"] } : { service_worker: "background.js" },
   content_scripts: [
     { matches, js: ["content.js"], run_at: "document_idle" },

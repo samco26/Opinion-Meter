@@ -1,6 +1,18 @@
 # Opinion Meter on Safari (and other browsers)
 
-Safari cannot load an extension folder the way Chrome does. It needs the extension wrapped in a small Mac app, made by Apple's converter, which only runs on a Mac. Two ways to get there; both give you an unsigned copy for your own Mac. The App Store, or a signed download for other people, needs an Apple developer account (about US$99 a year); see the end.
+The Safari package comes from the same current source as Chrome, including the query pill, drawer, toolbar menu and draggable “take the bar with you” card. Use the latest successful `main` run, or the explicitly identified correction branch, and check the commit and version before installing. The obsolete v0.3 package from commit `e983a18` was built from an old checkout; do not install it.
+
+## Quick test on this Mac (no Xcode needed)
+
+Recent Safari versions have **Settings → Developer → Add Temporary Extension…**. This route was verified on the owner's Mac.
+
+1. Download **opinion-meter-safari** from the correct CI run and unzip it. The folder should directly contain `manifest.json`, `content.js`, `background.js`, `popup.html`, `popup.js`, `site.js` and `icons/`.
+2. In Safari → Settings → Advanced, enable **Show features for web developers**. In Developer, enable **Allow unsigned extensions** and authenticate if prompted.
+3. Choose **Add Temporary Extension…** and select the unzipped folder. In Extensions, check the displayed version and enable Opinion Meter. If updating the files in a previously installed folder, use **Reload**.
+4. Allow website access for Google and the destinations where the card should follow you. The toolbar menu controls “take the bar with you”. The site script looks up a reading already held by the brain; it does not send the visited page to the server.
+5. Reload Google, wait for a result's bar, then follow that result to its site. Verify the new query pill, the full drawer and the draggable site card.
+
+Temporary extensions disappear after Safari quits or after 24 hours. Older Safari versions without this button need the Mac app below. Distribution needs Apple's packaging and signing process.
 
 ## A. Use the app CI already built (no Xcode needed to run it)
 

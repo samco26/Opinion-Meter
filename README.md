@@ -4,7 +4,7 @@ The product and the repository (`samco26/Opinion-Meter`) are called Opinion Mete
 
 A browser extension that shows, beside anything you are about to click, what people actually think of it: a small bar, how many voices, one sentence — and the full picture on click.
 
-### Current behaviour — 15 September 2026, v0.3
+### Current behaviour — 15 September 2026, v0.13.1
 
 The main card summarises opinion about the **search query**. A result's bar is about **the thing its page represents** — a product, a service, a film, an app, a company, a site's front page, a video, an article — as people regard it over time, named by rules where a site's address carries the identity and by one batched AI call otherwise. The query and a result about the same thing share one reading (the `youtube.com` result and the query "youtube" are both YouTube). A page about nothing in particular (a how-to, a login page) gets no bar. Only without an AI key does an unnamed page fall back to a reading of the page itself, then its website.
 
@@ -314,6 +314,7 @@ That word-count fallback applies only to main-query readings. Website/link reput
 
 | Date | Decision |
 |---|---|
+| 2026-09-15 | Safari is packaged from the current Chrome source (v0.13.1, based on `8d8c41a`), with the same UI and site card. Declare Safari's website permissions explicitly and document temporary folder loading on recent Safari. The old v0.3 Safari branch is superseded. |
 | 2026-09-14 | Main-query opinion and individual URL reputation are separate; use an explicit domain fallback only when page-specific evidence is thin. |
 | 2026-09-14 | Include sponsored results, product tiles and AI Overview references. Bare result bars; no main-card summary subtext. |
 | 2026-09-14 | Full content loads only on expansion. Drawer is transparent frosted glass, sized to its content with a viewport ceiling. |
@@ -359,6 +360,8 @@ That word-count fallback applies only to main-query readings. Website/link reput
 | 2026-09-16 | The site's card can be dragged anywhere (the spot is remembered for every site), wears the drawer's frosted background and bold text, and keeps the fade. Packages for Edge and Safari join Chrome and Firefox: Edge is the Chrome package under its own name; Safari is the folder in Safari's shape, turned into an unsigned Mac app by a Mac job in CI on request (a Mac minute costs ten of the free allowance, so not on every push). |
 
 ## 17. Trying it
+
+**Safari correction (v0.13.1).** The Safari package uses the latest v0.13 source from `8d8c41a`, including the current pill, drawer, menu and draggable site card. It replaces the obsolete v0.3 package from `e983a18`. Recent Safari can add the folder temporarily without Xcode; see `SAFARI.md`. The Safari label explicitly declares the website access already used by “take the bar with you”.
 
 Nothing here needs Node on your machine.
 

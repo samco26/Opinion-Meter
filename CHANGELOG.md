@@ -2,6 +2,12 @@
 
 What changed in each version, in plain words, newest first. The version number lives in three places and moves together: `server/package.json`, `extension/package.json` and the health door (`server/src/app/api/health/route.ts`). **Rule:** every push that changes what a reader sees or what the server does adds an entry here in the same commit (see AGENTS.md).
 
+## 0.13.1 — 15 September 2026
+
+- Safari uses the current v0.13 source from GitHub commit `8d8c41a`, including the pill, drawer, toolbar menu and draggable card on visited sites. This supersedes the outdated v0.3 Safari package from `e983a18`.
+- Safari explicitly declares the website permissions needed for the existing “take the bar with you” feature. All browsers still bundle the same hands, brain, menu and site script.
+- Added the verified temporary-extension installation route for recent Safari versions; Xcode is not needed for this local test.
+
 ## 0.13.0 — 16 September 2026
 
 - The site's card can be dragged anywhere on the window; where it lands is where it appears next time, on every site, kept inside the window. The fade on scroll is unchanged. A drag does not open the drawer.

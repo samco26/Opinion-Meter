@@ -27,7 +27,7 @@ Every push runs the `ci` workflow on GitHub, which attaches `opinion-meter-chrom
 | Opera | `opinion-meter-chrome` | `opera://extensions` → Developer mode → Load unpacked | Chrome Web Store (Opera installs it directly) or Opera add-ons |
 | Vivaldi, Arc | `opinion-meter-chrome` | the browser's extensions page → Developer mode → Load unpacked | Chrome Web Store |
 | Firefox (desktop and Android) | `opinion-meter-firefox` | `about:debugging` → This Firefox → Load Temporary Add-on → `manifest.json` in the unzipped folder | Firefox Add-ons (AMO) |
-| Safari | — | needs Apple's converter on a Mac and an Apple developer account; not built here | App Store |
+| Safari | `opinion-meter-safari` | Recent Safari: Settings → Developer → Add Temporary Extension → the unzipped folder. See `../SAFARI.md` for app packaging. | App Store |
 
 Every Chromium browser installs the same Chrome package unchanged. The Firefox package differs only in its manifest.
 
