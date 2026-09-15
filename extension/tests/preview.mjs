@@ -31,9 +31,15 @@ import React from ${JSON.stringify(resolve(root,"server/node_modules/react/index
 import {createRoot} from ${JSON.stringify(resolve(root,"server/node_modules/react-dom/client.js"))};
 import {Embed} from ${JSON.stringify(resolve(root,"server/src/components/Embed.tsx"))};
 const realFetch=window.fetch.bind(window);
-window.fetch=(url,init)=>{ if(String(url).startsWith("/api/card")) {realFetch("/report",{method:"POST",body:JSON.stringify({cardFetch:true})});return Promise.resolve(new Response(JSON.stringify({kind:"card",card:${JSON.stringify(fixture)}})));} return realFetch(url,init); };
-createRoot(document.getElementById("root")).render(React.createElement(Embed,{subjectKey:"test"}));
+const card = ${JSON.stringify(fixture)};
+card.subject="YouTube";card.verdict="mixed";card.sentiment={positive:45,neutral:10,negative:45};
+card.sources=["youtube","x","hn","bluesky"].map(source=>({...card.sources[0],source}));
+card.bySource=["youtube","x","hn","bluesky"].map(source=>({...card.bySource[0],source}));
+card.opinions=Array.from({length:12},(_,i)=>({...card.opinions[0],id:String(i),sentence:"SYNTHETIC recurring opinion "+(i+1)+": used only to verify expansion and scrolling."}));
+window.fetch=(url,init)=>{ if(String(url).startsWith("/api/card")) {realFetch("/report",{method:"POST",body:JSON.stringify({cardFetch:true})});return Promise.resolve(new Response(JSON.stringify({kind:"card",card})));} return realFetch(url,init); };
+createRoot(document.getElementById("root")).render(React.createElement(Embed,{subjectKey:"test",dark:new URL(location.href).searchParams.get("theme")==="dark"}));
 `;
+bundles.set("/ui.js", (await build({ entryPoints: ["tests/ui-preview.ts"], bundle: true, write: false, format: "iife" })).outputFiles[0].contents);
 bundles.set("/embed.js", (await build({ stdin: { contents: embedEntry, resolveDir: root, loader: "tsx" }, bundle: true, write: false, format: "iife", jsx: "automatic", alias: { "@": resolve(root,"server/src") }, tsconfig: resolve(root,"server/tsconfig.json"), define: { "process.env.NODE_ENV": '"production"' } })).outputFiles[0].contents);
 const page = `<!doctype html><html><head><title>Opinion Meter — synthetic browser checks</title><style>
 body{font:16px Arial;background:#202124;color:#e8eaed;margin:40px}header{color:#ffda90;margin-bottom:30px}.grid{display:grid;grid-template-columns:minmax(420px,700px) 240px;gap:24px}a{color:#8ab4f8}h3{font-size:22px;font-weight:400}article{margin:24px 0}.products{display:flex;gap:20px}.product{width:150px;border:1px solid #777;border-radius:20px;padding:20px}.source-card{border:1px solid #777;border-radius:22px;padding:20px}#checks{background:#111;padding:12px}button{cursor:pointer}
@@ -62,6 +68,8 @@ createServer(async (req,res) => {
   if(path==="/report"){if(req.method==="POST"){let body="";for await(const part of req)body+=part;Object.assign(report,JSON.parse(body));}res.setHeader("Content-Type","application/json");res.end(JSON.stringify(report));return;}
   if(bundles.has(path)){res.setHeader("Content-Type","text/javascript");res.end(bundles.get(path));return;}
   if(path==="/styles.css"){res.setHeader("Content-Type","text/css");res.end(readFileSync(resolve(root,"server/src/app/globals.css")));return;}
+  if(/^\/logos\/(youtube\.png|x\.png|reddit\.png|hn\.svg|bluesky\.svg)$/.test(path)){res.setHeader("Content-Type",path.endsWith(".svg")?"image/svg+xml":"image/png");res.end(readFileSync(resolve(root,`server/public${path}`)));return;}
   res.setHeader("Content-Type","text/html; charset=utf-8");
+  if(path==="/ui"){res.end('<!doctype html><html><head><title>Opinion Meter UI regression fixture</title></head><body><script src="/ui.js"></script></body></html>');return;}
   res.end(path==="/embed" ? '<!doctype html><html><head><link rel="stylesheet" href="/styles.css"></head><body><div id="root"></div><script src="/embed.js"></script></body></html>' : page);
 }).listen(4318,"127.0.0.1",()=>console.log("Synthetic preview http://127.0.0.1:4318/?q=Cadbury"));

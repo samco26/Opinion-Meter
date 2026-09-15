@@ -46,6 +46,13 @@ async function main() {
     const box = bar.host.getBoundingClientRect();
     place({ left: box.left, top: box.top });
   });
+  /* A fresh drawer verdict can make the pill wider. Keep a dragged pill
+     inside the viewport without squeezing its name to the old width. */
+  new ResizeObserver(() => {
+    if (bar.host.style.right !== "auto") return;
+    const box = bar.host.getBoundingClientRect();
+    place({ left: box.left, top: box.top });
+  }).observe(bar.host);
   /* Solid at the top of the page; faint once the reader scrolls at all
      (still there, still clickable, full again under the cursor); solid
      again when they come back to the very top. */

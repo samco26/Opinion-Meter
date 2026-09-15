@@ -27,7 +27,7 @@ const matches = GOOGLE.map((tld) => `*://www.google.${tld}/search*`);
 const EVERYWHERE = ["*://*/*"];
 const iconSizes = [16, 32, 48, 128];
 const icons = (dark = false) => Object.fromEntries(iconSizes.map((size) => [size, `icons/${dark ? "grey" : "icon"}${size}.png`]));
-const iconVariants = [{ ...icons(), color_schemes: ["light"] }, { ...icons(true), color_schemes: ["dark"] }];
+const iconVariants = [{ ...icons(true), color_schemes: ["light"] }, { ...icons(), color_schemes: ["dark"] }];
 const manifest = (target) => ({
   manifest_version: 3,
   name: "Opinion Meter",
@@ -48,7 +48,7 @@ const manifest = (target) => ({
     default_title: "Opinion Meter", default_popup: "popup.html", default_icon: icons(),
     ...(target === "safari" ? { icon_variants: iconVariants } : {}),
     /* Firefox names these for the toolbar TEXT colour, not its background. */
-    ...(target === "firefox" ? { theme_icons: iconSizes.map((size) => ({ size, light: `icons/grey${size}.png`, dark: `icons/icon${size}.png` })) } : {}),
+    ...(target === "firefox" ? { theme_icons: iconSizes.map((size) => ({ size, light: `icons/icon${size}.png`, dark: `icons/grey${size}.png` })) } : {}),
   },
   ...(target === "firefox" ? { browser_specific_settings: { gecko: { id: "opinion-meter@samco26.github.io", strict_min_version: "127.0" } } }
     : target === "safari" ? { browser_specific_settings: { safari: { strict_min_version: "16.4" } } }

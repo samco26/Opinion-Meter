@@ -18,3 +18,4 @@ For anyone, human or AI, changing this repository.
 - Keep README.md accurate: components, costs, scope and the decisions log. Add a dated row to the decisions log whenever a decision in it changes.
 - Keep CHANGELOG.md current: every push that changes what a reader sees or what the server does adds an entry at the top (version, date, what changed in plain words) in the same commit, and moves the version in `server/package.json`, `extension/package.json` and the health door together.
 - Commit each verified working checkpoint. Keep the GitHub repository private unless the owner says otherwise.
+- Unless the owner explicitly requests a browser-only change, make extension updates in the shared source and build, test and publish all four packages (Chrome, Edge, Firefox and Safari) together.

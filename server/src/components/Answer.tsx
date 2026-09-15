@@ -47,7 +47,7 @@ export function Insufficient({ response }: { response: Extract<CardResponse, { k
    card, then one line with the platform buttons on the left and the
    count and confidence on the right. No stars (the owner's decision of
    15 September 2026). */
-export function Answer({ card, onChoose }: { card: Card; onChoose: (id: SourceId) => void }) {
+export function Answer({ card, onChoose, recurring }: { card: Card; onChoose: (id: SourceId) => void; recurring?: { expanded: boolean; controls: string; onToggle: () => void } }) {
   const analysed = analysedCount(card);
   return <div className="result-copy">
     {card.simulated && <p className="sample-label">Estimated from word counts · the server has no AI key</p>}
@@ -58,6 +58,7 @@ export function Answer({ card, onChoose }: { card: Card; onChoose: (id: SourceId
       <div className="under-left">
         <SourceButtons sources={card.sources} bySource={card.bySource.map((reading) => reading.source)} onChoose={onChoose} />
       </div>
+      {recurring && <button type="button" className="recurring-toggle" aria-expanded={recurring.expanded} aria-controls={recurring.controls} onClick={recurring.onToggle}>{recurring.expanded ? "Hide recurring opinions" : "See recurring opinions"}</button>}
       <p className="reading-count">{analysed} relevant opinions · {card.confidence.level} confidence</p>
     </div>
   </div>;

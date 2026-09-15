@@ -194,6 +194,11 @@ body:has(.embed)>.ground{display:none}
 .under-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:8px}
 .under-left{display:flex;align-items:center;gap:10px}.under-left .source-buttons{margin-top:0;gap:2px}
 .under-bar .reading-count{margin:0;white-space:nowrap}
+.recurring-toggle{height:23px;flex:0 0 auto;padding:0 9px;border:0;border-radius:99px;background:#e1e4e7;color:var(--ink);font:11px/1 "Google Sans",Helvetica,Arial,sans-serif;cursor:pointer;transition:background 180ms ease}
+.recurring-toggle:hover{background:#d6d9dd}.recurring-toggle:focus-visible{outline:2px solid currentColor;outline-offset:3px}
+[data-theme="dark"] .recurring-toggle{background:#ffffff14}[data-theme="dark"] .recurring-toggle:hover{background:#ffffff26}
+.embed-content>.recurring-section{display:flex;flex-direction:column;flex:0 1 auto;min-height:0}
+.embed-content>.recurring-section[hidden]{display:none}
 .embed .opinion-list{flex:0 1 auto;min-height:120px;max-height:300px;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#5f636855 transparent;padding-right:4px;mask-image:none;-webkit-mask-image:none}
 .embed .opinion-list::-webkit-scrollbar{width:8px}.embed .opinion-list::-webkit-scrollbar-thumb{background:#5f63683d;border-radius:99px;border:2px solid transparent;background-clip:padding-box}
 .embed .loading-state{padding:6px 6px 2px;animation:none}.embed .loading-state p{margin-top:10px;text-align:left;font-size:13px;transition:opacity 450ms ease}.embed .loading-state p.fade{opacity:0}

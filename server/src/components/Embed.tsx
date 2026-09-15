@@ -16,6 +16,7 @@ const PHRASES = ["Scanning the web…", "Reading the room…", "Calculating sent
 export function Embed({ subjectKey, dark = false }: { subjectKey: string; dark?: boolean }) {
   const [phase, setPhase] = useState<Phase>({ name: "loading" });
   const [view, setView] = useState<View | null>(null);
+  const [recurringOpen, setRecurringOpen] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [phrase, setPhrase] = useState(0);
   const [fading, setFading] = useState(false);
@@ -39,6 +40,7 @@ export function Embed({ subjectKey, dark = false }: { subjectKey: string; dark?:
     try { context = JSON.parse(new URLSearchParams(window.location.hash.slice(1)).get("context") ?? "null"); } catch { context = null; }
     if (!subjectKey && !context) { setPhase({ name: "error", message: "No subject was given." }); return; }
     setPhase({ name: "loading" });
+    setRecurringOpen(false);
     const controller = new AbortController();
     fetch(context ? "/api/card" : `/api/card?key=${encodeURIComponent(subjectKey)}`, {
       signal: controller.signal, cache: "no-store",
@@ -71,7 +73,7 @@ export function Embed({ subjectKey, dark = false }: { subjectKey: string; dark?:
     const observer = new ResizeObserver(measure);
     observer.observe(node); measure();
     return () => observer.disconnect();
-  }, [phase, view]);
+  }, [phase, view, recurringOpen]);
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") { event.preventDefault(); if (view) setView(null); else tell({ type: "close" }); }
@@ -101,9 +103,11 @@ export function Embed({ subjectKey, dark = false }: { subjectKey: string; dark?:
           {phase.name === "done" && phase.response.kind === "unknown" && <div className="result-copy"><p className="overall-answer">No reading available yet.</p><p className="quiet">{phase.response.message}</p></div>}
           {phase.name === "done" && phase.response.kind === "insufficient" && <Insufficient response={phase.response} />}
           {card && <>
-            <Answer card={card} onChoose={source => setView({ kind: "source", source })} />
-            <h2 className="section-label">Recurring opinions</h2>
-            <OpinionPills opinions={card.opinions} onSelect={opinion => setView({ kind: "opinion", opinion })} />
+            <Answer card={card} onChoose={source => setView({ kind: "source", source })} recurring={{ expanded: recurringOpen, controls: "recurring-opinions", onToggle: () => setRecurringOpen(open => !open) }} />
+            <section id="recurring-opinions" className="recurring-section" hidden={!recurringOpen} aria-label="Recurring opinions">
+              <h2 className="section-label">Recurring opinions</h2>
+              <OpinionPills opinions={card.opinions} onSelect={opinion => setView({ kind: "opinion", opinion })} />
+            </section>
             <button className="text-action" onClick={() => setView({ kind: "how" })}>How it works · sources and confidence</button>
           </>}
         </>}

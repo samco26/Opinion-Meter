@@ -23,13 +23,14 @@ for (const target of targets) {
     if (target === "safari") {
       assert.deepEqual(manifest.icon_variants, manifest.action.icon_variants);
       assert.deepEqual(manifest.icon_variants.map(v => v.color_schemes), [["light"], ["dark"]]);
-      assert.equal(manifest.icon_variants[1][32], "icons/grey32.png");
+      assert.equal(manifest.icon_variants[0][32], "icons/grey32.png");
+      assert.equal(manifest.icon_variants[1][32], "icons/icon32.png");
     }
     if (target === "firefox") {
       for (const icon of manifest.action.theme_icons) {
         // Firefox's light means light TEXT on a dark toolbar.
-        assert.equal(icon.light, `icons/grey${icon.size}.png`);
-        assert.equal(icon.dark, `icons/icon${icon.size}.png`);
+        assert.equal(icon.light, `icons/icon${icon.size}.png`);
+        assert.equal(icon.dark, `icons/grey${icon.size}.png`);
       }
     }
     for (const script of ["content", "background", "site", "popup"]) {

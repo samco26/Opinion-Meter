@@ -4,7 +4,9 @@ The product and the repository (`samco26/Opinion-Meter`) are called Opinion Mete
 
 A browser extension that shows, beside anything you are about to click, what people actually think of it: a small bar, how many voices, one sentence — and the full picture on click.
 
-### Current behaviour — 15 September 2026, v0.13.2
+### Current behaviour — 16 September 2026, v0.14.0
+
+The drawer starts compact: **See recurring opinions** between the platform icons and count reveals the scrolling opinions section. Bars stay below the drawer while scrolling; hover gently brightens the bar without scaling or outline rings and fades in a tooltip-coloured background. The floating site card grows for its name and verdict, and its hover paragraph follows dragging. Icons have rounded transparent corners; Safari and Firefox show cream in dark mode and grey in light mode, with cream as the compatibility fallback. All four browser packages are always built and published together unless the owner asks otherwise.
 
 The main card summarises opinion about the **search query**. A result's bar is about **the thing its page represents** — a product, a service, a film, an app, a company, a site's front page, a video, an article — as people regard it over time, named by rules where a site's address carries the identity and by one batched AI call otherwise. The query and a result about the same thing share one reading (the `youtube.com` result and the query "youtube" are both YouTube). A page about nothing in particular (a how-to, a login page) gets no bar. Only without an AI key does an unnamed page fall back to a reading of the page itself, then its website.
 
@@ -200,6 +202,8 @@ Re-uploads of a video (the file re-posted rather than linked) cannot be found th
 
 ## 9. Privacy and permissions
 
+**The browser warning:** automatic bars and the floating site card require page access, which browsers describe as “read and change data”. There is no draw-only permission. The extension does not read passwords or form entries; it adds its own controls. Removing that access would require click-to-enable behavior and would stop automatic following. Turning the site-card switch off stops drawing, not the browser permission itself; readers can restrict websites in browser settings. No additional permissions or transmitted data were added for v0.14.
+
 - **Permissions requested at install:** the Google search domains, every site (for "take the bar with you", below; the browser says so at install), and local storage for the install token and the config.
 - **"Take the bar with you" (v0.11, on by default from v0.12):** a site script runs on every page but Google's search pages, reads only the page's address inside the browser, and asks the brain for a reading it already holds from Google; nothing about those pages is sent to the server or anywhere else. Carried readings live in session storage (gone when the browser closes), a × hides the card on a site until its bar is next loaded on Google, and the menu behind the toolbar icon turns it off (the script then draws nothing).
 - **What is sent to the server:** the titles and addresses of results on Google search pages and the query. Nothing from any other page, ever. No page content, no cookies, no account details.
@@ -314,6 +318,7 @@ That word-count fallback applies only to main-query readings. Website/link reput
 
 | Date | Decision |
 |---|---|
+| 2026-09-16 | v0.14: recurring opinions start collapsed behind a 23 px disclosure button; drawers have a separate, synchronized layer above bars. Soft no-scale hover, tooltip follows dragging, site pill grows to avoid clipping short names after updates. Rounded icons reverse the native theme mapping (cream/dark, grey/light). Publish all four browser packages by default. Keep existing automatic page access; explain its unavoidable browser warning instead of claiming draw-only access. |
 | 2026-09-15 | v0.13.2 uses the owner's cream smile icon across all extension packages, with native grey/dark variants for Safari and Firefox and cream as the compatibility fallback. Site-card saves are serialized so simultaneous Google results cannot overwrite one another. |
 | 2026-09-15 | Safari is packaged from the current Chrome source (v0.13.1, based on `8d8c41a`), with the same UI and site card. Declare Safari's website permissions explicitly and document temporary folder loading on recent Safari. The old v0.3 Safari branch is superseded. |
 | 2026-09-14 | Main-query opinion and individual URL reputation are separate; use an explicit domain fallback only when page-specific evidence is thin. |

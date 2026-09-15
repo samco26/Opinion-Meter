@@ -1,4 +1,4 @@
-import { createBar, headerLevel, isDark, openOverlay, type Bar } from "./ui";
+import { createBar, headerLevel, isDark, openOverlay, resultLevel, type Bar } from "./ui";
 import { kpHeader, queryPlacement, readResults, textBox, type Found, type QueryPlace } from "./google";
 import { send, type ConfigReply, type ExtensionConfig, type Gauge, type GaugeRequest, type GaugeResponse, type SubjectStates } from "./shared";
 
@@ -34,7 +34,7 @@ function layer(): HTMLElement {
     node.style.cssText = "position:absolute;left:0;top:0;width:0;height:0;pointer-events:none";
     document.body.append(node);
   }
-  node.style.zIndex = String(headerLevel() ?? 127);
+  node.style.zIndex = String(resultLevel());
   return node;
 }
 const onPage = (r: DOMRect) => ({ left: r.left + scrollX, top: r.top + scrollY, right: r.right + scrollX, bottom: r.bottom + scrollY, width: r.width, height: r.height });

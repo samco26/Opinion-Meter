@@ -2,6 +2,15 @@
 
 What changed in each version, in plain words, newest first. The version number lives in three places and moves together: `server/package.json`, `extension/package.json` and the health door (`server/src/app/api/health/route.ts`). **Rule:** every push that changes what a reader sees or what the server does adds an entry here in the same commit (see AGENTS.md).
 
+## 0.14.0 — 16 September 2026
+
+- Fixed “YouTube” being squeezed after its floating card closes: the pill grows with the label and verdict and stays inside the window after an update.
+- A dragged bar's hover paragraph moves with it. Hover gently lights the filled bar with no expanding outline, and fades in a background matching the hover card.
+- Result bars stay below the expanded drawer when Google's header changes during scrolling.
+- Recurring opinions start hidden. “See recurring opinions”, between platform icons and the count and the same height as the logos, expands the drawer to reveal the scrolling list; click again to hide it.
+- Rounded icon corners, with cream in dark mode and grey in light mode on Safari/Firefox. Cream remains the compatibility fallback on Chromium and older browsers.
+- Explain why automatic page controls require the browser's “read and change data” warning. No new permissions or data collection. All browser packages ship together by default, recorded in AGENTS.md.
+
 ## 0.13.2 — 15 September 2026
 
 - The owner's smiling cream icon replaces the old icon in every browser package. Safari selects the grey icon in dark mode; Firefox uses grey on dark toolbars and cream on light ones. Browsers without native theme-icon support keep the cream icon.

@@ -14,16 +14,16 @@ const BAR_CSS = `
 .bar.still{cursor:default}
 :host([data-flow]){position:static;display:block;margin:0 0 16px}
 :host([hidden]){display:none!important}
-:host([data-site]){position:fixed;top:12px;right:12px;width:224px;z-index:2147483000;pointer-events:auto;transition:opacity 280ms ease}
+:host([data-site]){position:fixed;top:12px;right:12px;width:max-content;max-width:calc(100vw - 24px);z-index:2147483000;pointer-events:auto;transition:opacity 280ms ease}
 :host([data-site][data-faint]){opacity:.22}
 :host([data-site][data-faint]:hover),:host([data-site][data-faint]:focus-within){opacity:1}
-:host([data-site]) .big{width:224px;max-width:224px;min-width:0;padding:8px 12px;gap:8px;overflow:hidden;background:#f3f5f6d9;border:1px solid #ffffff99;backdrop-filter:blur(22px) saturate(1.05);-webkit-backdrop-filter:blur(22px) saturate(1.05);box-shadow:0 12px 32px #0003}
+:host([data-site]) .big{width:max-content;max-width:100%;min-width:min(224px,calc(100vw - 24px));padding:8px 12px;gap:8px;overflow:hidden;background:#f3f5f6d9;border:1px solid #ffffff99;backdrop-filter:blur(22px) saturate(1.05);-webkit-backdrop-filter:blur(22px) saturate(1.05);box-shadow:0 12px 32px #0003}
 :host([data-site][data-dark]) .big{background:#303134d9;border-color:#ffffff1f;box-shadow:0 12px 32px #0006}
-:host([data-site]) .big:hover{background:#f3f5f6ee}:host([data-site][data-dark]) .big:hover{background:#303134ee}
+:host([data-site]) .big:hover{background:#f3f5f6}:host([data-site][data-dark]) .big:hover{background:#303134}
 :host([data-site]) .big .title b,:host([data-site]) .big .count b{font-weight:700}
 :host([data-site][data-dragging]) .big{cursor:grabbing}
-:host([data-site]) .big .title{flex:0 1 auto;max-width:64px}
-:host([data-site]) .big .seg{flex:1 1 48px;min-width:40px}
+:host([data-site]) .big .title{flex:0 1 auto;max-width:240px}
+:host([data-site]) .big .seg{flex:0 0 48px;min-width:40px}
 :host([data-site]) .big .count{font-size:12px}
 .dismiss{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;border:0;padding:0;background:#dfe1e5;color:#1f1f1f;font:14px/20px "Google Sans",Helvetica,Arial,sans-serif;text-align:center;cursor:pointer;opacity:0;transition:opacity 160ms ease,transform 160ms ease}
 :host(:hover) .dismiss,.dismiss:focus-visible{opacity:1}.dismiss:hover{transform:scale(1.12)}
@@ -31,11 +31,15 @@ const BAR_CSS = `
 .bar{display:inline-flex;align-items:center;gap:7px;margin:0;padding:0;border:0;background:transparent;font:12px/1.2 "Google Sans",Helvetica,"Helvetica Neue",Arial,sans-serif;color:#1f1f1f;cursor:pointer;position:relative;white-space:nowrap;vertical-align:middle;text-align:left;opacity:0;transition:opacity 280ms ease}
 .bar.shown{opacity:1}
 .bar:focus-visible{outline:3px solid #5f6368;outline-offset:4px;border-radius:99px}
-.seg{display:flex;width:var(--om-width);height:var(--om-size);border-radius:99px;overflow:hidden;background:#20212422;flex-shrink:0;transition:box-shadow 180ms ease,transform 180ms cubic-bezier(.16,1,.3,1)}
-.bar.still:hover .seg{transform:none;box-shadow:none}
+.bar{isolation:isolate;--om-hover-bg:#f3f5f6}
+:host([data-dark]) .bar{--om-hover-bg:#303134}
+.bar:before{content:"";position:absolute;inset:-5px -7px;border-radius:30px;background:var(--om-hover-bg);opacity:0;z-index:-1;pointer-events:none;transition:opacity 180ms ease}
+.bar:hover:before,.bar:focus-visible:before{opacity:1}
+.bar.big:before{inset:0}
+.seg{display:flex;width:var(--om-width);height:var(--om-size);border-radius:99px;overflow:hidden;background:#20212422;flex-shrink:0;transition:filter 180ms ease,box-shadow 180ms ease}
 .seg span{display:block;height:100%;transition:flex-basis 500ms cubic-bezier(.16,1,.3,1)}.pos{background:#3fae66}.neu{background:#525a5f}.neg{background:#d95d52}
-.bar:hover .seg,.bar:focus-visible .seg{transform:scale(1.04);box-shadow:0 0 0 2px #ffffffcc,0 0 0 4px #9aa0a6cc,0 0 12px 3px #ffffff99}
-:host([data-dark]) .bar:hover .seg,:host([data-dark]) .bar:focus-visible .seg{box-shadow:0 0 0 2px #202124,0 0 0 4px #bdc1c6cc,0 0 12px 3px #ffffff66}
+.bar:hover .seg,.bar:focus-visible .seg{filter:brightness(1.12);box-shadow:0 0 8px #ffffff33}
+.bar.still:hover .seg{filter:none;box-shadow:none}
 .count{white-space:nowrap;color:#5f6368;font-size:12px}.count b{font-weight:500;color:#1f1f1f}
 :host([data-dark]) .count{color:#bdc1c6}:host([data-dark]) .count b{color:#e8eaed}:host([data-dark]) .seg{background:#ffffff1f}
 .muted{color:#5f6368}
@@ -44,12 +48,12 @@ const BAR_CSS = `
 .loading .seg{position:relative;background:#20212418}.loading .seg:before{content:"";position:absolute;inset:0;width:45%;border-radius:99px;background:linear-gradient(90deg,#3fae66 50%,#d95d52 50%);animation:flow 1600ms ease-in-out infinite}
 @keyframes flow{0%{transform:translateX(-110%)}100%{transform:translateX(220%)}}
 .big{display:flex;flex-direction:row;align-items:center;gap:12px;width:100%;max-width:700px;min-height:46px;box-sizing:border-box;margin:0;padding:8px 15px;white-space:nowrap;border-radius:30px;background:#f3f5f6;border:0;box-shadow:none;font:14px/1.3 "Google Sans",Helvetica,"Helvetica Neue",Arial,sans-serif;color:#1f1f1f;transition:opacity 280ms ease,background 180ms ease}
-.big:hover{background:#e9ebee}.big:hover .seg{box-shadow:none;transform:none}
+.big:hover{background:#f3f5f6}
 .big .title{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:14px}.big .title b{font-weight:500}
 .big .seg{flex:1 1 120px;width:auto;min-width:90px;height:14px}
 .big .count{flex:0 0 auto;font-size:14px;color:#1f1f1f}.big .count b{font-weight:500;color:inherit}
 :host([data-dark]) .big{background:#303134;color:#e8eaed}
-:host([data-dark]) .big:hover{background:#3c4043}
+:host([data-dark]) .big:hover{background:#303134}
 :host([data-dark]) .big .tag,:host([data-dark]) .big .muted,:host([data-dark]) .big .count,:host([data-dark]) .big .count b{color:inherit}
 :host([data-panel]) .big{max-width:none}
 .empty .seg{background:transparent;outline:1px solid #8a949b88;outline-offset:-1px}
@@ -64,7 +68,7 @@ const BAR_CSS = `
 :host([data-square]) .big .title .name{display:none}
 :host([data-square]) .big .seg{grid-area:seg;width:72px;flex:none;min-width:0;height:12px}
 :host([data-square]) .big .count{grid-area:count;font-size:12px;white-space:nowrap}
-@media(prefers-reduced-motion:reduce){.loading .seg:before{animation:none;width:100%;opacity:.6}.bar,.seg,.seg span{transition:none;animation:none}}
+@media(prefers-reduced-motion:reduce){.loading .seg:before{animation:none;width:100%;opacity:.6}.bar,.bar:before,.seg,.seg span{transition:none;animation:none}}
 `;
 
 const TIP_CSS = `
@@ -125,7 +129,7 @@ function tipElement(): HTMLElement {
   return tipNode;
 }
 function showTip(text: string, anchor: DOMRect, dark?: boolean) {
-  if (!text) return;
+  if (!text || activeOverlay) return;
   const tip = tipElement();
   tip.classList.toggle("dark", Boolean(dark));
   tip.textContent = text;
@@ -202,6 +206,12 @@ export function headerLevel(): number | undefined {
   return Number.isFinite(level) ? Math.max(2, level - 1) : 127;
 }
 
+let refreshDrawerLevel: (() => void) | undefined;
+export const resultLevel = () => {
+  refreshDrawerLevel?.();
+  return Math.max(0, (headerLevel() ?? 127) - 2);
+};
+
 /* Google's dark theme is a page background, not a media query; other sites are read the same way. */
 export function isDark(): boolean {
   const rgb = getComputedStyle(document.body).backgroundColor.match(/\d+(\.\d+)?/g)?.map(Number) ?? [];
@@ -210,7 +220,7 @@ export function isDark(): boolean {
 }
 
 /* site: the fixed card at the top right of another site (the name alone,
-   224 px wide like Google's own pill buttons), with a × that calls
+   at least 224 px wide, growing to fit the name and verdict), with a × that calls
    onDismiss; it can be dragged anywhere, and onMove hears where it lands. */
 export function createBar(opts: { big?: boolean; title?: string; dark?: boolean; size?: number; bare?: boolean; site?: boolean; onDismiss?: () => void; onMove?: (pos: { left: number; top: number }) => void; onOpen: (gauge: Gauge | undefined, anchor: DOMRect) => void }): Bar {
   const host = el("div");
@@ -270,6 +280,7 @@ export function createBar(opts: { big?: boolean; title?: string; dark?: boolean;
       host.style.left = `${Math.round(Math.max(4, Math.min(window.innerWidth - w - 4, start.left + dx)))}px`;
       host.style.top = `${Math.round(Math.max(4, Math.min(window.innerHeight - h - 4, start.top + dy)))}px`;
       host.style.right = "auto";
+      if (tipNode?.classList.contains("on")) showTip(detail, bar.getBoundingClientRect(), opts.dark);
     });
     const settle = (event: PointerEvent) => {
       if (!start) return;
@@ -343,6 +354,19 @@ export function openOverlay(opts: { url: string; anchor: DOMRect; title: string;
   const previousFocus = document.activeElement as HTMLElement | null;
   const host = el("div");
   host.setAttribute("data-opinion-meter", "drawer");
+  /* One stacking context for the entire drawer, always above the bars.
+     Google changes its header level on scroll, so keep this level live. */
+  host.style.cssText = "position:absolute;left:0;top:0;width:0;height:0;isolation:isolate";
+  const updateLevel = () => {
+    const level = opts.fixed ? 2147483646 : (headerLevel() ?? opts.level ?? 2147483646);
+    host.style.zIndex = String(level);
+    if (!opts.fixed) {
+      const bars = document.querySelector<HTMLElement>('[data-opinion-meter="layer"]');
+      if (bars) bars.style.zIndex = String(Math.max(0, level - 2));
+    }
+  };
+  refreshDrawerLevel = updateLevel;
+  updateLevel();
   const root = host.attachShadow({ mode: "open" });
   const style = el("style");
   style.textContent = OVERLAY_CSS;
@@ -350,7 +374,8 @@ export function openOverlay(opts: { url: string; anchor: DOMRect; title: string;
   /* fixed: opened from a card that is itself fixed to the window (a site's card), so the drawer stays with it. */
   const panel = el("div", `panel${opts.dark ? " dark" : ""}${opts.fixed ? " fixed" : ""}`);
   /* level: the stacking level to sit one step under (Google's search header), so the drawer passes beneath it when scrolled. */
-  if (opts.level !== undefined) { panel.style.zIndex = String(opts.level); back.style.zIndex = String(Math.max(1, opts.level - 1)); }
+  panel.style.zIndex = "2";
+  back.style.zIndex = "1";
   panel.setAttribute("role", "dialog");
   panel.setAttribute("aria-modal", "true");
   panel.setAttribute("aria-label", `What people think of ${opts.title}`);
@@ -393,12 +418,16 @@ export function openOverlay(opts: { url: string; anchor: DOMRect; title: string;
     closing = true;
     window.removeEventListener("message", onMessage);
     window.removeEventListener("keydown", onKey);
+    window.removeEventListener("scroll", updateLevel, true);
+    window.removeEventListener("resize", updateLevel);
+    clearInterval(levelTimer);
     clearTimeout(fallback);
     panel.classList.add("out");
     back.classList.add("out");
     setTimeout(() => host.remove(), 170);
     previousFocus?.focus({ preventScroll: true });
     if (activeOverlay === close) activeOverlay = undefined;
+    if (refreshDrawerLevel === updateLevel) refreshDrawerLevel = undefined;
   };
   const onMessage = (event: MessageEvent) => {
     const data = event.data as { om?: boolean; type?: string; height?: number; gauge?: Gauge } | null;
@@ -421,6 +450,9 @@ export function openOverlay(opts: { url: string; anchor: DOMRect; title: string;
   back.addEventListener("click", close);
   window.addEventListener("message", onMessage);
   window.addEventListener("keydown", onKey);
+  window.addEventListener("scroll", updateLevel, true);
+  window.addEventListener("resize", updateLevel);
+  const levelTimer = window.setInterval(updateLevel, 500);
   if (opts.message) panel.querySelector('button')?.focus(); else frame.focus();
   activeOverlay = close;
   return close;
