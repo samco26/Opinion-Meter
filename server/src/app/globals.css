@@ -81,8 +81,8 @@ a{color:inherit}
 .unclassified-note{display:block;font-size:11px;margin-bottom:5px}
 .loading-state{padding:33px 17px 24px;animation:resolve 350ms var(--easeOut) both}.loading-state p{font-size:13px;color:var(--muted);margin-top:17px}
 .liquid-track{height:13px;border-radius:99px;position:relative;overflow:hidden;background:#5f63681c;box-shadow:inset 0 1px 4px #20212420,inset 0 -1px 0 #fff9;isolation:isolate}
-.liquid-track span{position:absolute;inset:0;width:55%;border-radius:99px;background:linear-gradient(90deg,transparent,var(--sentPos) 25%,var(--sentNeg) 75%,transparent);filter:blur(.5px);animation:liquid-flow 2200ms cubic-bezier(.45,0,.55,1) infinite}
-.liquid-track span+span{opacity:.55;animation-delay:-1100ms}
+.liquid-track span{position:absolute;inset:0;width:45%;border-radius:99px;background:linear-gradient(90deg,var(--sentPos) 50%,var(--sentNeg) 50%);animation:liquid-flow 2200ms cubic-bezier(.45,0,.55,1) infinite}
+.liquid-track span+span{display:none}
 @keyframes liquid-flow{0%{transform:translateX(-115%) scaleX(.65)}50%{transform:translateX(55%) scaleX(1.25)}100%{transform:translateX(230%) scaleX(.65)}}
 @keyframes float-in{from{opacity:0;transform:translateY(-12px) scale(.96)}to{opacity:1;transform:none}}
 @keyframes resolve{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}

@@ -27,7 +27,7 @@ const BAR_CSS = `
 .muted{color:#5f6368}
 .tag{font-size:9.5px;letter-spacing:.6px;text-transform:uppercase;color:#5f6368;border:1px solid #20212433;border-radius:8px;padding:2px 5px;white-space:nowrap}
 :host([data-dark]) .tag{color:#bdc1c6;border-color:#ffffff40}
-.loading .seg{position:relative;background:#20212418}.loading .seg:before{content:"";position:absolute;inset:0;width:55%;border-radius:99px;background:linear-gradient(90deg,transparent,#3fae66 25%,#d95d52 75%,transparent);animation:flow 1600ms ease-in-out infinite}
+.loading .seg{position:relative;background:#20212418}.loading .seg:before{content:"";position:absolute;inset:0;width:45%;border-radius:99px;background:linear-gradient(90deg,#3fae66 50%,#d95d52 50%);animation:flow 1600ms ease-in-out infinite}
 @keyframes flow{0%{transform:translateX(-110%)}100%{transform:translateX(220%)}}
 .big{display:flex;flex-direction:row;align-items:center;gap:12px;width:100%;max-width:700px;min-height:46px;box-sizing:border-box;margin:0;padding:8px 15px;white-space:nowrap;border-radius:30px;background:#f3f5f6;border:0;box-shadow:none;font:14px/1.3 "Google Sans",Helvetica,"Helvetica Neue",Arial,sans-serif;color:#1f1f1f;transition:opacity 280ms ease,background 180ms ease}
 .big:hover{background:#e9ebee}.big:hover .seg{box-shadow:none;transform:none}
@@ -70,7 +70,6 @@ const OVERLAY_CSS = `
 @keyframes in{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:none}}
 @keyframes out{to{opacity:0;transform:translateY(6px) scale(.98)}}
 iframe{display:block;width:100%;height:100%;border:0;background:transparent;color-scheme:light}
-.panel.dark iframe{color-scheme:dark}
 .veil{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:#f3f5f666;color:#1f1f1f;font:13px "Google Sans",Helvetica,"Helvetica Neue",Arial,sans-serif;transition:opacity 200ms ease}
 .panel.dark .veil{background:#30313466;color:#e8eaed}.panel.dark .veil a{color:#e8eaed}
 .veil[hidden]{display:none}.veil a{color:#202124}

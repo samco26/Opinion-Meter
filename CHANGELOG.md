@@ -2,6 +2,12 @@
 
 What changed in each version, in plain words, newest first. The version number lives in three places and moves together: `server/package.json`, `extension/package.json` and the health door (`server/src/app/api/health/route.ts`). **Rule:** every push that changes what a reader sees or what the server does adds an entry here in the same commit (see AGENTS.md).
 
+## 0.10.1 — 15 September 2026
+
+- The drawer is dark on Google's dark theme, as intended: the frame had been given a different colour scheme from the page inside it, which makes the browser paint an opaque white canvas behind that page.
+- The loading sweep is two solid blocks, green then red, with no fade or blur (the drawer's bar and the query card's).
+- Expanded sources panel: no duplicate bars. Google keeps the collapsed copy of the list in place but unseen; bars now leave a target the moment it is hidden, and are trimmed by every box that clips around them, not only one that scrolls. Links inside the panel are read only as panel entries, never also as ordinary results.
+
 ## 0.10.0 — 15 September 2026
 
 - One look everywhere, taken from the query card's pill: Google Sans (Arial where it is not served), ink-grey text, the pill's light grey for the hover card and the drawer, dark grey with light text on Google's dark theme (the drawer included, still slightly see-through).

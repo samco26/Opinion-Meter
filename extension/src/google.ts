@@ -100,8 +100,10 @@ function organic(config: ExtensionConfig, known: WeakMap<Element, string>): Foun
   const candidates = new Set<HTMLAnchorElement>();
   for (const root of roots) for (const node of root.querySelectorAll<HTMLAnchorElement>("a[href]")) candidates.add(node);
   const aiMode = udm() === "50";
+  /* An AI answer's sources panel is read by panelEntries; its links must not be counted twice. */
+  const panel = sourcesPanel();
   for (const node of candidates) {
-    if (!visible(node) || node.closest('nav, [role="navigation"], form, #rhs, [data-attrid], [data-mcpr], [data-aim], [data-sgrd], ' + POPUP + ", " + PRODUCT)) continue;
+    if (!visible(node) || panel?.contains(node) || node.closest('nav, [role="navigation"], form, #rhs, [data-attrid], [data-mcpr], [data-aim], [data-sgrd], ' + POPUP + ", " + PRODUCT)) continue;
     const heading = node.querySelector<HTMLElement>('h3, [role="heading"]') ?? (aiMode ? cardTitle(node) : undefined);
     if (!heading) continue;
     const url = destination(node.href);

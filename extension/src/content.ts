@@ -54,7 +54,14 @@ function layer(): HTMLElement {
   return node;
 }
 const onPage = (r: DOMRect) => ({ left: r.left + scrollX, top: r.top + scrollY, right: r.right + scrollX, bottom: r.bottom + scrollY, width: r.width, height: r.height });
-const shown = (el: HTMLElement) => el.isConnected && el.getClientRects().length > 0;
+/* On the page and actually visible now: Google keeps a collapsed copy of an
+   expanded list in place but unseen, and a bar must not stay on it. Checked
+   at every tick, so a moment of fading in costs nothing. */
+const shown = (el: HTMLElement) => {
+  if (!el.isConnected || el.getClientRects().length === 0) return false;
+  const check = (el as unknown as { checkVisibility?: (options: Record<string, boolean>) => boolean }).checkVisibility;
+  return typeof check !== "function" || check.call(el, { checkOpacity: true, checkVisibilityCSS: true });
+};
 /* The first line of a title that may wrap. */
 function firstLine(el: HTMLElement): DOMRect {
   const range = document.createRange();
@@ -62,22 +69,25 @@ function firstLine(el: HTMLElement): DOMRect {
   return range.getClientRects().item(0) ?? el.getBoundingClientRect();
 }
 
-/* The nearest box around a target that scrolls on its own (an expanded
-   sources panel), if any. */
-function scrollerOf(el: HTMLElement): HTMLElement | null {
-  for (let p = el.parentElement, depth = 0; p && p !== document.body && depth < 12; p = p.parentElement, depth++) {
-    if (/(auto|scroll)/.test(getComputedStyle(p).overflowY) && p.scrollHeight > p.clientHeight + 1) return p;
+/* The box the boxes around a target let it show through: every ancestor
+   that clips (a panel scrolling on its own, a collapsed list cut off at a
+   height) narrows it. Null when nothing clips. */
+function window_(el: HTMLElement): { top: number; bottom: number } | null {
+  let box: { top: number; bottom: number } | null = null;
+  for (let p = el.parentElement, depth = 0; p && p !== document.body && depth < 14; p = p.parentElement, depth++) {
+    if (getComputedStyle(p).overflowY === "visible") continue;
+    const r = onPage(p.getBoundingClientRect());
+    box = box ? { top: Math.max(box.top, r.top), bottom: Math.min(box.bottom, r.bottom) } : { top: r.top, bottom: r.bottom };
   }
-  return null;
+  return box;
 }
-/* Inside such a box the bar is trimmed at the box's edges and hidden once
-   its target has scrolled out of it, so it never drifts outside. */
+/* Inside such boxes the bar is trimmed at their edges and hidden once its
+   target is cut off entirely, so it never drifts outside them. */
 function clipTo(host: HTMLElement, target: HTMLElement) {
-  const scroller = scrollerOf(target);
-  if (!scroller) { host.style.clipPath = ""; return; }
-  const box = onPage(scroller.getBoundingClientRect());
+  const box = window_(target);
+  if (!box) { host.style.clipPath = ""; return; }
   const top = parseFloat(host.style.top) || 0, height = host.offsetHeight || 20;
-  if (top + height <= box.top || top >= box.bottom) { host.style.visibility = "hidden"; return; }
+  if (top + height <= box.top + 1 || top >= box.bottom - 1) { host.style.visibility = "hidden"; return; }
   host.style.clipPath = `inset(${Math.max(0, Math.ceil(box.top - top))}px 0 ${Math.max(0, Math.ceil(top + height - box.bottom))}px 0)`;
 }
 
