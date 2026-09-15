@@ -45,10 +45,9 @@ export function Insufficient({ response }: { response: Extract<CardResponse, { k
 
 /* The answer: the summary, the "Lately" line, the bar across the whole
    card, then one line with the platform buttons on the left and the
-   count and confidence on the right, and the "How it works" link under
-   the count, so the recurring opinions are the card's last element. No
-   stars (the owner's decision of 15 September 2026). */
-export function Answer({ card, onChoose, onHow }: { card: Card; onChoose: (id: SourceId) => void; onHow?: () => void }) {
+   count and confidence on the right. No stars (the owner's decision of
+   15 September 2026). */
+export function Answer({ card, onChoose }: { card: Card; onChoose: (id: SourceId) => void }) {
   const analysed = analysedCount(card);
   return <div className="result-copy">
     {card.simulated && <p className="sample-label">Estimated from word counts · the server has no AI key</p>}
@@ -61,6 +60,5 @@ export function Answer({ card, onChoose, onHow }: { card: Card; onChoose: (id: S
       </div>
       <p className="reading-count">{analysed} relevant opinions · {card.confidence.level} confidence</p>
     </div>
-    {onHow && <div className="how-row"><button className="text-action" onClick={onHow}>How it works · sources and confidence</button></div>}
   </div>;
 }

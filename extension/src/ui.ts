@@ -14,7 +14,7 @@ const BAR_CSS = `
 .bar.still{cursor:default}
 :host([data-flow]){position:static;display:block;margin:0 0 16px}
 :host([hidden]){display:none!important}
-.bar{display:inline-flex;align-items:center;gap:7px;margin:0;padding:0;border:0;background:transparent;font:12px/1.2 Helvetica,"Helvetica Neue",Arial,sans-serif;color:#202124;cursor:pointer;position:relative;white-space:nowrap;vertical-align:middle;text-align:left;opacity:0;transition:opacity 280ms ease}
+.bar{display:inline-flex;align-items:center;gap:7px;margin:0;padding:0;border:0;background:transparent;font:12px/1.2 "Google Sans",Helvetica,"Helvetica Neue",Arial,sans-serif;color:#1f1f1f;cursor:pointer;position:relative;white-space:nowrap;vertical-align:middle;text-align:left;opacity:0;transition:opacity 280ms ease}
 .bar.shown{opacity:1}
 .bar:focus-visible{outline:3px solid #5f6368;outline-offset:4px;border-radius:99px}
 .seg{display:flex;width:var(--om-width);height:var(--om-size);border-radius:99px;overflow:hidden;background:#20212422;flex-shrink:0;transition:box-shadow 180ms ease,transform 180ms cubic-bezier(.16,1,.3,1)}
@@ -22,12 +22,12 @@ const BAR_CSS = `
 .seg span{display:block;height:100%;transition:flex-basis 500ms cubic-bezier(.16,1,.3,1)}.pos{background:#3fae66}.neu{background:#525a5f}.neg{background:#d95d52}
 .bar:hover .seg,.bar:focus-visible .seg{transform:scale(1.04);box-shadow:0 0 0 2px #ffffffcc,0 0 0 4px #9aa0a6cc,0 0 12px 3px #ffffff99}
 :host([data-dark]) .bar:hover .seg,:host([data-dark]) .bar:focus-visible .seg{box-shadow:0 0 0 2px #202124,0 0 0 4px #bdc1c6cc,0 0 12px 3px #ffffff66}
-.count{white-space:nowrap;color:#5f6368;font-size:12px}.count b{font-weight:700;color:#202124}
+.count{white-space:nowrap;color:#5f6368;font-size:12px}.count b{font-weight:500;color:#1f1f1f}
 :host([data-dark]) .count{color:#bdc1c6}:host([data-dark]) .count b{color:#e8eaed}:host([data-dark]) .seg{background:#ffffff1f}
 .muted{color:#5f6368}
 .tag{font-size:9.5px;letter-spacing:.6px;text-transform:uppercase;color:#5f6368;border:1px solid #20212433;border-radius:8px;padding:2px 5px;white-space:nowrap}
 :host([data-dark]) .tag{color:#bdc1c6;border-color:#ffffff40}
-.loading .seg{position:relative;background:#20212418}.loading .seg:before{content:"";position:absolute;inset:0;width:55%;border-radius:99px;background:linear-gradient(90deg,transparent,#bdc1c6 15%,#ffffff 55%,#dadce0 80%,transparent);animation:flow 1600ms ease-in-out infinite}
+.loading .seg{position:relative;background:#20212418}.loading .seg:before{content:"";position:absolute;inset:0;width:55%;border-radius:99px;background:linear-gradient(90deg,transparent,#3fae66 25%,#d95d52 75%,transparent);animation:flow 1600ms ease-in-out infinite}
 @keyframes flow{0%{transform:translateX(-110%)}100%{transform:translateX(220%)}}
 .big{display:flex;flex-direction:row;align-items:center;gap:12px;width:100%;max-width:700px;min-height:46px;box-sizing:border-box;margin:0;padding:8px 15px;white-space:nowrap;border-radius:30px;background:#f3f5f6;border:0;box-shadow:none;font:14px/1.3 "Google Sans",Helvetica,"Helvetica Neue",Arial,sans-serif;color:#1f1f1f;transition:opacity 280ms ease,background 180ms ease}
 .big:hover{background:#e9ebee}.big:hover .seg{box-shadow:none;transform:none}
@@ -45,7 +45,8 @@ const BAR_CSS = `
 :host([data-square]){width:auto}
 :host([data-square]) .big,:host([data-square][data-dark]) .big{display:grid;grid-template-columns:auto auto;grid-template-areas:"title title" "seg count";align-items:center;column-gap:7px;row-gap:4px;width:auto;min-width:0;max-width:none;min-height:0;margin:0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;font-size:12px}
 :host([data-square]) .big:hover{background:transparent}
-:host([data-square]) .big .title{grid-area:title;flex-basis:auto;font-size:11px;letter-spacing:0;opacity:.8;white-space:nowrap}
+:host([data-square]) .big .title{grid-area:title;flex-basis:auto;font-size:11px;letter-spacing:0;color:#1f1f1f;white-space:nowrap}
+:host([data-square][data-dark]) .big .title{color:#f1f3f4}
 :host([data-square]) .big .title .name{display:none}
 :host([data-square]) .big .seg{grid-area:seg;width:72px;flex:none;min-width:0;height:12px}
 :host([data-square]) .big .count{grid-area:count;font-size:12px;white-space:nowrap}
@@ -54,7 +55,8 @@ const BAR_CSS = `
 
 const TIP_CSS = `
 :host{all:initial}
-.tip{position:fixed;left:0;top:0;z-index:2147483647;width:max-content;max-width:min(420px,80vw);padding:10px 14px;border-radius:14px;background:#f8f9faf7;border:1px solid #dadce0;box-shadow:0 10px 28px #20212426;font:12.5px/1.45 Helvetica,"Helvetica Neue",Arial,sans-serif;color:#202124;white-space:normal;text-align:left;pointer-events:none;opacity:0;visibility:hidden;transform:translateY(-4px);transition:opacity 160ms ease,transform 160ms ease,visibility 0s linear 160ms}
+.tip{position:fixed;left:0;top:0;z-index:2147483647;width:max-content;max-width:min(420px,80vw);padding:10px 15px;border-radius:16px;background:#f3f5f6;border:0;box-shadow:0 10px 28px #20212426;font:13px/1.45 "Google Sans",Helvetica,"Helvetica Neue",Arial,sans-serif;color:#1f1f1f;white-space:normal;text-align:left;pointer-events:none;opacity:0;visibility:hidden;transform:translateY(-4px);transition:opacity 160ms ease,transform 160ms ease,visibility 0s linear 160ms}
+.tip.dark{background:#303134;color:#e8eaed;box-shadow:0 10px 28px #00000066}
 .tip.on{opacity:1;visibility:visible;transform:none;transition:opacity 160ms ease,transform 160ms ease,visibility 0s}
 @media(prefers-reduced-motion:reduce){.tip{transition:none}}
 `;
@@ -62,12 +64,15 @@ const TIP_CSS = `
 const OVERLAY_CSS = `
 :host{all:initial}
 .back{position:fixed;inset:0;z-index:2147483646}.back.out{pointer-events:none}
-.panel{position:absolute;z-index:2147483647;border-radius:24px;overflow:hidden;border:1px solid #ffffff66;box-shadow:0 24px 72px #0005;background:#f1f3f4b3;backdrop-filter:blur(22px) saturate(1.05);-webkit-backdrop-filter:blur(22px) saturate(1.05);animation:in 240ms cubic-bezier(.16,1,.3,1) both;transition:height 180ms ease}
+.panel{position:absolute;z-index:2147483647;border-radius:24px;overflow:hidden;border:1px solid #ffffff99;box-shadow:0 24px 72px #0005;background:#f3f5f6d9;backdrop-filter:blur(22px) saturate(1.05);-webkit-backdrop-filter:blur(22px) saturate(1.05);animation:in 240ms cubic-bezier(.16,1,.3,1) both;transition:height 180ms ease}
+.panel.dark{background:#303134d9;border-color:#ffffff1f;box-shadow:0 24px 72px #0008}
 .panel.out{animation:out 160ms ease both;pointer-events:none}
 @keyframes in{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:none}}
 @keyframes out{to{opacity:0;transform:translateY(6px) scale(.98)}}
 iframe{display:block;width:100%;height:100%;border:0;background:transparent;color-scheme:light}
-.veil{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:#f1f3f466;color:#202124;font:13px Helvetica,"Helvetica Neue",Arial,sans-serif;transition:opacity 200ms ease}
+.panel.dark iframe{color-scheme:dark}
+.veil{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:#f3f5f666;color:#1f1f1f;font:13px "Google Sans",Helvetica,"Helvetica Neue",Arial,sans-serif;transition:opacity 200ms ease}
+.panel.dark .veil{background:#30313466;color:#e8eaed}.panel.dark .veil a{color:#e8eaed}
 .veil[hidden]{display:none}.veil a{color:#202124}
 .track{width:180px;height:12px;border-radius:99px;position:relative;overflow:hidden;background:#20212433}.track:before{content:"";position:absolute;inset:0;width:55%;border-radius:99px;background:linear-gradient(90deg,transparent,#bdc1c6 15%,#ffffff 55%,#dadce0 80%,transparent);animation:flow 1800ms ease-in-out infinite}
 @keyframes flow{0%{transform:translateX(-110%)}100%{transform:translateX(220%)}}
@@ -105,9 +110,10 @@ function tipElement(): HTMLElement {
   document.documentElement.append(host);
   return tipNode;
 }
-function showTip(text: string, anchor: DOMRect) {
+function showTip(text: string, anchor: DOMRect, dark?: boolean) {
   if (!text) return;
   const tip = tipElement();
+  tip.classList.toggle("dark", Boolean(dark));
   tip.textContent = text;
   const vw = window.innerWidth, vh = window.innerHeight;
   const width = tip.offsetWidth, height = tip.offsetHeight;
@@ -193,7 +199,7 @@ export function createBar(opts: { big?: boolean; title?: string; dark?: boolean;
     hideTip();
     opts.onOpen(current, bar.getBoundingClientRect());
   });
-  const over = () => showTip(detail, bar.getBoundingClientRect());
+  const over = () => showTip(detail, bar.getBoundingClientRect(), opts.dark);
   bar.addEventListener("mouseenter", over);
   bar.addEventListener("mouseleave", hideTip);
   bar.addEventListener("focus", over);
@@ -249,7 +255,7 @@ export function createBar(opts: { big?: boolean; title?: string; dark?: boolean;
    the server's embed page. Closes on the embed's say-so, Escape, or a
    click anywhere outside. Returns the close function. */
 let activeOverlay: (() => void) | undefined;
-export function openOverlay(opts: { url: string; anchor: DOMRect; title: string; message?: string; onGauge?: (gauge: Gauge) => void }): () => void {
+export function openOverlay(opts: { url: string; anchor: DOMRect; title: string; dark?: boolean; message?: string; onGauge?: (gauge: Gauge) => void }): () => void {
   activeOverlay?.();
   const previousFocus = document.activeElement as HTMLElement | null;
   const host = el("div");
@@ -258,7 +264,7 @@ export function openOverlay(opts: { url: string; anchor: DOMRect; title: string;
   const style = el("style");
   style.textContent = OVERLAY_CSS;
   const back = el("div", "back");
-  const panel = el("div", "panel");
+  const panel = el("div", `panel${opts.dark ? " dark" : ""}`);
   panel.setAttribute("role", "dialog");
   panel.setAttribute("aria-modal", "true");
   panel.setAttribute("aria-label", `What people think of ${opts.title}`);

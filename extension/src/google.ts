@@ -163,7 +163,8 @@ function shopping(known: WeakMap<Element, string>): Found[] {
 /* The sources panel of an AI Overview or AI Mode answer: the box on the
    right with a "Show all" control and a list of source entries. */
 export function sourcesPanel(): HTMLElement | null {
-  const showAll = [...document.querySelectorAll<HTMLElement>("div, span, button, a")].find((el) => el.childElementCount <= 2 && /^show all$/i.test(clean(el.textContent)) && visible(el) && seen(el));
+  /* The control reads "Show all" or "Show more" until it is pressed, then "Show less"; the panel is the same either way. */
+  const showAll = [...document.querySelectorAll<HTMLElement>("div, span, button, a")].find((el) => el.childElementCount <= 2 && /^show (all|more|less)$/i.test(clean(el.textContent)) && visible(el) && seen(el));
   let panel: HTMLElement | null = showAll?.parentElement ?? null;
   for (let i = 0; panel && i < 8; i++) {
     if (panel.getBoundingClientRect().width > 250 && panel.querySelectorAll("a[href]").length >= 2) return panel;
@@ -213,7 +214,7 @@ export function textBox(el: HTMLElement): DOMRect {
 /* The knowledge panel's header lines in window coordinates: where the title
    and subtitle text (and the dots right after it) end, and where the next
    thing on those lines (a logo, a thumbnail) begins, if anything. */
-export function kpHeader(title: HTMLElement, subtitle: HTMLElement | null, others: HTMLElement[]): { top: number; bottom: number; right: number; limit: number } {
+export function kpHeader(title: HTMLElement, subtitle: HTMLElement | null, others: HTMLElement[]): { top: number; bottom: number; right: number; limit: number; base: { top: number; bottom: number } } {
   const t = textBox(title), s = subtitle && visible(subtitle) ? textBox(subtitle) : null;
   const top = Math.min(t.top, s?.top ?? t.top), bottom = Math.max(t.bottom, s?.bottom ?? t.bottom);
   let right = Math.max(t.right, s?.right ?? 0), limit = Infinity;
@@ -222,7 +223,9 @@ export function kpHeader(title: HTMLElement, subtitle: HTMLElement | null, other
     if (b.left <= right + 40) right = Math.max(right, b.right);
     else limit = Math.min(limit, b.left);
   }
-  return { top, bottom, right, limit };
+  /* base: the subtitle's line (the title's when there is none), where the card's bar sits. */
+  const base = s ?? t;
+  return { top, bottom, right, limit, base: { top: base.top, bottom: base.bottom } };
 }
 
 export function queryPlacement(config: ExtensionConfig): QueryPlace | null {

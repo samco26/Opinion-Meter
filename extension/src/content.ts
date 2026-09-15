@@ -62,7 +62,30 @@ function firstLine(el: HTMLElement): DOMRect {
   return range.getClientRects().item(0) ?? el.getBoundingClientRect();
 }
 
-function pinBar({ bar, anchor, target, placement, fitEnd }: Placed) {
+/* The nearest box around a target that scrolls on its own (an expanded
+   sources panel), if any. */
+function scrollerOf(el: HTMLElement): HTMLElement | null {
+  for (let p = el.parentElement, depth = 0; p && p !== document.body && depth < 12; p = p.parentElement, depth++) {
+    if (/(auto|scroll)/.test(getComputedStyle(p).overflowY) && p.scrollHeight > p.clientHeight + 1) return p;
+  }
+  return null;
+}
+/* Inside such a box the bar is trimmed at the box's edges and hidden once
+   its target has scrolled out of it, so it never drifts outside. */
+function clipTo(host: HTMLElement, target: HTMLElement) {
+  const scroller = scrollerOf(target);
+  if (!scroller) { host.style.clipPath = ""; return; }
+  const box = onPage(scroller.getBoundingClientRect());
+  const top = parseFloat(host.style.top) || 0, height = host.offsetHeight || 20;
+  if (top + height <= box.top || top >= box.bottom) { host.style.visibility = "hidden"; return; }
+  host.style.clipPath = `inset(${Math.max(0, Math.ceil(box.top - top))}px 0 ${Math.max(0, Math.ceil(top + height - box.bottom))}px 0)`;
+}
+
+function pinBar(placed: Placed) {
+  place(placed);
+  clipTo(placed.bar.host, placed.target);
+}
+function place({ bar, anchor, target, placement, fitEnd }: Placed) {
   const host = bar.host;
   if (host.hidden) return;
   if (!shown(target)) { host.style.visibility = "hidden"; return; }
@@ -113,10 +136,13 @@ function pinQuery() {
     const header = kpHeader(queryPlace.title, queryPlace.subtitle, queryPlace.others);
     const panel = onPage(queryPlace.panel.getBoundingClientRect());
     const w = host.offsetWidth || 160, h = host.offsetHeight || 44;
-    /* Right after the dots, in line with the title and subtitle; pulled left only if a logo leaves no room. */
+    /* Right after the dots; pulled left only if a logo leaves no room. */
     const limit = Math.min(header.limit + scrollX, panel.right - 12);
     host.style.left = `${Math.round(Math.min(header.right + scrollX + 16, Math.max(header.right + scrollX + 8, limit - w)))}px`;
-    host.style.top = `${Math.round(header.top + scrollY + (header.bottom - header.top - h) / 2)}px`;
+    /* The bar on the subtitle's line, "What people think" above it. */
+    const seg = host.shadowRoot?.querySelector<HTMLElement>(".seg");
+    const segMid = seg ? seg.getBoundingClientRect().top + seg.getBoundingClientRect().height / 2 - host.getBoundingClientRect().top : h - 7;
+    host.style.top = `${Math.round(header.base.top + scrollY + (header.base.bottom - header.base.top) / 2 - segMid)}px`;
     return;
   }
   if (!shown(queryPlace.panel)) { host.style.visibility = "hidden"; return; }
@@ -140,7 +166,7 @@ const open = (context: GaugeRequest, title: string) => (gauge: Gauge | undefined
   // No iframe or full reading until a click. Fragment avoids query/title URL logs.
   const fragment = encodeURIComponent(JSON.stringify(context));
   openOverlay({
-    url: `${server}/embed?key=${encodeURIComponent(gauge?.key ?? "")}#context=${fragment}`, anchor, title: gauge?.name || title,
+    url: `${server}/embed?key=${encodeURIComponent(gauge?.key ?? "")}${dark ? "&theme=dark" : ""}#context=${fragment}`, anchor, title: gauge?.name || title, dark,
     /* The drawer's card sends its numbers back; every bar for that subject takes them. */
     onGauge: (fresh) => apply({ [fresh.key]: { state: "ready", gauge: fresh } }),
   });
@@ -181,7 +207,7 @@ function positionQuery() {
   }
   settle();
 }
-function place(result: Found, bar: Bar) {
+function hold(result: Found, bar: Bar) {
   layer().append(bar.host);
   placements.set(result.anchor, { bar, anchor: result.anchor, target: result.target, placement: result.placement, fitEnd: result.fitEnd });
 }
@@ -200,7 +226,7 @@ async function drain() {
         placements.get(result.anchor)?.bar.remove();
         const context = { query: requestQuery, results: [{ url: result.url, title: result.title, ...(result.site ? { site: result.site } : {}) }] };
         const bar = createBar({ title: result.title, dark, size: result.size, bare: result.placement === "fit" || result.placement === "corner", onOpen: open(context, result.title) });
-        place(result, bar);
+        hold(result, bar);
         drawn.set(result, bar);
       }
       if (initial && config.google.queryBar) {
@@ -258,6 +284,13 @@ async function main() {
   window.addEventListener("popstate", scan); window.addEventListener("resize", () => { positionQuery(); reposition(); });
   /* Google shifts its page as panels open and images load; follow it. */
   window.setInterval(reposition, 500);
+  /* A box that scrolls on its own (an expanded sources panel) moves its targets at once; follow without waiting for the next tick. */
+  let following = false;
+  document.addEventListener("scroll", (event) => {
+    if (event.target === document || following) return;
+    following = true;
+    requestAnimationFrame(() => { following = false; reposition(); });
+  }, { capture: true, passive: true });
   const rounds = new Map<string, number>();
   let polling = false;
   window.setInterval(async () => {

@@ -2,6 +2,13 @@
 
 What changed in each version, in plain words, newest first. The version number lives in three places and moves together: `server/package.json`, `extension/package.json` and the health door (`server/src/app/api/health/route.ts`). **Rule:** every push that changes what a reader sees or what the server does adds an entry here in the same commit (see AGENTS.md).
 
+## 0.10.0 — 15 September 2026
+
+- One look everywhere, taken from the query card's pill: Google Sans (Arial where it is not served), ink-grey text, the pill's light grey for the hover card and the drawer, dark grey with light text on Google's dark theme (the drawer included, still slightly see-through).
+- Drawer: "How it works · sources and confidence" is back at the bottom; "Recurring opinions" in sentence case at the card's size; opinion cards keep their green and red fills and lose the outline; the close button and platform icons lift on hover; the loading bar sweeps green into red (so does the query card's while it loads).
+- Knowledge panel: "What people think" in full ink (bright on dark), the card shifted so the bar sits on the subtitle's line.
+- AI Overview sources panel after "Show more": the panel stays found (its control reads "Show less" once pressed), so the card above it stays and the newly shown sources get bars; bars follow the panel's own scrolling at once and are trimmed at its edges.
+
 ## 0.9.0 — 15 September 2026
 
 - Result bars sit right after the site's name text; a name's box could run the width of its block, which pushed the bar far to the right.

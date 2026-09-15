@@ -12,7 +12,8 @@ const tell = (message: Record<string, unknown>) => { if (window.parent !== windo
 /* What the drawer says while the reading is made. */
 const PHRASES = ["Scanning the web…", "Reading the room…", "Calculating sentiment…", "Weighing the opinions…", "Listening in…"];
 
-export function Embed({ subjectKey }: { subjectKey: string }) {
+/* dark: the drawer host is on Google's dark theme, so the card is drawn dark too. */
+export function Embed({ subjectKey, dark = false }: { subjectKey: string; dark?: boolean }) {
   const [phase, setPhase] = useState<Phase>({ name: "loading" });
   const [view, setView] = useState<View | null>(null);
   const [attempt, setAttempt] = useState(0);
@@ -87,7 +88,7 @@ export function Embed({ subjectKey }: { subjectKey: string }) {
   useEffect(() => { if (view) viewHeading.current?.focus({ preventScroll: true }); }, [view]);
   const source = view?.kind === "source" ? card?.bySource.find(reading => reading.source === view.source) : undefined;
 
-  return <div className="embed">
+  return <div className="embed" data-theme={dark ? "dark" : undefined}>
     <section className="embed-card" aria-label="What people think">
       {phase.name !== "loading" && <header className="embed-head">
         {view ? <button className="back-button" onClick={() => setView(null)}>← Back</button> : <h1 className="embed-title">{name}</h1>}
@@ -100,9 +101,10 @@ export function Embed({ subjectKey }: { subjectKey: string }) {
           {phase.name === "done" && phase.response.kind === "unknown" && <div className="result-copy"><p className="overall-answer">No reading available yet.</p><p className="quiet">{phase.response.message}</p></div>}
           {phase.name === "done" && phase.response.kind === "insufficient" && <Insufficient response={phase.response} />}
           {card && <>
-            <Answer card={card} onChoose={source => setView({ kind: "source", source })} onHow={() => setView({ kind: "how" })} />
+            <Answer card={card} onChoose={source => setView({ kind: "source", source })} />
             <h2 className="section-label">Recurring opinions</h2>
             <OpinionPills opinions={card.opinions} onSelect={opinion => setView({ kind: "opinion", opinion })} />
+            <button className="text-action" onClick={() => setView({ kind: "how" })}>How it works · sources and confidence</button>
           </>}
         </>}
         {view && <div className="detail-content" ref={viewHeading} tabIndex={-1}>

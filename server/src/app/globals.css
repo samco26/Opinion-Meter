@@ -7,7 +7,7 @@
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
 html{background:var(--bg);color-scheme:light}
-body{font-family:Helvetica,"Helvetica Neue",Arial,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased;background:transparent}
+body{font-family:"Google Sans",Helvetica,"Helvetica Neue",Arial,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased;background:transparent}
 button,input{font:inherit;color:inherit}button{cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 button:disabled{cursor:default;opacity:.5}
 button:focus-visible,a:focus-visible{outline:3px solid #5f6368;outline-offset:4px}
@@ -32,7 +32,7 @@ a{color:inherit}
 .embed-card{height:100%;display:flex;flex-direction:column;border-radius:26px;padding:10px 12px 12px;overflow:hidden}
 .embed-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-shrink:0;padding:2px 2px 6px}
 .embed-head .subject-chip{max-width:80%;min-height:38px;font-size:13px;padding:6px 14px}
-.close{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;padding:0;font-size:22px;line-height:1;background:#fff9}.close:hover{background:#fff}
+.close{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;padding:0;font-size:22px;line-height:1;background:#fff9}.close:hover{background:#fff;transform:scale(1.1)}
 .embed-body{flex-shrink:0;max-height:62%;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin}
 .embed .result-copy{padding:14px 10px 10px}.embed .overall-answer{font-size:19px}
 .embed .opinion-list{flex:1 1 auto;min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-width:none;margin-top:6px;-webkit-mask-image:linear-gradient(#000 calc(100% - 24px),transparent);mask-image:linear-gradient(#000 calc(100% - 24px),transparent)}
@@ -53,11 +53,11 @@ a{color:inherit}
 .source-buttons{display:flex;gap:9px;align-items:center;margin-top:24px}
 .source-row{display:flex;align-items:center;gap:16px;margin-top:24px}.source-row .source-buttons{margin-top:0;flex-shrink:0}
 .source-row .sentiment{flex:1;min-width:0;margin:0}.sentiment-compact .sentbar{height:14px}
-.srcbtn{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;padding:0;background:transparent;border:0;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none}.srcbtn:hover{background:transparent;filter:drop-shadow(0 0 6px #ffffffcc)}.srcbtn:disabled img{filter:grayscale(1)}
+.srcbtn{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;padding:0;background:transparent;border:0;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none}.srcbtn:hover{background:transparent;filter:drop-shadow(0 0 6px #ffffffcc);transform:translateY(-1px) scale(1.12)}.srcbtn:disabled{transform:none}.srcbtn:disabled img{filter:grayscale(1)}
 .text-action{border:0;background:none;padding:10px 0;min-height:40px;font-size:12px;display:inline-flex;align-items:center;gap:9px;text-decoration:underline;text-underline-offset:4px;text-decoration-color:#20212440}
 .text-action:hover{text-decoration-color:currentColor}.quiet,.coverage-note{font-size:13px;line-height:1.55;color:var(--muted);margin-top:15px}.coverage-note{font-size:12px}
 
-.opinion-pill{border:1px solid #ffffffa6;border-radius:29px;padding:12px 16px;font-size:13.5px;line-height:1.4;box-shadow:inset 0 1px 0 #ffffffc7,0 10px 28px #2021241a;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);text-align:left;overflow-wrap:anywhere;transition:transform 250ms var(--easeOut),box-shadow 250ms;animation:float-in 700ms var(--easeOut) both;animation-delay:calc(var(--pill-order,0)*60ms)}
+.opinion-pill{border:0;border-radius:29px;padding:12px 16px;font-size:13.5px;line-height:1.4;box-shadow:0 10px 28px #2021241a;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);text-align:left;overflow-wrap:anywhere;transition:transform 250ms var(--easeOut),box-shadow 250ms;animation:float-in 700ms var(--easeOut) both;animation-delay:calc(var(--pill-order,0)*60ms)}
 .opinion-pill:hover{box-shadow:inset 0 1px 0 #fffd,0 0 0 2px #ffffffcc,0 0 14px 3px #ffffff99;transform:translateY(-1px)}
 .opinion-positive{color:#1e6b3e;background:#cdebd3e6}.opinion-neutral{color:#41474c;background:#dcdfdfdd}.opinion-negative{color:#8a2f28;background:#f6c9c2ee}.opinion-unclassified{color:var(--muted);background:#f4f0e4b3}
 .opinion-list{display:flex;flex-direction:column;gap:9px;padding:4px 2px 24px}
@@ -81,8 +81,8 @@ a{color:inherit}
 .unclassified-note{display:block;font-size:11px;margin-bottom:5px}
 .loading-state{padding:33px 17px 24px;animation:resolve 350ms var(--easeOut) both}.loading-state p{font-size:13px;color:var(--muted);margin-top:17px}
 .liquid-track{height:13px;border-radius:99px;position:relative;overflow:hidden;background:#5f63681c;box-shadow:inset 0 1px 4px #20212420,inset 0 -1px 0 #fff9;isolation:isolate}
-.liquid-track span{position:absolute;inset:0;width:55%;border-radius:99px;background:linear-gradient(90deg,transparent,#bdc1c6 15%,#ffffff 55%,#dadce0 80%,transparent);filter:blur(.5px);animation:liquid-flow 2200ms cubic-bezier(.45,0,.55,1) infinite}
-.liquid-track span+span{opacity:.7;animation-delay:-1100ms;mix-blend-mode:screen}
+.liquid-track span{position:absolute;inset:0;width:55%;border-radius:99px;background:linear-gradient(90deg,transparent,var(--sentPos) 25%,var(--sentNeg) 75%,transparent);filter:blur(.5px);animation:liquid-flow 2200ms cubic-bezier(.45,0,.55,1) infinite}
+.liquid-track span+span{opacity:.55;animation-delay:-1100ms}
 @keyframes liquid-flow{0%{transform:translateX(-115%) scaleX(.65)}50%{transform:translateX(55%) scaleX(1.25)}100%{transform:translateX(230%) scaleX(.65)}}
 @keyframes float-in{from{opacity:0;transform:translateY(-12px) scale(.96)}to{opacity:1;transform:none}}
 @keyframes resolve{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
@@ -155,7 +155,7 @@ body:has(.embed)>.ground{display:none}
 .embed .source-row .sentiment{min-width:160px;margin:0}
 .embed .srcbtn{width:36px;height:36px}
 .embed .source-buttons{gap:6px}
-.section-label{font-size:11px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;margin:8px 2px}
+.section-label{font-size:14px;font-weight:500;letter-spacing:0;text-transform:none;margin:10px 2px 6px}
 .reading-count{font-size:11px;color:var(--muted);margin-top:8px}
 .scope-label{font-size:12px;line-height:1.4;color:var(--muted);margin-bottom:10px}
 .scope-label a{display:block;margin-top:4px}
@@ -197,5 +197,21 @@ body:has(.embed)>.ground{display:none}
 .embed .opinion-list{flex:0 1 auto;min-height:120px;max-height:300px;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#5f636855 transparent;padding-right:4px;mask-image:none;-webkit-mask-image:none}
 .embed .opinion-list::-webkit-scrollbar{width:8px}.embed .opinion-list::-webkit-scrollbar-thumb{background:#5f63683d;border-radius:99px;border:2px solid transparent;background-clip:padding-box}
 .embed .loading-state{padding:6px 6px 2px;animation:none}.embed .loading-state p{margin-top:10px;text-align:left;font-size:13px;transition:opacity 450ms ease}.embed .loading-state p.fade{opacity:0}
-/* v0.9: the "How it works" link sits under the count, so the recurring opinions list ends the card. */
-.how-row{display:flex;justify-content:flex-end;margin-top:2px}.how-row .text-action{min-height:26px;padding:2px 0;font-size:11px}
+
+/* v0.10: the drawer in Google's dark theme, when the drawer host says so
+   (data-theme on the embed root): light text on the dark grey of Google's
+   own pills; the green and red fills stay as they are. */
+[data-theme="dark"]{--ink:#e8eaed;--muted:#9aa0a6;--line:#ffffff26}
+[data-theme="dark"] .close{background:#ffffff1f}[data-theme="dark"] .close:hover{background:#ffffff33}
+[data-theme="dark"] .ctl{background:#ffffff14;border-color:#ffffff26;box-shadow:none}
+[data-theme="dark"] .sentbar{background:#ffffff26}[data-theme="dark"] .sentiment-empty .sentbar{background:#ffffff1f}
+[data-theme="dark"] .liquid-track{background:#ffffff1f;box-shadow:none}
+[data-theme="dark"] .f-pos{color:#7ed49a}[data-theme="dark"] .f-neu{color:#bdc1c6}[data-theme="dark"] .f-neg{color:#f19c92}
+[data-theme="dark"] .recent-tag{border-color:#ffffff33}
+[data-theme="dark"] .text-action{text-decoration-color:#ffffff40}
+[data-theme="dark"] .opinion-pill:hover{box-shadow:0 0 0 2px #ffffff66,0 0 14px 3px #ffffff33;transform:translateY(-1px)}
+[data-theme="dark"] .post-section{background:#ffffff14;border-color:#ffffff26;box-shadow:none}[data-theme="dark"] a.post-section:hover{background:#ffffff22}
+[data-theme="dark"] .comment-pill{border-color:#ffffff26;box-shadow:none}
+[data-theme="dark"] .evidence-screen{background:#303134ea}
+[data-theme="dark"] .embed-scroll{scrollbar-color:#ffffff40 transparent}[data-theme="dark"] .embed-scroll::-webkit-scrollbar-thumb,[data-theme="dark"] .embed .opinion-list::-webkit-scrollbar-thumb{background:#ffffff40;background-clip:padding-box}
+[data-theme="dark"] .dev-input,[data-theme="dark"] .dev-output{background:#ffffff14;border-color:#ffffff26}
