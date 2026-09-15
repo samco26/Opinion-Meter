@@ -8,7 +8,8 @@
    or below the sources panel, or above the results. */
 import type { ExtensionConfig } from "./shared";
 
-export interface Found { url: string; title: string; site?: string; anchor: HTMLElement; target: HTMLElement; placement: "after" | "below"; size: number }
+/* placement "fit": a bar with no text, shrunk to the room between the label's text and the dots (fitEnd) or the entry's right edge. */
+export interface Found { url: string; title: string; site?: string; anchor: HTMLElement; target: HTMLElement; placement: "after" | "below" | "fit"; fitEnd?: HTMLElement; size: number }
 export type QueryPlace =
   | { mode: "kp"; row: HTMLElement; column: HTMLElement; panel: HTMLElement }
   | { mode: "panel"; panel: HTMLElement; below: boolean }
@@ -38,7 +39,8 @@ export function destination(raw: string): string | null {
   } catch { return null; }
 }
 
-const visible = (node: HTMLElement) => !node.closest('[hidden], [aria-hidden="true"], [data-opinion-meter]') && node.getClientRects().length > 0;
+/* Visible on screen: Google marks some perfectly visible grids aria-hidden, so only [hidden] and our own nodes count as hidden. */
+const visible = (node: HTMLElement) => !node.closest('[hidden], [data-opinion-meter]') && node.getClientRects().length > 0;
 const fontSize = (el: Element) => parseFloat(getComputedStyle(el).fontSize) || 14;
 const leaves = (root: Element) => [...root.querySelectorAll<HTMLElement>("span, div, cite")].filter((e) => e.childElementCount === 0 && clean(e.textContent));
 /* A breadcrumb, an address or a time is never a site's name. */
@@ -136,7 +138,8 @@ function panelEntries(seen: WeakMap<Element, string>): Found[] {
     if (seen.get(item) === url) continue;
     seen.set(item, url);
     const heading = leaves(item).find((e) => fontSize(e) >= 14 && clean(e.textContent).length > 8);
-    found.push({ url, title: clean(heading?.textContent) || clean(label.textContent), site: clean(label.textContent), anchor: item, target: label, placement: "after", size: 11 });
+    const menu = [...item.querySelectorAll<HTMLElement>(MENU)].find(visible);
+    found.push({ url, title: clean(heading?.textContent) || clean(label.textContent), site: clean(label.textContent), anchor: item, target: label, placement: "fit", fitEnd: menu, size: 11 });
   }
   return found;
 }

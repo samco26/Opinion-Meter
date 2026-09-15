@@ -23,7 +23,7 @@ const INSTRUCTIONS = `You name the one specific thing a web search, and each of 
 Rules:
 - A subject is one specific named thing that has its own listing somewhere: a product or model (product), a film, series or album (film), a game (game), a book (book), an app or online service (app), a venue or chain (place), a software library or developer tool (tool), a company or brand (company), or one particular news article or blog post (article). Anything else that is a single named thing is entity.
 - A review, comparison, guide or news story ABOUT a thing names that thing, not the page: "Sony WH-1000XM6 review: still the best" is the product Sony WH-1000XM6.
-- Use the official canonical name people would search for, in normal capitalisation, without the year, the site name, "review", or marketing words: "Sony WH-1000XM6", not "Sony XM6 headphones".
+- Use the official canonical name people would search for, in normal capitalisation, without the year, the site name, "review", or marketing words: "Sony WH-1000XM6", not "Sony XM6 headphones". Write every name the way it is usually written: "iPhone" for "iphone", "Peptides" for a topic typed as "peptides".
 - A site's front page (an address with no path, like x.com or netflix.com), an app-store listing and a shop's page for a service or product all name that service or product by its current official name, in its current form: "X", not "X (Formerly Twitter)" and not "Twitter"; "Netflix", not "Netflix Australia". A business is company; an app or online service is app.
 - A broad class, a how-to, a generic question or a list ("best headphones 2026", "how to boil eggs", "smartphones") is topic. A page that is about nothing in particular (a login page, a category page, a search page) is none.
 - A named individual, living or dead, is person, named as they are publicly known ("Francis Bourgeois"). Never return a person under any other kind.
@@ -52,6 +52,50 @@ function toSubject(kind: string, name: string, url?: string, forQuery = false): 
 }
 
 export interface Naming { query: Subject | null; results: Map<number, Subject | null> }
+
+/* Sites the table in subject.ts does not know: named by the model from the
+   address and the label Google prints, disambiguated by country where names
+   clash (abc.net.au and abcnews.go.com are different ABC News). Remembered
+   per host for a day. */
+const SiteName = z.object({ host: z.string(), name: z.string(), kind: z.enum(["company", "app", "entity"]), aliases: z.array(z.string()) });
+const SiteNames = z.object({ sites: z.array(SiteName) });
+const SITE_INSTRUCTIONS = `You name the website or organisation behind each web address, the way people refer to it, so that public discussion of it can be looked up.
+
+Rules:
+- Use the name people actually use, in its current official form and usual capitalisation: "Medical News Today", "eSafety Commissioner", "Britannica".
+- Where the same name belongs to different organisations in different countries, tell them apart by the address: abc.net.au is "ABC News (Australia)", the Australian Broadcasting Corporation; abcnews.go.com is "ABC News (US)"; bbc.co.uk is "BBC".
+- kind: company for a business or organisation, app for an online service or app, entity for anything else.
+- aliases: up to two other names discussion uses for the same site ("Australian Broadcasting Corporation", "ABC Australia"); an empty list when there are none.
+- Return every host you were given, once.`;
+
+export async function nameSites(sites: Array<{ host: string; label?: string; title?: string }>, timeoutMs: number): Promise<Map<string, Subject | null>> {
+  const m = memory();
+  const out = new Map<string, Subject | null>();
+  const stored = await Promise.all(sites.map((site) => m.get<Stored>(`name:site:${site.host}`)));
+  const pending = sites.filter((site, index) => {
+    const known = stored[index];
+    if (known) out.set(site.host, known.subject);
+    return !known;
+  });
+  if (!pending.length || !configured.openai()) return out;
+  try {
+    const res = await structured(SiteNames, "site_names", SITE_INSTRUCTIONS,
+      `Sites (JSON lines):\n${pending.map((site) => JSON.stringify(site)).join("\n")}`,
+      { model: liteModel(), maxTokens: 800, timeoutMs });
+    const byHost = new Map(res.sites.map((site) => [site.host, site]));
+    await Promise.all(pending.map(async (site) => {
+      const named = byHost.get(site.host);
+      const clean = named?.name.replace(/\s+/g, " ").trim();
+      const aliases = named ? [...new Set(named.aliases.map((alias) => alias.replace(/\s+/g, " ").trim()).filter((alias) => alias && alias.toLowerCase() !== clean?.toLowerCase()))].slice(0, 2) : [];
+      const found = named && clean ? { ...subject(clean, named.kind), ...(aliases.length ? { aliases } : {}) } : null;
+      out.set(site.host, found);
+      await m.set(`name:site:${site.host}`, { subject: found }, TTL);
+    }));
+  } catch (err) {
+    console.error("Site naming failed", err instanceof Error ? err.message : err);
+  }
+  return out;
+}
 
 export async function nameSubjects(query: string, unknown: Array<RawResult & { i: number }>, timeoutMs: number): Promise<Naming> {
   const m = memory();

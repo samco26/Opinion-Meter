@@ -13,7 +13,8 @@ import { heuristicClassify, heuristicSentence } from "./heuristic";
 import { BUCKETS, CLASSIFY_RULES, counted, formatItems, prefilter, sample } from "./prompt";
 import { targetInstructions } from "../target";
 
-const LITE_MAX = 120;
+/* The same sample size as the card, so the bar and the drawer agree. */
+const LITE_MAX = 250;
 const Refs = z.array(z.number().int());
 const Lite = z.object({
   classified: z.object({ positive: Refs, neutral: Refs, negative: Refs, event: Refs, irrelevant: Refs }),

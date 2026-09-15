@@ -9,11 +9,19 @@ import { Logo } from "./Logo";
 type Phase = { name: "loading" } | { name: "done"; response: CardResponse } | { name: "error"; message: string };
 type View = { kind: "source"; source: SourceId } | { kind: "opinion"; opinion: RecurringOpinion } | { kind: "how" };
 const tell = (message: Record<string, unknown>) => { if (window.parent !== window) window.parent.postMessage({ om: true, ...message }, "*"); };
+/* What the drawer says while the reading is made. */
+const PHRASES = ["Scanning the web…", "Reading the room…", "Calculating sentiment…", "Weighing the opinions…", "Listening in…"];
 
 export function Embed({ subjectKey }: { subjectKey: string }) {
   const [phase, setPhase] = useState<Phase>({ name: "loading" });
   const [view, setView] = useState<View | null>(null);
   const [attempt, setAttempt] = useState(0);
+  const [phrase, setPhrase] = useState(0);
+  useEffect(() => {
+    if (phase.name !== "loading") return;
+    const timer = window.setInterval(() => setPhrase((value) => value + 1), 1400);
+    return () => window.clearInterval(timer);
+  }, [phase.name]);
   const content = useRef<HTMLDivElement>(null);
   const viewHeading = useRef<HTMLDivElement>(null);
   const card = phase.name === "done" && phase.response.kind === "card" ? phase.response.card : null;
@@ -31,7 +39,14 @@ export function Embed({ subjectKey }: { subjectKey: string }) {
     }).then(async res => {
       const data = await res.json() as CardResponse | { error: string };
       if (!res.ok || "error" in data) throw new Error("error" in data ? data.error : `The server answered ${res.status}.`);
-      if (!controller.signal.aborted) setPhase({ name: "done", response: data });
+      if (controller.signal.aborted) return;
+      setPhase({ name: "done", response: data });
+      /* The bar that opened this drawer takes the card's numbers, so the two agree. */
+      if (data.kind === "card") {
+        const c = data.card;
+        const count = c.sources.reduce((total, status) => total + (status.relevant ?? status.itemsAnalysed), 0);
+        tell({ type: "gauge", gauge: { key: c.key, name: c.subject, kind: c.kind, category: c.category, split: c.sentiment, count, verdict: c.verdict, sentence: c.summary, confidence: c.confidence.level, sources: c.sources.filter((status) => (status.relevant ?? 0) > 0).map((status) => ({ source: status.source, count: status.relevant ?? 0 })), window: c.window, updatedAt: c.updatedAt } });
+      }
     }).catch((err: unknown) => { if (!controller.signal.aborted) setPhase({ name: "error", message: err instanceof Error ? err.message : "The reading failed." }); });
     return () => controller.abort();
   }, [subjectKey, attempt]);
@@ -61,13 +76,13 @@ export function Embed({ subjectKey }: { subjectKey: string }) {
 
   return <div className="embed">
     <section className="embed-card" aria-label="What people think">
-      <header className="embed-head">
+      {phase.name !== "loading" && <header className="embed-head">
         {view ? <button className="back-button" onClick={() => setView(null)}>← Back</button> : <h1 className="embed-title">{name}</h1>}
         <button type="button" className="close ctl" onClick={() => tell({ type: "close" })} aria-label="Close">×</button>
-      </header>
+      </header>}
       <div className="embed-scroll"><div className="embed-content" ref={content}>
         {!view && <>
-          {phase.name === "loading" && <div className="loading-state"><div className="liquid-track" role="progressbar" aria-label="Reading discussion"><span /><span /></div><p>Finding what people think…</p></div>}
+          {phase.name === "loading" && <div className="loading-state"><div className="liquid-track" role="progressbar" aria-label="Reading discussion"><span /><span /></div><p>{PHRASES[phrase % PHRASES.length]}</p></div>}
           {phase.name === "error" && <div className="result-copy"><p className="overall-answer">Something interrupted the reading.</p><p className="quiet">{phase.message}</p><button className="text-action" onClick={() => setAttempt(value => value + 1)}>Try again</button></div>}
           {phase.name === "done" && phase.response.kind === "unknown" && <div className="result-copy"><p className="overall-answer">No reading available yet.</p><p className="quiet">{phase.response.message}</p></div>}
           {phase.name === "done" && phase.response.kind === "insufficient" && <Insufficient response={phase.response} />}

@@ -229,6 +229,8 @@ const SITES: Array<{ host: RegExp; name: string; kind: SubjectKind; aliases?: st
 /* "YouTube · Jonny Keeley" → "YouTube". */
 const LABEL_NOISE = /\s+[·|–—-]\s.*$/;
 
+export const knownSite = (host: string) => SITES.some((site) => site.host.test(host));
+
 export function siteSubject(result: RawResult): Subject | null {
   let u: URL;
   try {

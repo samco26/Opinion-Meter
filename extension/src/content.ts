@@ -2,7 +2,10 @@ import { createBar, openOverlay, type Bar } from "./ui";
 import { queryPlacement, readResults, type Found, type QueryPlace } from "./google";
 import { send, type ConfigReply, type ExtensionConfig, type Gauge, type GaugeRequest, type GaugeResponse, type SubjectStates } from "./shared";
 
-interface Placed { bar: Bar; target: HTMLElement; placement: "after" | "below" }
+interface Placed { bar: Bar; anchor: HTMLElement; target: HTMLElement; placement: "after" | "below" | "fit"; fitEnd?: HTMLElement }
+/* Tabs where a video's reading costs YouTube quota: no card is prepared ahead there. */
+const VIDEO_TABS = new Set(["7", "39"]);
+const udm = () => new URL(location.href).searchParams.get("udm") ?? "";
 
 let config: ExtensionConfig;
 let server = "", query = "", generation = 0, dark = false;
@@ -40,7 +43,7 @@ function layer(): HTMLElement {
 const onPage = (r: DOMRect) => ({ left: r.left + scrollX, top: r.top + scrollY, right: r.right + scrollX, bottom: r.bottom + scrollY, width: r.width, height: r.height });
 const shown = (el: HTMLElement) => el.isConnected && el.getClientRects().length > 0;
 
-function pinBar({ bar, target, placement }: Placed) {
+function pinBar({ bar, anchor, target, placement, fitEnd }: Placed) {
   const host = bar.host;
   if (host.hidden) return;
   if (!shown(target)) { host.style.visibility = "hidden"; return; }
@@ -50,9 +53,20 @@ function pinBar({ bar, target, placement }: Placed) {
   if (placement === "after") {
     host.style.left = `${Math.round(t.right + 8)}px`;
     host.style.top = `${Math.round(t.top + (t.height - h) / 2)}px`;
-  } else {
+  } else if (placement === "below") {
     host.style.left = `${Math.round(t.left)}px`;
     host.style.top = `${Math.round(t.bottom + 4)}px`;
+  } else {
+    /* After the label's visible text, shrunk to whatever room is left before the dots. */
+    const range = document.createRange();
+    range.selectNodeContents(target);
+    const text = onPage(range.getBoundingClientRect());
+    const end = Math.min(text.right || t.right, t.right);
+    const limit = fitEnd && shown(fitEnd) ? onPage(fitEnd.getBoundingClientRect()).left - 10 : onPage(anchor.getBoundingClientRect()).right - 12;
+    const width = Math.max(20, Math.min(84, Math.floor(limit - end - 8)));
+    host.style.setProperty("--om-width", `${width}px`);
+    host.style.left = `${Math.round(end + 8)}px`;
+    host.style.top = `${Math.round((text.height ? text.top : t.top) + ((text.height || t.height) - h) / 2)}px`;
   }
 }
 function pinQuery() {
@@ -90,7 +104,11 @@ const settle = () => requestAnimationFrame(() => requestAnimationFrame(repositio
 const open = (context: GaugeRequest, title: string) => (gauge: Gauge | undefined, anchor: DOMRect) => {
   // No iframe or full reading until a click. Fragment avoids query/title URL logs.
   const fragment = encodeURIComponent(JSON.stringify(context));
-  openOverlay({ url: `${server}/embed?key=${encodeURIComponent(gauge?.key ?? "")}#context=${fragment}`, anchor, title: gauge?.name || title });
+  openOverlay({
+    url: `${server}/embed?key=${encodeURIComponent(gauge?.key ?? "")}#context=${fragment}`, anchor, title: gauge?.name || title,
+    /* The drawer's card sends its numbers back; every bar for that subject takes them. */
+    onGauge: (fresh) => apply({ [fresh.key]: { state: "ready", gauge: fresh } }),
+  });
 };
 function attach(key: string, bar: Bar) { bars.set(key, [...(bars.get(key) ?? []), bar]); }
 function apply(states: SubjectStates) {
@@ -130,7 +148,7 @@ function positionQuery() {
 }
 function place(result: Found, bar: Bar) {
   layer().append(bar.host);
-  placements.set(result.anchor, { bar, target: result.target, placement: result.placement });
+  placements.set(result.anchor, { bar, anchor: result.anchor, target: result.target, placement: result.placement, fitEnd: result.fitEnd });
 }
 async function drain() {
   if (busy) return;
@@ -146,7 +164,7 @@ async function drain() {
         if (!result.anchor.isConnected) continue;
         placements.get(result.anchor)?.bar.remove();
         const context = { query: requestQuery, results: [{ url: result.url, title: result.title, ...(result.site ? { site: result.site } : {}) }] };
-        const bar = createBar({ title: result.title, dark, size: result.size, onOpen: open(context, result.title) });
+        const bar = createBar({ title: result.title, dark, size: result.size, bare: result.placement === "fit", onOpen: open(context, result.title) });
         place(result, bar);
         drawn.set(result, bar);
       }
@@ -172,7 +190,7 @@ async function drain() {
           else { queryBar.remove(); queryBar = null; }
         }
         apply(response.subjects);
-        if (initial) { prefetch(response.query.key); prefetch(response.results[0]?.key ?? null); }
+        if (initial && !VIDEO_TABS.has(udm())) { prefetch(response.query.key); prefetch(response.results[0]?.key ?? null); }
       } catch {
         if (epoch !== generation) continue;
         for (const bar of drawn.values()) bar.set({ kind: "empty", reason: "The reading could not finish." });

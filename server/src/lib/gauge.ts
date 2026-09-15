@@ -11,7 +11,7 @@ import { collectAdaptive } from "./sources/adaptive";
 import { domainSubject, resultSubjects } from "./target";
 import { liteGauge } from "./analysis/lite";
 import { youtubeVideoId } from "./sources/youtube";
-import type { Gauge, GaugeRequest, GaugeResponse, SourceId, Subject, SubjectStates } from "./types";
+import type { Card, Gauge, GaugeRequest, GaugeResponse, SourceId, Subject, SubjectStates } from "./types";
 
 /* Every connected platform reads every subject by name (Reddit is off
    until an application succeeds; X joins in the full card only, on a
@@ -49,8 +49,10 @@ export async function computeGauge(subject: Subject): Promise<Stored> {
         if (cached?.state === "ready") {
           stored = { state: "ready", gauge: { ...cached.gauge, key: subject.key, targetUrl: subject.link } }; break;
         }
-        /* The bar reads the whole three years in one pass: general standing, not the latest quarter. */
-        const { items, window } = await collectAdaptive(target.name, sourcesFor(target), { link: target.link, domain: target.scope === "domain" ? target.domain : undefined, aliases: target.aliases, months: 36, budgetMs: 10_000 });
+        /* The bar reads exactly what the card reads — the whole three years,
+           the same platforms, the same sample — so the two can never
+           disagree by much; the card's own numbers then replace these. */
+        const { items, window } = await collectAdaptive(target.name, sourcesFor(target), { link: target.link, domain: target.scope === "domain" ? target.domain : undefined, aliases: target.aliases, depth: "full", budgetMs: 12_000 });
         if (items.filter(item => item.kind !== "video").length < settings.minItems()) continue;
         const gauge = await liteGauge(target, items, window, 12_000);
         if (!gauge) continue;
@@ -104,6 +106,24 @@ export async function gaugeFor(req: GaugeRequest, budgetMs: number, keepAlive: (
     response.subjects[subject.key] = outcome ? { ...base, ...outcome } : { ...base, state: "pending" };
   }));
   return response;
+}
+
+/* The bar takes the card's numbers whenever a card has been made, so what
+   the drawer says and what the bar shows are one reading. */
+const firstSentence = (text: string) => {
+  const sentence = (text.match(/^.*?[.!?](?=\s|$)/)?.[0] ?? text).trim();
+  return sentence.length > 160 ? `${sentence.slice(0, 157).trimEnd()}…` : sentence;
+};
+export async function rememberGaugeFromCard(subject: Subject, card: Card): Promise<Gauge> {
+  const count = card.sources.reduce((total, status) => total + (status.relevant ?? 0), 0);
+  const gauge: Gauge = {
+    key: subject.key, name: card.subject, kind: card.kind, category: card.category,
+    split: card.sentiment, count, verdict: card.verdict, sentence: firstSentence(card.summary), confidence: card.confidence.level,
+    sources: card.sources.filter((status) => (status.relevant ?? 0) > 0).map((status) => ({ source: status.source, count: status.relevant ?? 0 })),
+    window: card.window, updatedAt: card.updatedAt, scope: subject.scope, domain: subject.domain, targetUrl: subject.link,
+  };
+  await memory().set(`gauge:${READING}:${subject.key}`, { state: "ready", gauge } satisfies Stored, settings.cacheTtlSeconds());
+  return gauge;
 }
 
 /* The poll: memory only, never new work. */

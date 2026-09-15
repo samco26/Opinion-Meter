@@ -40,22 +40,28 @@ export function Insufficient({ response }: { response: Extract<CardResponse, { k
     <p className="overall-answer">Not enough people are talking about “{response.subject}” to say what they think.</p>
     <p className="quiet">{response.message}</p>
     <Coverage sources={response.sources} />
-    <div className="source-row"><SourceButtons sources={response.sources} bySource={[]} /><SentimentBar compact /></div>
+    <SentimentBar compact />
+    <div className="under-bar"><div className="under-left"><SourceButtons sources={response.sources} bySource={[]} /></div></div>
   </div>;
 }
 
+/* The answer: the summary, the "Lately" line, the bar across the whole
+   card, then one line with the stars and the platform buttons on the
+   left and the count and confidence on the right. */
 export function Answer({ card, onChoose }: { card: Card; onChoose: (id: SourceId) => void }) {
   const analysed = analysedCount(card);
-  const rating = !card.scope && card.category !== "general" ? starRating(card.sentiment, analysed) : null;
+  const rating = !card.scope ? starRating(card.sentiment, analysed) : null;
   return <div className="result-copy">
     {card.simulated && <p className="sample-label">Estimated from word counts · the server has no AI key</p>}
     <p className="overall-answer">{card.summary}</p>
     {card.recent && <p className="recent-note"><span className="recent-tag">Lately</span><span>{card.recent}</span></p>}
-    <p className="reading-count">{analysed} relevant opinions · {card.confidence.level} confidence</p>
-    <div className="source-row">
-      {rating && <span className="rating-pill" title="Sentiment score, not submitted star reviews"><Stars value={rating.stars} /> {rating.stars.toFixed(1)}/5</span>}
-      <SourceButtons sources={card.sources} bySource={card.bySource.map((reading) => reading.source)} onChoose={onChoose} />
-      <SentimentBar compact figures split={card.sentiment} note={analysed < LIMITED_BELOW ? "Limited results on subject found" : undefined} />
+    <SentimentBar compact figures split={card.sentiment} note={analysed < LIMITED_BELOW ? "Limited results on subject found" : undefined} />
+    <div className="under-bar">
+      <div className="under-left">
+        {rating && <span className="rating-pill" title="Sentiment score, not submitted star reviews"><Stars value={rating.stars} /> {rating.stars.toFixed(1)}/5</span>}
+        <SourceButtons sources={card.sources} bySource={card.bySource.map((reading) => reading.source)} onChoose={onChoose} />
+      </div>
+      <p className="reading-count">{analysed} relevant opinions · {card.confidence.level} confidence</p>
     </div>
   </div>;
 }

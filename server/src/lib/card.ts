@@ -11,7 +11,7 @@ import { claimFresh } from "./limits";
 import { memory } from "./memory";
 import { collectAdaptive } from "./sources/adaptive";
 import { analyseCard } from "./analysis/analyse";
-import { sourcesFor } from "./gauge";
+import { rememberGaugeFromCard, sourcesFor } from "./gauge";
 import type { CardResponse, GaugeRequest, Subject } from "./types";
 
 /* Excerpts are platform content: a card lives this long and no longer. */
@@ -48,6 +48,9 @@ export async function cardFor(key: string, budgetMs: number, context?: GaugeRequ
     if (response.kind === "card") break;
   }
   }
-  if (response.kind === "card") await m.set(`card:${READING}:${key}`, response, CARD_TTL);
+  if (response.kind === "card") {
+    await m.set(`card:${READING}:${key}`, response, CARD_TTL);
+    await rememberGaugeFromCard(subject, response.card);
+  }
   return response;
 }

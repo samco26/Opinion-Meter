@@ -9,13 +9,16 @@
 import type { Gauge } from "./shared";
 
 const BAR_CSS = `
-:host{all:initial;position:absolute;display:block;pointer-events:auto;--om-size:12px}
+:host{all:initial;position:absolute;display:block;pointer-events:auto;--om-size:12px;--om-width:84px}
+:host([data-bare]) .count,:host([data-bare]) .tag{display:none}
+.bar.still{cursor:default}
 :host([data-flow]){position:static;display:block;margin:0 0 16px}
 :host([hidden]){display:none!important}
 .bar{display:inline-flex;align-items:center;gap:7px;margin:0;padding:0;border:0;background:transparent;font:12px/1.2 Helvetica,"Helvetica Neue",Arial,sans-serif;color:#202124;cursor:pointer;position:relative;white-space:nowrap;vertical-align:middle;text-align:left;opacity:0;transition:opacity 280ms ease}
 .bar.shown{opacity:1}
 .bar:focus-visible{outline:3px solid #5f6368;outline-offset:4px;border-radius:99px}
-.seg{display:flex;width:84px;height:var(--om-size);border-radius:99px;overflow:hidden;background:#20212422;flex-shrink:0;transition:box-shadow 180ms ease,transform 180ms cubic-bezier(.16,1,.3,1)}
+.seg{display:flex;width:var(--om-width);height:var(--om-size);border-radius:99px;overflow:hidden;background:#20212422;flex-shrink:0;transition:box-shadow 180ms ease,transform 180ms cubic-bezier(.16,1,.3,1)}
+.bar.still:hover .seg{transform:none;box-shadow:none}
 .seg span{display:block;height:100%;transition:flex-basis 500ms cubic-bezier(.16,1,.3,1)}.pos{background:#3fae66}.neu{background:#525a5f}.neg{background:#d95d52}
 .bar:hover .seg,.bar:focus-visible .seg{transform:scale(1.04);box-shadow:0 0 0 2px #ffffffcc,0 0 0 4px #9aa0a6cc,0 0 12px 3px #ffffff99}
 :host([data-dark]) .bar:hover .seg,:host([data-dark]) .bar:focus-visible .seg{box-shadow:0 0 0 2px #202124,0 0 0 4px #bdc1c6cc,0 0 12px 3px #ffffff66}
@@ -28,7 +31,7 @@ const BAR_CSS = `
 @keyframes flow{0%{transform:translateX(-110%)}100%{transform:translateX(220%)}}
 .big{display:flex;flex-direction:row;align-items:center;gap:12px;width:100%;max-width:700px;box-sizing:border-box;margin:0;padding:10px 14px;white-space:nowrap;border-radius:16px;background:#f1f3f4cc;border:1px solid #dadce0;box-shadow:0 4px 14px #20212414;transition:opacity 280ms ease,background 180ms ease}
 .big:hover{background:#f8f9fa}.big:hover .seg{box-shadow:none;transform:none}
-.big .title{flex:0 0 auto;font-size:13px;letter-spacing:-.2px}.big .title b{font-weight:700}
+.big .title{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:13px;letter-spacing:-.2px}.big .title b{font-weight:700}
 .big .seg{flex:1 1 120px;width:auto;min-width:90px;height:14px}
 .big .count{flex:0 0 auto;color:#202124}
 :host([data-dark]) .big{border:1px solid #ffffff2e;background:#ffffff0f;color:#e8eaed;box-shadow:none}
@@ -148,10 +151,11 @@ function countText(gauge: Gauge): HTMLElement {
 
 const SWALLOW = ["mousedown", "mouseup", "pointerdown", "pointerup", "auxclick", "touchstart", "touchend"] as const;
 
-export function createBar(opts: { big?: boolean; title?: string; dark?: boolean; size?: number; onOpen: (gauge: Gauge | undefined, anchor: DOMRect) => void }): Bar {
+export function createBar(opts: { big?: boolean; title?: string; dark?: boolean; size?: number; bare?: boolean; onOpen: (gauge: Gauge | undefined, anchor: DOMRect) => void }): Bar {
   const host = el("div");
   host.setAttribute("data-opinion-meter", opts.big ? "query" : "result");
   if (opts.dark) host.setAttribute("data-dark", "");
+  if (opts.bare) host.setAttribute("data-bare", "");
   if (opts.size) host.style.setProperty("--om-size", `${opts.size}px`);
   const root = host.attachShadow({ mode: "open" });
   const style = el("style");
@@ -161,11 +165,14 @@ export function createBar(opts: { big?: boolean; title?: string; dark?: boolean;
   root.append(style, bar);
   let current: Gauge | undefined;
   let detail = "";
+  /* A thin reading is hover-only: there is no card worth opening. */
+  let still = false;
   /* A bar must never act as the link it sits beside. */
   for (const type of SWALLOW) bar.addEventListener(type, (event) => event.stopPropagation());
   bar.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
+    if (still) return;
     hideTip();
     opts.onOpen(current, bar.getBoundingClientRect());
   });
@@ -182,6 +189,8 @@ export function createBar(opts: { big?: boolean; title?: string; dark?: boolean;
     bar.classList.toggle("loading", state.kind === "loading");
     bar.classList.toggle("empty", state.kind === "empty");
     bar.classList.toggle("estimated", state.kind === "ready" && Boolean(state.gauge.simulated));
+    still = !opts.big && state.kind === "empty" && Boolean(state.thin);
+    bar.classList.toggle("still", still);
     if (!opts.big && state.kind !== "ready" && !(state.kind === "empty" && state.thin)) {
       current = undefined;
       host.hidden = true;
@@ -233,7 +242,7 @@ export function createBar(opts: { big?: boolean; title?: string; dark?: boolean;
    the server's embed page. Closes on the embed's say-so, Escape, or a
    click anywhere outside. Returns the close function. */
 let activeOverlay: (() => void) | undefined;
-export function openOverlay(opts: { url: string; anchor: DOMRect; title: string; message?: string }): () => void {
+export function openOverlay(opts: { url: string; anchor: DOMRect; title: string; message?: string; onGauge?: (gauge: Gauge) => void }): () => void {
   activeOverlay?.();
   const previousFocus = document.activeElement as HTMLElement | null;
   const host = el("div");
@@ -280,10 +289,11 @@ export function openOverlay(opts: { url: string; anchor: DOMRect; title: string;
     activeOverlay = undefined;
   };
   const onMessage = (event: MessageEvent) => {
-    const data = event.data as { om?: boolean; type?: string; height?: number } | null;
+    const data = event.data as { om?: boolean; type?: string; height?: number; gauge?: Gauge } | null;
     if (event.source !== frame.contentWindow || event.origin !== new URL(opts.url).origin || !data?.om) return;
     if (data.type === "ready") veil.hidden = true;
     if (data.type === "close") close();
+    if (data.type === "gauge" && data.gauge && typeof data.gauge.key === "string" && data.gauge.split) opts.onGauge?.(data.gauge);
     if (data.type === "resize" && typeof data.height === "number" && Number.isFinite(data.height)) {
       const height = Math.min(Math.max(140, data.height), window.innerHeight - 24, 720);
       panel.style.height = `${height}px`;
