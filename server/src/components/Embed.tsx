@@ -12,8 +12,11 @@ const tell = (message: Record<string, unknown>) => { if (window.parent !== windo
 /* What the drawer says while the reading is made. */
 const PHRASES = ["Scanning the web…", "Reading the room…", "Calculating sentiment…", "Weighing the opinions…", "Listening in…"];
 
-/* dark: the drawer host is on Google's dark theme, so the card is drawn dark too. */
-export function Embed({ subjectKey, dark = false }: { subjectKey: string; dark?: boolean }) {
+/* dark: the drawer host is on Google's dark theme, so the card is drawn
+   dark too. morph: the card is drawn inside the pill that grew to hold
+   it, which already shows the name, the bar and the figures, so the
+   title bar and the bar of its own are left out. */
+export function Embed({ subjectKey, dark = false, morph = false }: { subjectKey: string; dark?: boolean; morph?: boolean }) {
   const [phase, setPhase] = useState<Phase>({ name: "loading" });
   const [view, setView] = useState<View | null>(null);
   const [recurringOpen, setRecurringOpen] = useState(false);
@@ -68,12 +71,12 @@ export function Embed({ subjectKey, dark = false }: { subjectKey: string; dark?:
     const measure = () => {
       const list = node.querySelector<HTMLElement>(".opinion-list");
       const folded = list ? Math.max(0, Math.min(300, list.scrollHeight) - list.clientHeight) : 0;
-      tell({ type: "resize", height: Math.ceil(node.scrollHeight + folded + (phase.name === "loading" ? 26 : 76)) });
+      tell({ type: "resize", height: Math.ceil(node.scrollHeight + folded + (phase.name === "loading" || (morph && !view) ? 26 : 76)) });
     };
     const observer = new ResizeObserver(measure);
     observer.observe(node); measure();
     return () => observer.disconnect();
-  }, [phase, view, recurringOpen]);
+  }, [phase, view, recurringOpen, morph]);
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") { event.preventDefault(); if (view) setView(null); else tell({ type: "close" }); }
@@ -92,18 +95,18 @@ export function Embed({ subjectKey, dark = false }: { subjectKey: string; dark?:
 
   return <div className="embed" data-theme={dark ? "dark" : undefined}>
     <section className="embed-card" aria-label="What people think">
-      {phase.name !== "loading" && <header className="embed-head">
+      {phase.name !== "loading" && (!morph || view) && <header className="embed-head">
         {view ? <button className="back-button" onClick={() => setView(null)}>← Back</button> : <h1 className="embed-title">{name}</h1>}
-        <button type="button" className="close ctl" onClick={() => tell({ type: "close" })} aria-label="Close">×</button>
+        {!morph && <button type="button" className="close ctl" onClick={() => tell({ type: "close" })} aria-label="Close">×</button>}
       </header>}
       <div className="embed-scroll"><div className="embed-content" ref={content}>
         {!view && <>
           {phase.name === "loading" && <div className="loading-state"><div className="liquid-track" role="progressbar" aria-label="Reading discussion"><span /><span /></div><p className={fading ? "fade" : undefined}>{PHRASES[phrase % PHRASES.length]}</p></div>}
           {phase.name === "error" && <div className="result-copy"><p className="overall-answer">Something interrupted the reading.</p><p className="quiet">{phase.message}</p><button className="text-action" onClick={() => setAttempt(value => value + 1)}>Try again</button></div>}
           {phase.name === "done" && phase.response.kind === "unknown" && <div className="result-copy"><p className="overall-answer">No reading available yet.</p><p className="quiet">{phase.response.message}</p></div>}
-          {phase.name === "done" && phase.response.kind === "insufficient" && <Insufficient response={phase.response} />}
+          {phase.name === "done" && phase.response.kind === "insufficient" && <Insufficient response={phase.response} bar={!morph} />}
           {card && <>
-            <Answer card={card} onChoose={source => setView({ kind: "source", source })} recurring={{ expanded: recurringOpen, controls: "recurring-opinions", onToggle: () => setRecurringOpen(open => !open) }} />
+            <Answer card={card} bar={!morph} onChoose={source => setView({ kind: "source", source })} recurring={{ expanded: recurringOpen, controls: "recurring-opinions", onToggle: () => setRecurringOpen(open => !open) }} />
             <section id="recurring-opinions" className="recurring-section" hidden={!recurringOpen} aria-label="Recurring opinions">
               <h2 className="section-label">Recurring opinions</h2>
               <OpinionPills opinions={card.opinions} onSelect={opinion => setView({ kind: "opinion", opinion })} />

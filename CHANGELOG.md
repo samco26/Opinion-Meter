@@ -2,6 +2,12 @@
 
 What changed in each version, in plain words, newest first. The version number lives in three places and moves together: `server/package.json`, `extension/package.json` and the health door (`server/src/app/api/health/route.ts`). **Rule:** every push that changes what a reader sees or what the server does adds an entry here in the same commit (see AGENTS.md).
 
+## 0.15.0 — 16 September 2026
+
+- One card that grows. Hover a bar and its own background stretches down to show the sentence, with the three figures sitting under the bar; click and it keeps growing into the full card, which loads inside it. Nothing separate opens on top any more: the drawer and the hover card are gone. Same on Google, beside a result, and on a site. Escape, the × in the row or a click elsewhere shrink it back; on a site, scrolling closes it too. It grows leftwards or upwards when the window's edge is near, and never taller than the window (the card scrolls inside).
+- The full card no longer repeats the bar: the pill's own bar and figures are the header, so the card starts at the summary.
+- The card on a site fills its pill: the bar takes whatever room the name leaves, and a long name widens the pill.
+
 ## 0.14.1 — 16 September 2026
 
 - Fixed a remaining Safari layout case on the real YouTube page: the floating bar uses content-sized grid columns and a viewport limit instead of a circular percentage width, keeping the full name beside “Mixed opinion”. Shared by all browser packages.

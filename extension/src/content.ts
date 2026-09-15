@@ -1,4 +1,4 @@
-import { createBar, headerLevel, isDark, openOverlay, resultLevel, type Bar } from "./ui";
+import { createBar, isDark, resultLevel, type Bar } from "./ui";
 import { kpHeader, queryPlacement, readResults, textBox, type Found, type QueryPlace } from "./google";
 import { send, type ConfigReply, type ExtensionConfig, type Gauge, type GaugeRequest, type GaugeResponse, type SubjectStates } from "./shared";
 
@@ -77,7 +77,9 @@ function clipTo(host: HTMLElement, target: HTMLElement) {
 
 function pinBar(placed: Placed) {
   place(placed);
-  clipTo(placed.bar.host, placed.target);
+  /* A card that has grown reaches past its panel on purpose. */
+  if (placed.bar.state() === "rest") clipTo(placed.bar.host, placed.target);
+  else placed.bar.host.style.clipPath = "";
 }
 function place({ bar, anchor, target, placement, fitEnd }: Placed) {
   const host = bar.host;
@@ -122,7 +124,7 @@ function place({ bar, anchor, target, placement, fitEnd }: Placed) {
   }
 }
 function pinQuery() {
-  if (!queryBar || !queryPlace || queryPlace.mode === "flow") return;
+  if (!queryBar || !queryPlace || queryPlace.mode === "flow" || queryBar.state() === "open") return;
   const host = queryBar.host;
   if (queryPlace.mode === "kp") {
     if (!shown(queryPlace.title)) { host.style.visibility = "hidden"; return; }
@@ -156,17 +158,36 @@ function reposition() {
 }
 const settle = () => requestAnimationFrame(() => requestAnimationFrame(reposition));
 
-const open = (context: GaugeRequest, title: string) => (gauge: Gauge | undefined, anchor: DOMRect) => {
-  // No iframe or full reading until a click. Fragment avoids query/title URL logs.
-  const fragment = encodeURIComponent(JSON.stringify(context));
-  openOverlay({
-    url: `${server}/embed?key=${encodeURIComponent(gauge?.key ?? "")}${dark ? "&theme=dark" : ""}#context=${fragment}`, anchor, title: gauge?.name || title, dark,
-    /* Under Google's search header, like the bars. */
-    level: headerLevel(),
-    /* The drawer's card sends its numbers back; every bar for that subject takes them. */
-    onGauge: (fresh) => apply({ [fresh.key]: { state: "ready", gauge: fresh } }),
-  });
-};
+/* The address of the full card for a bar's reading: the embed in its morph
+   shape (no title bar and no bar of its own; the pill is both). Nothing is
+   fetched until a click. The fragment carries the query and the result so
+   a lost subject can be recovered, and stays out of address logs. */
+const drawerFor = (context: GaugeRequest) => (gauge: Gauge | undefined) =>
+  `${server}/embed?key=${encodeURIComponent(gauge?.key ?? "")}&morph=1${dark ? "&theme=dark" : ""}#context=${encodeURIComponent(JSON.stringify(context))}`;
+/* The card's numbers come back; every bar for that subject takes them. */
+const take = (fresh: Gauge) => apply({ [fresh.key]: { state: "ready", gauge: fresh } });
+/* The query's card in the results flow cannot grow there without pushing
+   the results down: before it grows it is lifted onto the layer at the
+   very same spot, a blank of its size holding its place, and put back
+   after. */
+function liftQuery(): (() => void) | undefined {
+  if (!queryBar || queryPlace?.mode !== "flow") return undefined;
+  const host = queryBar.host;
+  const box = onPage(host.getBoundingClientRect());
+  const blank = document.createElement("div");
+  blank.setAttribute("data-opinion-meter", "blank");
+  blank.style.cssText = `height:${Math.round(box.height)}px;margin:0 0 16px`;
+  host.before(blank);
+  host.removeAttribute("data-flow");
+  host.style.cssText = `left:${Math.round(box.left)}px;top:${Math.round(box.top)}px;width:${Math.round(box.width)}px`;
+  layer().append(host);
+  return () => {
+    host.style.cssText = "";
+    host.setAttribute("data-flow", "");
+    if (blank.isConnected) blank.replaceWith(host);
+    else queryPlace?.mode === "flow" && queryPlace.parent.insertBefore(host, queryPlace.before);
+  };
+}
 function attach(key: string, bar: Bar) { bars.set(key, [...(bars.get(key) ?? []), bar]); }
 function apply(states: SubjectStates) {
   for (const [key, state] of Object.entries(states)) {
@@ -186,7 +207,7 @@ function prefetch(key: string | null) {
 /* Where the query's card goes: beside the knowledge panel's title, above
    or below an AI answer's sources panel, or in the flow above the results. */
 function positionQuery() {
-  if (!queryBar || !config.google.queryBar) return;
+  if (!queryBar || !config.google.queryBar || queryBar.state() === "open") return;
   queryPlace = queryPlacement(config);
   if (!queryPlace) return;
   const host = queryBar.host;
@@ -221,12 +242,12 @@ async function drain() {
         if (!result.anchor.isConnected) continue;
         placements.get(result.anchor)?.bar.remove();
         const context = { query: requestQuery, results: [{ url: result.url, title: result.title, ...(result.site ? { site: result.site } : {}) }] };
-        const bar = createBar({ title: result.title, dark, size: result.size, bare: result.placement === "fit" || result.placement === "corner", onOpen: open(context, result.title) });
+        const bar = createBar({ title: result.title, dark, size: result.size, bare: result.placement === "fit" || result.placement === "corner", drawer: drawerFor(context), onGauge: take });
         hold(result, bar);
         drawn.set(result, bar);
       }
       if (initial && config.google.queryBar) {
-        queryBar = createBar({ big: true, title: requestQuery, dark, onOpen: open({ query: requestQuery, results: [] }, requestQuery) });
+        queryBar = createBar({ big: true, title: requestQuery, dark, drawer: drawerFor({ query: requestQuery, results: [] }), onGauge: take, relocate: liftQuery });
         positionQuery();
       }
       try {

@@ -33,12 +33,12 @@ export function SourceButtons({ sources, bySource, onChoose, className = "source
 
 /* Too little on the subject: the shape of an answer with a plain sentence
    in its place, greyed buttons and an empty bar, so it never reads as a verdict. */
-export function Insufficient({ response }: { response: Extract<CardResponse, { kind: "insufficient" }> }) {
+export function Insufficient({ response, bar = true }: { response: Extract<CardResponse, { kind: "insufficient" }>; bar?: boolean }) {
   return <div className="result-copy">
     <p className="overall-answer">Not enough people are talking about “{response.subject}” to say what they think.</p>
     <p className="quiet">{response.message}</p>
     <Coverage sources={response.sources} />
-    <SentimentBar compact />
+    {bar && <SentimentBar compact />}
     <div className="under-bar"><div className="under-left"><SourceButtons sources={response.sources} bySource={[]} /></div></div>
   </div>;
 }
@@ -47,13 +47,14 @@ export function Insufficient({ response }: { response: Extract<CardResponse, { k
    card, then one line with the platform buttons on the left and the
    count and confidence on the right. No stars (the owner's decision of
    15 September 2026). */
-export function Answer({ card, onChoose, recurring }: { card: Card; onChoose: (id: SourceId) => void; recurring?: { expanded: boolean; controls: string; onToggle: () => void } }) {
+export function Answer({ card, onChoose, recurring, bar = true }: { card: Card; onChoose: (id: SourceId) => void; recurring?: { expanded: boolean; controls: string; onToggle: () => void }; bar?: boolean }) {
   const analysed = analysedCount(card);
   return <div className="result-copy">
     {card.simulated && <p className="sample-label">Estimated from word counts · the server has no AI key</p>}
     <p className="overall-answer">{card.summary}</p>
     {card.recent && <p className="recent-note"><span className="recent-tag">Lately</span><span>{card.recent}</span></p>}
-    <SentimentBar compact figures split={card.sentiment} note={analysed < LIMITED_BELOW ? "Limited results on subject found" : undefined} />
+    {/* bar: false when the pill that grew around this card already shows the bar and its figures. */}
+    {bar && <SentimentBar compact figures split={card.sentiment} note={analysed < LIMITED_BELOW ? "Limited results on subject found" : undefined} />}
     <div className="under-bar">
       <div className="under-left">
         <SourceButtons sources={card.sources} bySource={card.bySource.map((reading) => reading.source)} onChoose={onChoose} />
