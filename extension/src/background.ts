@@ -43,6 +43,8 @@ function handle(message: Message): Promise<unknown> {
     case "config": return config();
     case "gauge": return call("/api/gauge", { method: "POST", body: JSON.stringify(message.request) });
     case "poll": return call(`/api/gauge?keys=${encodeURIComponent(message.keys.join(","))}`);
+    /* The answer itself is not needed here: the server keeps the finished card for the drawer. */
+    case "prefetch": return call(`/api/card?key=${encodeURIComponent(message.key)}`).then(() => ({ ok: true }));
   }
 }
 

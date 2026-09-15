@@ -79,7 +79,7 @@ async function collectFull(opts: CollectOptions): Promise<Collected> {
   let limited = false, failure = "";
   const request = async <T>(params: Record<string, string>): Promise<T[]> => {
     const url = new URL(API);
-    for (const [key, value] of Object.entries({ ...params, hitsPerPage: "1000", page: "0" })) url.searchParams.set(key, value);
+    for (const [key, value] of Object.entries({ ...params, hitsPerPage: "1000", page: "0", ...(opts.from ? { numericFilters: `created_at_i>=${Math.floor(opts.from.getTime() / 1000)}` } : {}) })) url.searchParams.set(key, value);
     const res = await getOnce(url.toString(), opts, () => getJson<Hits<T>>(url.toString(), { signal: opts.signal }));
     if ((res.nbHits ?? 0) > (res.hits?.length ?? 0)) limited = true;
     return res.hits ?? [];

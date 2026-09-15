@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { buildEvidence, reactionWeight, sourceUrl } from "../src/lib/analysis/evidence.ts";
 import { sentimentPercentages, verdictOf } from "../src/lib/sentiment.ts";
 import { heuristicClassify } from "../src/lib/analysis/heuristic.ts";
-import { sample } from "../src/lib/analysis/prompt.ts";
+import { prefilter, sample } from "../src/lib/analysis/prompt.ts";
 
 const item = (id, source, text, extra = {}) => ({ id, source, kind: "comment", text, ...extra });
 
@@ -84,4 +84,19 @@ test("the sample gives every platform a turn and caps any one thread", () => {
   const capped = sample(thin, 20).filter((entry) => entry.kind !== "video");
   assert.equal(capped.filter((entry) => entry.source === "hn").length, 8);
   assert.equal(capped.length, 10);
+});
+
+test("junk that could never carry a view is dropped before sampling", () => {
+  const { kept, dropped } = prefilter([
+    { id: "v", source: "youtube", kind: "video", text: "context" },
+    item("a", "youtube", "First!"),
+    item("b", "youtube", "12:34"),
+    item("c", "youtube", "🔥🔥🔥"),
+    item("d", "youtube", "https://example.com/x"),
+    item("e", "youtube", "who else is watching in 2026"),
+    item("f", "youtube", "Great app!"),
+    item("g", "hn", "Terrible and overpriced, avoid."),
+  ]);
+  assert.equal(dropped, 5);
+  assert.deepEqual(kept.map((entry) => entry.id), ["v", "f", "g"]);
 });

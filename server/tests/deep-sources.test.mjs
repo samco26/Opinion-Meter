@@ -38,12 +38,12 @@ test("Hacker News exact-link matches do not include sibling pages", async () => 
   assert.ok(calls.some(u => u.searchParams.get("tags") === "comment,(story_1)"));
   assert.ok(calls.every(u => !u.searchParams.get("tags")?.includes("story_2")));
 });
-test("deep HN/Bluesky search has no date cutoff and does not stop at fifty posts", async () => {
+test("deep HN/Bluesky search reaches back three years and does not stop at fifty posts", async () => {
   const calls = [];
   const out = await collectAdaptive("example", ["hn", "bluesky"], { depth: "full", collect: async (sources, options) => {
     calls.push(options);
     return { items: [], statuses: sources.map(source => ({ source, availability: "unavailable", itemsAnalysed: 0 })), expandable: [] };
   } });
-  assert.equal(calls.length, 1); assert.equal(calls[0].from, undefined); assert.equal(calls[0].depth, "full");
-  assert.equal(out.window.from, "2006-01-01T00:00:00.000Z");
+  assert.equal(calls.length, 1); assert.ok(calls[0].from instanceof Date); assert.equal(calls[0].depth, "full");
+  assert.equal(out.window.months, 36);
 });

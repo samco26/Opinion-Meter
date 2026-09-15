@@ -144,7 +144,8 @@ export interface Gauge {
 export type GaugeState =
   | { state: "ready"; gauge: Gauge }
   | { state: "pending" }
-  | { state: "none"; reason: string };
+  /* thin: a named subject that was read but had too few opinions; drawn as an empty bar. */
+  | { state: "none"; reason: string; thin?: boolean };
 
 export interface GaugeRequest {
   query: string;

@@ -154,11 +154,11 @@ Out-of-pocket for v1: $5 plus AI usage (a few dollars a month at friend scale).
 
 | Platform | Search by name | Search by link | Access | Notes |
 |---|---|---|---|---|
-| Reddit | yes | yes (`url:` in search) | new application, free non-commercial | Best source for products and news. 100 requests/minute for the whole app, shared by all users — the memory is what makes this enough. Link posts are reliably findable; links buried in comments only partly. |
+| Reddit | yes | yes (`url:` in search) | **off** — no application has succeeded yet | Would be the best source for products and news. The connector is written and dormant; it returns when an application is approved. |
 | YouTube | yes (costly) | a video's own comments by ID | existing key | A search costs 100 quota units of a 10,000/day free quota; reading a known video's comments costs 1. Request a quota increase before launch and prefer by-ID reads. |
 | Hacker News | yes | yes | free, no key | Excellent for tech and business. |
 | Bluesky | yes | yes | free, no key | Growing news audience. |
-| X | yes | yes (`url:` operator) | paid, about half a cent per post read | Off by default; if used, only for the full card on click, with a daily post budget. |
+| X | yes | yes (`url:` operator) | paid, about half a cent per post read; the owner's token is connected | Read only for the full card (on click or the prefetch of the query's card), at most 20 posts per subject, with a default budget of 1,000 posts a day (`X_DAILY_POST_BUDGET`). |
 | Facebook | no | a total share count only | app token, tightly limited | Counts, never posts. Not a source. |
 | Instagram, TikTok, Threads | no | no | — | No public search door. Not sources. |
 
@@ -336,6 +336,11 @@ That word-count fallback applies only to main-query readings. Website/link reput
 | 2026-09-15 | Result bars sit inside the title after its last word, with the count text, and are invisible until a reading exists. No placeholders. Tooltip fixed to the viewport. |
 | 2026-09-15 | Bluesky may be read signed in with an app password when the public door refuses; YouTube reads up to 20 videos × 100–200 comments and a linked video five pages deep; outgoing requests carry a User-Agent. |
 | 2026-09-15 | One Chrome package for every Chromium browser; the Firefox package declares host permissions. Safari deferred (needs a Mac). |
+| 2026-09-15 | Pipeline settled with the owner: the bar counts everything said about the subject (business decisions and politics included); "general" reaches back three years; "Lately" covers the last 60 days and only developments about the subject itself; reactions to one incident are classified as event and never enter the bar; genuinely neutral views stay neutral, but questions, facts, wishes and comparisons without a verdict no longer count as neutral; junk comments (timestamps, "first!", emoji, bare links, under two words) are dropped before sampling; thin evidence draws an empty bar. |
+| 2026-09-15 | With an AI key every result is named by the batched AI call (a YouTube video keeps its rule-made identity), so x.com, the X app listing and the query "twitter" share one reading. |
+| 2026-09-15 | Reddit is off until an application succeeds; X is on (the owner's token), read only for the full card, with a default budget of 1,000 posts a day. |
+| 2026-09-15 | The query's card is prefetched when the results appear and a finished card is held for 15 minutes (AGENTS.md rule amended), so the first drawer opens at once. |
+| 2026-09-15 | Result bars sit on the site-name line beside the site's name, sized to that text, with the percentage but no opinion count; the query's card sits beside the knowledge panel's title as a small square when there is room, else under its subtitle. Tooltip drawn from the page root so Google's transforms cannot move it; a ring animation on hover. |
 
 ## 17. Trying it
 

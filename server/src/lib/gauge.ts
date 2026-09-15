@@ -13,18 +13,20 @@ import { liteGauge } from "./analysis/lite";
 import { youtubeVideoId } from "./sources/youtube";
 import type { Gauge, GaugeRequest, GaugeResponse, SourceId, Subject, SubjectStates } from "./types";
 
-/* Every connected platform reads every subject by name; a page is also
-   looked up by link on the platforms that can, and a linked video's own
-   comments are read. */
-export const LITE_SOURCES: SourceId[] = ["reddit", "youtube", "hn", "bluesky"];
-export const LINK_SOURCES: SourceId[] = ["reddit", "hn", "bluesky"];
+/* Every connected platform reads every subject by name (Reddit is off
+   until an application succeeds; X joins in the full card only, on a
+   click or a prefetch, because it is paid per post). A page is also looked
+   up by link on the platforms that can, and a linked video's own comments
+   are read. */
+export const LITE_SOURCES: SourceId[] = ["youtube", "hn", "bluesky"];
+export const LINK_SOURCES: SourceId[] = ["hn", "bluesky"];
 export const sourcesFor = (subject: Subject): SourceId[] => subject.link ? [...LINK_SOURCES, ...(youtubeVideoId(subject.link) ? ["youtube" as const] : [])] : LITE_SOURCES;
 const MAX_RESULTS = 20;
 const PENDING_TTL = 120;
 const NONE_TTL = 6 * 3600;
 const SUBJECT_TTL = 86_400;
 
-export type Stored = { state: "ready"; gauge: Gauge } | { state: "none"; reason: string };
+export type Stored = { state: "ready"; gauge: Gauge } | { state: "none"; reason: string; thin?: boolean };
 
 export async function computeGauge(subject: Subject): Promise<Stored> {
   const m = memory();
@@ -35,7 +37,7 @@ export async function computeGauge(subject: Subject): Promise<Stored> {
     } else if (!(await claimFresh())) {
       stored = { state: "none", reason: "Today's budget for new subjects is used up." };
     } else {
-      stored = { state: "none", reason: "Not enough relevant opinions about this page or its website." };
+      stored = { state: "none", reason: "Not enough opinions were found to say what people think.", thin: true };
       const fallback = domainSubject(subject);
       for (const target of [subject, ...(fallback ? [fallback] : [])]) {
         // Different pages on the same domain reuse the domain reading.

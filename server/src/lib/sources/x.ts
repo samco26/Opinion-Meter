@@ -25,7 +25,7 @@ let spentToday = 0;
 function spend(n: number): boolean {
   const today = new Date().toISOString().slice(0, 10);
   if (today !== budgetDay) { budgetDay = today; spentToday = 0; }
-  if (spentToday + n > envInt("X_DAILY_POST_BUDGET", 0, 0, 1_000_000)) return false;
+  if (spentToday + n > envInt("X_DAILY_POST_BUDGET", 1000, 0, 1_000_000)) return false;
   spentToday += n;
   return true;
 }
@@ -45,7 +45,7 @@ export function xTerms(opts: Pick<CollectOptions, "subject" | "link">): string {
 async function collectArchive(opts: CollectOptions, to: Date): Promise<Collected> {
   const max = envInt("X_MAX_RESULTS", 20, 10, 20);
   const off = (note: string): Collected => ({ items: [], canExpand: false, status: { source: "x", availability: "unavailable", itemsAnalysed: 0, note } });
-  if (envInt("X_DAILY_POST_BUDGET", 0, 0, 1_000_000) === 0) return off("X is switched off: X_DAILY_POST_BUDGET is 0.");
+  if (envInt("X_DAILY_POST_BUDGET", 1000, 0, 1_000_000) === 0) return off("X is switched off: X_DAILY_POST_BUDGET is 0.");
   if (!spend(max)) return off("Today's reading budget for X is used up.");
 
   let completedWindow: SearchWindow | undefined;

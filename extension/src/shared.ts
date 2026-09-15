@@ -11,7 +11,9 @@ export const DEFAULT_SERVER = "https://opinionmeter.vercel.app";
 export type Message =
   | { type: "config" }
   | { type: "gauge"; request: GaugeRequest }
-  | { type: "poll"; keys: string[] };
+  | { type: "poll"; keys: string[] }
+  /* Ask the server to prepare a subject's full card now, so the drawer opens at once later. */
+  | { type: "prefetch"; key: string };
 
 export interface ConfigReply { server: string; config: ExtensionConfig }
 

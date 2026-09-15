@@ -62,7 +62,7 @@ export function Embed({ subjectKey }: { subjectKey: string }) {
   return <div className="embed">
     <section className="embed-card" aria-label="What people think">
       <header className="embed-head">
-        {view ? <button className="back-button" onClick={() => setView(null)}>← Back</button> : <span className="subject-chip ctl"><span>{name}</span></span>}
+        {view ? <button className="back-button" onClick={() => setView(null)}>← Back</button> : <h1 className="embed-title">{name}</h1>}
         <button type="button" className="close ctl" onClick={() => tell({ type: "close" })} aria-label="Close">×</button>
       </header>
       <div className="embed-scroll"><div className="embed-content" ref={content}>

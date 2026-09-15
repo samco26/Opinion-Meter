@@ -181,3 +181,4 @@ body:has(.embed)>.ground{display:none}
 .embed .result-copy{animation:resolve 320ms var(--easeOut) both}
 .embed .opinion-pill{animation:float-in 380ms var(--easeOut) both;animation-delay:calc(var(--pill-order,0)*35ms)}
 .detail-content{animation:resolve 260ms var(--easeOut) both}
+.embed-title{font-size:20px;font-weight:500;letter-spacing:-.4px;line-height:1.25;margin:2px 6px 0;max-width:80%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}

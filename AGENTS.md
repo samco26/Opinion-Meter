@@ -9,7 +9,7 @@ For anyone, human or AI, changing this repository.
 - Honest numbers: every split is counted from per-opinion classifications; fewer than eight on-topic opinions means no verdict; the count is always shown. Never fabricate evidence, links or opinions. Label simulated data clearly.
 - Fail closed on Google: if the results page cannot be read with confidence, draw nothing. Respect the config door's kill switch before doing anything on a page.
 - People are never subjects. The subject-naming step must return nothing for a named individual.
-- Store only derived answers (counts, sentence, links) for at most 24 hours. Verbatim excerpts are fetched live. Do not store platform content.
+- Store derived answers (counts, sentence, links) for at most 24 hours. A finished card, excerpts included, may be held in memory for at most 15 minutes so a prefetched drawer opens at once — never longer, never on disk. Beyond that, do not store platform content.
 - Read platforms only through their official APIs, within the limits described in the Reddit application (README section 10). Never scrape platform websites.
 - Send the server only what the README's privacy section says is sent. If a change needs more, update the privacy section and the privacy page in the same commit.
 - Keep source connectors separate, each returning the shared item format with an explicit availability status. An unavailable source must not prevent an answer from the others.

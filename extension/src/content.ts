@@ -11,6 +11,7 @@ let busy = false, first = true;
 const bars = new Map<string, Bar[]>();
 const placements = new Map<HTMLElement, Bar>();
 const pending = new Set<string>();
+const prefetched = new Set<string>();
 const currentQuery = () => (new URL(location.href).searchParams.get("q")?.trim() ?? "").slice(0, 200);
 
 /* Google's dark theme is a page background, not a media query. */
@@ -30,20 +31,31 @@ function apply(states: SubjectStates) {
   for (const [key, state] of Object.entries(states)) {
     if (state.state === "pending") { pending.add(key); continue; }
     pending.delete(key);
-    for (const bar of bars.get(key) ?? []) bar.set(state.state === "ready" ? { kind: "ready", gauge: state.gauge } : { kind: "empty", reason: state.reason });
+    for (const bar of bars.get(key) ?? []) bar.set(state.state === "ready" ? { kind: "ready", gauge: state.gauge } : { kind: "empty", reason: state.reason, thin: state.thin });
   }
+}
+/* The query's full card is prepared as soon as the results appear, so the
+   drawer opens at once when it is clicked. Once per key per page. */
+function prefetch(key: string | null) {
+  if (!key || prefetched.has(key)) return;
+  prefetched.add(key);
+  send({ type: "prefetch", key }).catch(() => { /* The click will simply compute it then. */ });
 }
 function positionQuery() {
   if (!queryBar || !config.google.queryBar) return;
   const place = queryPlacement(config);
   if (!place) return;
-  queryBar.host.toggleAttribute("data-side", place.side);
-  if (queryBar.host.parentElement !== place.parent || place.parent.firstElementChild !== queryBar.host) place.parent.insertBefore(queryBar.host, place.before);
+  const host = queryBar.host;
+  host.toggleAttribute("data-side", place.side);
+  host.toggleAttribute("data-square", place.square);
+  const inPlace = host.parentElement === place.parent && (place.before ? host.nextElementSibling === place.before : place.parent.lastElementChild === host);
+  if (!inPlace) place.parent.insertBefore(host, place.before);
 }
-/* A result's bar sits inside its heading, right after the title's last
-   word; a tile without a heading gets it after the link instead. */
+/* A result's bar sits on the site-name line beside the site's name; a
+   tile without one gets it inside its heading, else after the link. */
 function place(result: Found, bar: Bar) {
-  if (result.heading?.isConnected) result.heading.append(bar.host);
+  if (result.line?.isConnected) result.line.append(bar.host);
+  else if (result.heading?.isConnected) result.heading.append(bar.host);
   else (result.anchor.closest('a, button') ?? result.anchor).insertAdjacentElement("afterend", bar.host);
 }
 async function drain() {
@@ -60,7 +72,7 @@ async function drain() {
         if (!result.anchor.isConnected || result.unavailable) continue;
         placements.get(result.anchor)?.remove();
         const context = { query: requestQuery, results: [{ url: result.url, title: result.title }] };
-        const bar = createBar({ title: result.title, dark, onOpen: open(context, result.title) });
+        const bar = createBar({ title: result.title, dark, size: result.size, onOpen: open(context, result.title) });
         place(result, bar);
         placements.set(result.anchor, bar); drawn.set(result, bar);
       }
@@ -84,6 +96,7 @@ async function drain() {
           else queryBar.set({ kind: "empty", reason: "No verdict available for this search." });
         }
         apply(response.subjects);
+        if (initial) { prefetch(response.query.key); prefetch(response.results[0]?.key ?? null); }
       } catch {
         if (epoch !== generation) continue;
         for (const bar of drawn.values()) bar.set({ kind: "empty", reason: "The reading could not finish." });
@@ -97,7 +110,7 @@ function scan() {
   if (now !== query) {
     generation++; query = now; first = true; queue = []; seen = new WeakMap();
     for (const bar of placements.values()) bar.remove();
-    placements.clear(); bars.clear(); pending.clear(); queryBar?.remove(); queryBar = null;
+    placements.clear(); bars.clear(); pending.clear(); prefetched.clear(); queryBar?.remove(); queryBar = null;
   }
   if (!query) return;
   for (const [anchor, bar] of placements) if (!anchor.isConnected) { bar.remove(); placements.delete(anchor); }

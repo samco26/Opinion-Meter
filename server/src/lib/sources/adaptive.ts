@@ -2,8 +2,9 @@
    platform, while a platform has fewer than PER_SOURCE opinions. A
    platform that has plenty stops widening; one that found little keeps
    going, so a subject busy on YouTube still gets Hacker News's history.
-   Earlier findings are kept and deduplicated; the widest completed window
-   is reported. */
+   Nothing older than three years is read: that is how far "general
+   standing" reaches. Earlier findings are kept and deduplicated; the
+   widest completed window is reported. */
 
 import { collectAll } from "./index";
 import type { SearchWindow, SourceId, SourceItem, SourceStatus } from "../types";
@@ -13,6 +14,7 @@ import { SEARCH_MONTHS, monthsBefore } from "../window";
 export const PER_SOURCE = 25;
 /* Kept for callers that reason about the old whole-reading threshold. */
 export const EXPAND_BELOW = 50;
+const DEEPEST_MONTHS = SEARCH_MONTHS[SEARCH_MONTHS.length - 1];
 
 export async function collectAdaptive(
   subject: string,
@@ -25,11 +27,12 @@ export async function collectAdaptive(
   if (options.depth === "full" && sources.some(id => id === "hn" || id === "bluesky")) {
     const deep: SourceId[] = sources.filter(id => id === "hn" || id === "bluesky");
     const rest = sources.filter(id => !deep.includes(id));
+    const from = monthsBefore(to, DEEPEST_MONTHS);
     const [all, other] = await Promise.all([
-      collect(deep, { subject, link, domain, to, depth: "full", timeoutMs: budget, memo: new Map() }),
+      collect(deep, { subject, link, domain, from, to, depth: "full", timeoutMs: budget, memo: new Map() }),
       rest.length ? collectAdaptive(subject, rest, { ...options, depth: "lite", budgetMs: budget }) : null,
     ]);
-    return { items: [...all.items, ...(other?.items ?? [])], statuses: [...all.statuses, ...(other?.statuses ?? [])], window: { from: "2006-01-01T00:00:00.000Z", to: to.toISOString(), months: (to.getUTCFullYear() - 2006) * 12 + to.getUTCMonth() } };
+    return { items: [...all.items, ...(other?.items ?? [])], statuses: [...all.statuses, ...(other?.statuses ?? [])], window: { from: from.toISOString(), to: to.toISOString(), months: DEEPEST_MONTHS } };
   }
   const items = new Map<string, SourceItem>();
   const statuses = new Map<SourceId, SourceStatus>();
