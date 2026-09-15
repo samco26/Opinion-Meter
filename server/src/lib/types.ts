@@ -104,7 +104,7 @@ export interface SourceAnalysis {
 
 /* What kind of thing a subject is. The category picks the card's shape;
    the kind is finer, for the eyebrow line and for search choices. */
-export type SubjectKind = "product" | "film" | "app" | "place" | "game" | "book" | "tool" | "company" | "article" | "entity";
+export type SubjectKind = "product" | "film" | "app" | "place" | "game" | "book" | "tool" | "company" | "article" | "entity" | "person" | "topic";
 export type Category = "film" | "product" | "place" | "app" | "general";
 
 export interface Subject {
@@ -115,6 +115,8 @@ export interface Subject {
   category: Category;
   /* Set for an article: discussion is found by link rather than by name. */
   link?: string;
+  /* Other names discussion uses for the same thing ("Twitter" for X); searched too. */
+  aliases?: string[];
   scope?: "link" | "domain";
   domain?: string;
 }
@@ -149,7 +151,8 @@ export type GaugeState =
 
 export interface GaugeRequest {
   query: string;
-  results: Array<{ url: string; title: string; snippet?: string }>;
+  /* site: the name Google prints beside the result's favicon ("Google Play", "eSafety Commissioner"). */
+  results: Array<{ url: string; title: string; snippet?: string; site?: string }>;
 }
 
 /* Name, kind and category travel with the first answer; a poll for a

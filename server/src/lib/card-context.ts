@@ -12,7 +12,7 @@ export function readContext(value: unknown): GaugeRequest | null {
     if (!r || typeof r.url !== "string" || r.url.length > 2000 || typeof r.title !== "string" || !r.title.trim() || r.title.length > 300) return null;
     try { if (!/^https?:$/.test(new URL(r.url).protocol)) return null; } catch { return null; }
   }
-  return { query: query.trim(), results: results.map(({ url, title }) => ({ url, title })) };
+  return { query: query.trim(), results: results.map(({ url, title, site }) => ({ url, title, ...(typeof site === "string" && site.trim() ? { site: site.trim().slice(0, 120) } : {}) })) };
 }
 
 export async function recoverSubject(key: string, context: GaugeRequest): Promise<Subject | null> {

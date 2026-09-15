@@ -7,6 +7,8 @@ export const USER_AGENT = "OpinionMeter/0.3 (+https://opinionmeter.vercel.app)";
 
 export interface CollectOptions {
   subject: string;
+  /* Other names discussion uses for the subject; searched as well. */
+  aliases?: string[];
   /* An article's address: readers that can search by link do, instead of by name. */
   link?: string;
   /* A website's hostname, when the subject is the site itself rather than a page on it. */
@@ -20,6 +22,10 @@ export interface CollectOptions {
   memo?: Map<string, Promise<unknown>>;
   previousItems?: SourceItem[];
 }
+
+/* The names a reader searches for: the subject and up to two aliases. */
+export const searchTerms = (opts: Pick<CollectOptions, "subject" | "aliases">): string[] =>
+  [opts.subject, ...(opts.aliases ?? [])].map((term) => term.trim()).filter((term, index, all) => term && all.indexOf(term) === index).slice(0, 3);
 
 export interface Collected {
   items: SourceItem[];

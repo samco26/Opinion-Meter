@@ -45,7 +45,7 @@ Version 1 does Google results only. YouTube pages, news articles and eventually 
 
 1. **Honest numbers.** Every percentage is counted from per-opinion classifications, weighted by reactions on a log scale. Fewer than eight on-topic opinions means no verdict. The count is always visible. A positive result is not the same as strong agreement, and the card says which it is.
 2. **Silence when thin.** No bar is better than a misleading one. Utility pages, unknown subjects and thin samples get nothing.
-3. **People are off-limits.** Products, media, apps, places, companies and articles are subjects. Named individuals are never subjects. Decided now because it is far harder to retrofit.
+3. **Anything named is a subject.** Products, media, apps, places, companies, articles, topics and people. A person is read on their work and public conduct, never their private life. (Decided 15 September 2026, reversing the 14 September rule that people were off-limits.)
 4. **Nothing stored that isn't ours.** The server keeps only derived things — counts, the summary sentence, links — for at most 24 hours. Verbatim excerpts are fetched live when a reader opens the drawer, so a post deleted on its platform disappears from the product at once.
 5. **Official doors only.** Every platform is read through its official API within its published limits. No scraping of platform websites. Facebook, Instagram and TikTok offer no such door and are therefore not sources.
 6. **The extension stays dumb.** Keys, thinking and memory live on the server. The extension sees the page, asks, and draws. Improving the analysis never requires a store re-review.
@@ -108,7 +108,7 @@ Readers see bars about a second after the results for anything already in memory
 
 ### 4.3 How a verdict is made
 
-**Naming the subject.** AI names the subject of the main query. Each result names the thing its page represents: rules first (a shop's product page → the product; IMDb → the film; an app store → the app; GitHub → the tool; a YouTube address → that video; a site's front page → the site), then one batched AI call for the rest (a review names its product; a news story names the article, found by link; a how-to, a person or a page about nothing names nothing). Tracking variants of an address share a reading. Without an AI key an unnamed page falls back to a reading of the page, then of its website.
+**Naming the subject.** AI names the subject of the main query. Each result names the thing its page represents: rules first (a shop's product page → the product; IMDb → the film; an app store → the app; GitHub → the tool; a YouTube address → that video; a site's front page → the site), then one batched AI call for the rest (a review names its product; a news story names the article, found by link; a person is named as publicly known; a how-to page or a page about nothing names nothing, though a how-to typed as the query is a topic and gets a reading). Tracking variants of an address share a reading. Without an AI key an unnamed page falls back to a reading of the page, then of its website.
 
 **General versus recent.** The summary and the bar's sentence describe how people regard the subject over time and never hinge on an incident the reader has no context for. When the newest entries show a notable recent development — an outage, a redesign, a controversy, a price change — one "Lately" sentence names it with roughly when it happened; otherwise nothing. A bare report that something is down right now is not an opinion of it.
 
@@ -341,6 +341,11 @@ That word-count fallback applies only to main-query readings. Website/link reput
 | 2026-09-15 | Reddit is off until an application succeeds; X is on (the owner's token), read only for the full card, with a default budget of 1,000 posts a day. |
 | 2026-09-15 | The query's card is prefetched when the results appear and a finished card is held for 15 minutes (AGENTS.md rule amended), so the first drawer opens at once. |
 | 2026-09-15 | Result bars sit on the site-name line beside the site's name, sized to that text, with the percentage but no opinion count; the query's card sits beside the knowledge panel's title as a small square when there is room, else under its subtitle. Tooltip drawn from the page root so Google's transforms cannot move it; a ring animation on hover. |
+| 2026-09-15 | Reverses "people are never subjects": anyone and anything named is rated — a person on their work and public conduct, a topic when typed as the query. Two-word praise ("Love it.") counts; a wish for a missing feature is a negative view. Reach: 120 entries for a bar, 250 for a card; YouTube reads two comment pages per video for the card. |
+| 2026-09-15 | A result's bar is about the **site it sits beside** (X, Google Play, Wikipedia, the eSafety Commissioner), named from a table of well-known sites or from the label Google prints beside the favicon — not the page's topic. A YouTube video stays the exception. The query's card is about what was typed. |
+| 2026-09-15 | Subjects carry aliases ("Twitter" for X) from the sites table or the naming call, and every reader searches each name; "X" alone found nothing usable. The bar reads the whole three years in one pass instead of widening from three months. |
+| 2026-09-15 | YouTube's search results for a subject are remembered for a day (video ids and titles), so the bar, the prefetched card and a later drawer cost one 100-unit search rather than three. The day's quota ran out during testing; the increase request is now urgent. |
+| 2026-09-15 | The query's card is pinned to the right edge of the knowledge panel's header, transparent (no card background), the row padded so the title wraps beside it. A steady glow on hover, no pulse. A reply-less post shows once in the evidence list. |
 
 ## 17. Trying it
 

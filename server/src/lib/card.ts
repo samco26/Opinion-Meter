@@ -23,7 +23,7 @@ export async function cardFor(key: string, budgetMs: number, context?: GaugeRequ
   const m = memory();
   const started = Date.now();
   const subject = (key ? await m.get<Subject>(`subject:${key}`) : null) ?? (context ? await recoverSubject(key, context) : null);
-  if (!subject) return { kind: "unknown", key, message: context ? "This link could not be identified as a specific subject. Unrecognised links need the server's AI connection; people and utility pages are not rated." : "This reading has expired. Refresh the Google results and open the bar again." };
+  if (!subject) return { kind: "unknown", key, message: context ? "This link could not be identified as a specific subject. Unrecognised links need the server's AI connection; pages about nothing in particular are not rated." : "This reading has expired. Refresh the Google results and open the bar again." };
   key = subject.key;
   const held = await m.get<CardResponse>(`card:${READING}:${key}`);
   if (held?.kind === "card") return held;
@@ -35,7 +35,7 @@ export async function cardFor(key: string, budgetMs: number, context?: GaugeRequ
   for (const target of [subject, ...(fallback ? [fallback] : [])]) {
   if (Date.now() - started > budgetMs - 5000) break;
   const sources = [...sourcesFor(target), "x" as const];
-  const { items, statuses, window } = await collectAdaptive(target.name, sources, { link: target.link, domain: target.scope === "domain" ? target.domain : undefined, depth: "full", budgetMs: Math.min(target.scope === "link" ? 10_000 : 16_000, Math.max(1, budgetMs - (Date.now() - started) - 8000)) });
+  const { items, statuses, window } = await collectAdaptive(target.name, sources, { link: target.link, domain: target.scope === "domain" ? target.domain : undefined, aliases: target.aliases, depth: "full", budgetMs: Math.min(target.scope === "link" ? 10_000 : 16_000, Math.max(1, budgetMs - (Date.now() - started) - 8000)) });
   const opinions = items.filter((item) => item.kind !== "video").length;
   const minItems = settings.minItems();
   if (opinions < minItems) {

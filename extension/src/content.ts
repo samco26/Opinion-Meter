@@ -71,7 +71,7 @@ async function drain() {
       for (const result of results) {
         if (!result.anchor.isConnected || result.unavailable) continue;
         placements.get(result.anchor)?.remove();
-        const context = { query: requestQuery, results: [{ url: result.url, title: result.title }] };
+        const context = { query: requestQuery, results: [{ url: result.url, title: result.title, ...(result.site ? { site: result.site } : {}) }] };
         const bar = createBar({ title: result.title, dark, size: result.size, onOpen: open(context, result.title) });
         place(result, bar);
         placements.set(result.anchor, bar); drawn.set(result, bar);
@@ -81,7 +81,7 @@ async function drain() {
         positionQuery();
       }
       try {
-        const unique = [...new Map(results.filter(r => !r.unavailable).map(r => [r.url, { url: r.url, title: r.title }])).values()];
+        const unique = [...new Map(results.filter(r => !r.unavailable).map(r => [r.url, { url: r.url, title: r.title, ...(r.site ? { site: r.site } : {}) }])).values()];
         if (!initial && !unique.length) continue;
         const response = await send<GaugeResponse>({ type: "gauge", request: { query: requestQuery, results: unique } });
         if (epoch !== generation) continue;
@@ -93,8 +93,8 @@ async function drain() {
         }
         if (initial && queryBar) {
           if (response.query.key) attach(response.query.key, queryBar);
-          /* The query names nothing that can be rated (a person, a how-to,
-             a question): no card at all, rather than a dead one. */
+          /* The query names nothing that can be rated (a login page, a
+             search for nothing in particular): no card, rather than a dead one. */
           else { queryBar.remove(); queryBar = null; }
         }
         apply(response.subjects);

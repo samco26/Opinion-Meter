@@ -8,7 +8,7 @@ For anyone, human or AI, changing this repository.
 - Never commit `.env` files, credentials, tokens or session data. `.env.example` lists names only.
 - Honest numbers: every split is counted from per-opinion classifications; fewer than eight on-topic opinions means no verdict; the count is always shown. Never fabricate evidence, links or opinions. Label simulated data clearly.
 - Fail closed on Google: if the results page cannot be read with confidence, draw nothing. Respect the config door's kill switch before doing anything on a page.
-- People are never subjects. The subject-naming step must return nothing for a named individual.
+- Anyone and anything named can be a subject (the owner's decision of 15 September 2026, reversing the earlier rule). A person is read on their work and public conduct, never their private life. Pages about nothing in particular (a login page, a category page) still name nothing.
 - Store derived answers (counts, sentence, links) for at most 24 hours. A finished card, excerpts included, may be held in memory for at most 15 minutes so a prefetched drawer opens at once — never longer, never on disk. Beyond that, do not store platform content.
 - Read platforms only through their official APIs, within the limits described in the Reddit application (README section 10). Never scrape platform websites.
 - Send the server only what the README's privacy section says is sent. If a change needs more, update the privacy section and the privacy page in the same commit.

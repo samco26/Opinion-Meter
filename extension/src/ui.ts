@@ -17,9 +17,8 @@ const BAR_CSS = `
 .bar:focus-visible{outline:3px solid #16565e;outline-offset:4px;border-radius:99px}
 .seg{display:flex;width:84px;height:var(--om-size);border-radius:99px;overflow:hidden;background:#19464c22;flex-shrink:0;transition:box-shadow 180ms ease,transform 180ms cubic-bezier(.16,1,.3,1)}
 .seg span{display:block;height:100%;transition:flex-basis 500ms cubic-bezier(.16,1,.3,1)}.pos{background:#53866a}.neu{background:#525a5f}.neg{background:#bc716b}
-.bar:hover .seg,.bar:focus-visible .seg{transform:scale(1.04);box-shadow:0 0 0 2px #ffffffb3,0 0 0 4px #8bb9b5cc;animation:ring 900ms ease-out}
-:host([data-dark]) .bar:hover .seg,:host([data-dark]) .bar:focus-visible .seg{box-shadow:0 0 0 2px #202124,0 0 0 4px #8bb9b5cc}
-@keyframes ring{0%{box-shadow:0 0 0 0 #8bb9b5cc,0 0 0 0 #8bb9b5aa}70%{box-shadow:0 0 0 2px #ffffffb3,0 0 0 10px #8bb9b500}100%{box-shadow:0 0 0 2px #ffffffb3,0 0 0 4px #8bb9b5cc}}
+.bar:hover .seg,.bar:focus-visible .seg{transform:scale(1.04);box-shadow:0 0 0 2px #ffffffb3,0 0 0 4px #8bb9b5cc,0 0 12px 2px #8bb9b5aa}
+:host([data-dark]) .bar:hover .seg,:host([data-dark]) .bar:focus-visible .seg{box-shadow:0 0 0 2px #202124,0 0 0 4px #8bb9b5cc,0 0 12px 2px #8bb9b5aa}
 .count{white-space:nowrap;color:#5f6368;font-size:12px}.count b{font-weight:700;color:#153f43}
 :host([data-dark]) .count{color:#bdc1c6}:host([data-dark]) .count b{color:#e8eaed}:host([data-dark]) .seg{background:#ffffff1f}
 .muted{color:#426366}
@@ -39,11 +38,13 @@ const BAR_CSS = `
 :host([data-dark]) .big:hover{background:#ffffff1a}
 :host([data-side]) .big .tag,:host([data-side]) .big .muted,:host([data-side]) .big .count,:host([data-side]) .big .count b,:host([data-dark]) .big .tag,:host([data-dark]) .big .muted,:host([data-dark]) .big .count,:host([data-dark]) .big .count b{color:inherit}
 :host([data-side]) .big .seg{flex:1;width:100%;min-width:70px}
-:host([data-square]){display:inline-block;margin:0 0 0 auto;align-self:center}
-:host([data-square]) .big{flex-direction:column;align-items:stretch;gap:6px;width:auto;min-width:118px;max-width:150px;margin:0;padding:10px 12px;border-radius:14px;font-size:12px}
-:host([data-square]) .big .title{flex-basis:auto;font-size:11px;letter-spacing:0;opacity:.8}
+:host([data-square]){display:block;position:absolute;right:4px;top:50%;transform:translateY(-50%);width:124px;margin:0}
+:host([data-square]) .big,:host([data-square][data-dark]) .big,:host([data-square][data-side]) .big{flex-direction:column;align-items:stretch;gap:5px;width:100%;min-width:0;max-width:none;margin:0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;font-size:12px}
+:host([data-square]) .big:hover{background:transparent}
+:host([data-square]) .big .title{flex-basis:auto;font-size:11px;letter-spacing:0;opacity:.8;white-space:nowrap}
 :host([data-square]) .big .title .name{display:none}
 :host([data-square]) .big .seg{width:auto;flex:none}
+:host([data-square]) .big .count{font-size:12px}
 @media(prefers-color-scheme:light){:host([data-side]) .big{color:#202124;background:#ffffff88}}
 @media(prefers-reduced-motion:reduce){.loading .seg:before{animation:none;width:100%;opacity:.6}.bar,.seg,.seg span{transition:none;animation:none}}
 `;

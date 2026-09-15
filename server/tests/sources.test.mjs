@@ -64,3 +64,8 @@ test("the window widens while too little is found and keeps earlier items", asyn
   assert.equal(out.window.months, 36);
   assert.equal(out.statuses.find((s) => s.source === "hn").itemsAnalysed, 3);
 });
+
+test("every name of a subject is searched", () => {
+  assert.equal(xTerms({ subject: "X", aliases: ["Twitter"] }), '("X" OR "Twitter")');
+  assert.equal(xTerms({ subject: "X", aliases: ["X"] }), '"X"');
+});

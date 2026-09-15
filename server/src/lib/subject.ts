@@ -7,12 +7,12 @@
 import { createHash } from "node:crypto";
 import type { Category, Subject, SubjectKind } from "./types";
 
-export interface RawResult { url: string; title: string; snippet?: string }
+export interface RawResult { url: string; title: string; snippet?: string; site?: string }
 export type RuleOutcome = Subject | "ask" | null;
 
 export const CATEGORY_OF: Record<SubjectKind, Category> = {
   product: "product", film: "film", app: "app", place: "place", game: "film", book: "film",
-  tool: "general", company: "general", article: "general", entity: "general",
+  tool: "general", company: "general", article: "general", entity: "general", person: "general", topic: "general",
 };
 
 /* Tracking parameters and mobile prefixes never distinguish two addresses. */
@@ -178,6 +178,72 @@ export function resolveByRule(result: RawResult): RuleOutcome {
   }
   if (NEVER.test(host) || UTILITY_HOST.test(host)) return null;
   return "ask";
+}
+
+/* A result's bar is about the site it sits beside. The sites people meet
+   on a results page, named as people call them, with the other names
+   discussion uses; anything else is named by the label Google prints
+   beside its favicon ("eSafety Commissioner"), else by its title. */
+const SITES: Array<{ host: RegExp; name: string; kind: SubjectKind; aliases?: string[] }> = [
+  { host: /(^|\.)(x\.com|twitter\.com)$/, name: "X", kind: "app", aliases: ["Twitter"] },
+  { host: /(^|\.)play\.google\.com$/, name: "Google Play", kind: "app", aliases: ["Play Store"] },
+  { host: /(^|\.)apps\.apple\.com$/, name: "App Store", kind: "app", aliases: ["Apple App Store"] },
+  { host: /(^|\.)apple\.com$/, name: "Apple", kind: "company" },
+  { host: /(^|\.)wikipedia\.org$/, name: "Wikipedia", kind: "app" },
+  { host: /(^|\.)reddit\.com$/, name: "Reddit", kind: "app" },
+  { host: /(^|\.)(youtube\.com|youtu\.be)$/, name: "YouTube", kind: "app" },
+  { host: /(^|\.)facebook\.com$/, name: "Facebook", kind: "app" },
+  { host: /(^|\.)instagram\.com$/, name: "Instagram", kind: "app" },
+  { host: /(^|\.)tiktok\.com$/, name: "TikTok", kind: "app" },
+  { host: /(^|\.)linkedin\.com$/, name: "LinkedIn", kind: "app" },
+  { host: /(^|\.)threads\.(net|com)$/, name: "Threads", kind: "app" },
+  { host: /(^|\.)bsky\.app$/, name: "Bluesky", kind: "app" },
+  { host: /(^|\.)amazon\.[a-z.]+$/, name: "Amazon", kind: "company" },
+  { host: /(^|\.)ebay\.[a-z.]+$/, name: "eBay", kind: "company" },
+  { host: /(^|\.)github\.com$/, name: "GitHub", kind: "app" },
+  { host: /(^|\.)imdb\.com$/, name: "IMDb", kind: "app" },
+  { host: /(^|\.)rottentomatoes\.com$/, name: "Rotten Tomatoes", kind: "app" },
+  { host: /(^|\.)letterboxd\.com$/, name: "Letterboxd", kind: "app" },
+  { host: /(^|\.)netflix\.com$/, name: "Netflix", kind: "app" },
+  { host: /(^|\.)spotify\.com$/, name: "Spotify", kind: "app" },
+  { host: /(^|\.)microsoft\.com$/, name: "Microsoft", kind: "company" },
+  { host: /(^|\.)quora\.com$/, name: "Quora", kind: "app" },
+  { host: /(^|\.)stackoverflow\.com$/, name: "Stack Overflow", kind: "app" },
+  { host: /(^|\.)medium\.com$/, name: "Medium", kind: "app" },
+  { host: /(^|\.)substack\.com$/, name: "Substack", kind: "app" },
+  { host: /(^|\.)trustpilot\.com$/, name: "Trustpilot", kind: "app" },
+  { host: /(^|\.)yelp\.[a-z.]+$/, name: "Yelp", kind: "app" },
+  { host: /(^|\.)tripadvisor\.[a-z.]+$/, name: "Tripadvisor", kind: "app" },
+  { host: /(^|\.)booking\.com$/, name: "Booking.com", kind: "app" },
+  { host: /(^|\.)airbnb\.[a-z.]+$/, name: "Airbnb", kind: "app" },
+  { host: /(^|\.)bbc\.(co\.uk|com)$/, name: "BBC", kind: "company" },
+  { host: /(^|\.)cnn\.com$/, name: "CNN", kind: "company" },
+  { host: /(^|\.)nytimes\.com$/, name: "The New York Times", kind: "company", aliases: ["NYT"] },
+  { host: /(^|\.)theguardian\.com$/, name: "The Guardian", kind: "company" },
+  { host: /(^|\.)reuters\.com$/, name: "Reuters", kind: "company" },
+  { host: /(^|\.)britannica\.com$/, name: "Britannica", kind: "app", aliases: ["Encyclopaedia Britannica"] },
+  { host: /(^|\.)steampowered\.com$/, name: "Steam", kind: "app" },
+  { host: /(^|\.)twitch\.tv$/, name: "Twitch", kind: "app" },
+  { host: /(^|\.)discord\.com$/, name: "Discord", kind: "app" },
+];
+/* "YouTube · Jonny Keeley" → "YouTube". */
+const LABEL_NOISE = /\s+[·|–—-]\s.*$/;
+
+export function siteSubject(result: RawResult): Subject | null {
+  let u: URL;
+  try {
+    u = new URL(result.url);
+  } catch {
+    return null;
+  }
+  if (!/^https?:$/.test(u.protocol)) return null;
+  const host = u.hostname.toLowerCase().replace(/^(www|m)\./, "");
+  if (SEARCH_ENGINES.test(host)) return null;
+  const known = SITES.find((site) => site.host.test(host));
+  if (known) return { ...subject(known.name, known.kind), ...(known.aliases ? { aliases: known.aliases } : {}) };
+  const label = (result.site ?? "").replace(LABEL_NOISE, "").replace(/\s+/g, " ").trim();
+  const name = label && label.length <= 60 ? label : siteName(result.title, host);
+  return name ? subject(name, "company") : null;
 }
 
 const QUERY_NOISE = /\b(reviews?|vs\.?|versus|price|prices|buy|specs?|worth it|reddit|opinions?|thoughts|rating|ratings|any good|good\?|bad\?)\b/gi;

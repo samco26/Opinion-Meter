@@ -23,9 +23,9 @@ function readRequest(body: unknown): GaugeRequest | null {
   const clean: GaugeRequest["results"] = [];
   for (const r of results) {
     if (typeof r !== "object" || r === null) return null;
-    const { url, title, snippet } = r as { url?: unknown; title?: unknown; snippet?: unknown };
+    const { url, title, snippet, site } = r as { url?: unknown; title?: unknown; snippet?: unknown; site?: unknown };
     if (typeof url !== "string" || !/^https?:\/\//.test(url) || url.length > 2000 || typeof title !== "string" || title.length > 300) return null;
-    clean.push({ url, title, ...(typeof snippet === "string" ? { snippet: snippet.slice(0, 500) } : {}) });
+    clean.push({ url, title, ...(typeof snippet === "string" ? { snippet: snippet.slice(0, 500) } : {}), ...(typeof site === "string" && site.trim() ? { site: site.trim().slice(0, 120) } : {}) });
   }
   return { query: query.trim().slice(0, 200), results: clean };
 }

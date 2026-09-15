@@ -13,7 +13,7 @@ import { heuristicClassify, heuristicSentence } from "./heuristic";
 import { BUCKETS, CLASSIFY_RULES, counted, formatItems, prefilter, sample } from "./prompt";
 import { targetInstructions } from "../target";
 
-const LITE_MAX = 80;
+const LITE_MAX = 120;
 const Refs = z.array(z.number().int());
 const Lite = z.object({
   classified: z.object({ positive: Refs, neutral: Refs, negative: Refs, event: Refs, irrelevant: Refs }),

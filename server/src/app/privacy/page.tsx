@@ -15,8 +15,8 @@ export default function Privacy() {
         <p>Request records used to prevent abuse are kept for at most 7 days and contain the install token and the time of the request, not the search.</p>
         <h2>Where the opinions come from</h2>
         <p>Public posts and comments read through the official interfaces of Reddit, YouTube, Hacker News and Bluesky, within the limits each platform sets. The text of those posts is sent to an AI model to be classified and summarised; usernames are not. Nothing is used to train any model.</p>
-        <h2>What is never a subject</h2>
-        <p>Named individuals. Opinion Meter reads opinion about products, films, apps, places, companies and articles, never about a person.</p>
+        <h2>What is a subject</h2>
+        <p>Anything people talk about: products, films, apps, places, companies, articles, topics and public figures. For a person, the reading is about their work and public conduct, drawn only from public posts, and like every reading it is kept only as short-lived derived data.</p>
         <h2>Contact</h2>
         <p>Questions about this page: open an issue on the project&apos;s GitHub repository.</p>
       </section>

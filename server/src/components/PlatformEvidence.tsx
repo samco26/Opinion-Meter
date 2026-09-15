@@ -21,9 +21,11 @@ export function PostList({ threads, source }: { threads: SourceThread[]; source:
     <ul className="post-list">
       {threads.slice(0, all ? undefined : 5).map((thread, index) => {
         const url = sourceUrl(thread.url, source);
+        /* A post with no replies is its own only excerpt: the pill alone, not the text twice. */
+        const solo = thread.comments?.length === 1 && thread.comments[0].text.trim() === thread.title.trim();
         const content = <>
-          <h3>{thread.title}</h3>
-          {thread.author && <p className="post-attribution">{thread.author}</p>}
+          {!solo && <h3>{thread.title}</h3>}
+          {!solo && thread.author && <p className="post-attribution">{thread.author}</p>}
           {thread.comments?.length ? <div className="comment-pills">{thread.comments.slice(0, 3).map((comment) => <blockquote key={comment.id} className={`comment-pill opinion-${comment.sentiment ?? "unclassified"}`}>
             <span className={comment.sentiment ? "sr-only" : "unclassified-note"}>{comment.sentiment ?? "Sentiment unavailable"}: </span>
             {comment.text.length > 260 ? <>{comment.text.slice(0, 260)}<span aria-label="Excerpt continues">…</span></> : comment.text}

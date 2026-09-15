@@ -47,7 +47,8 @@ export async function computeGauge(subject: Subject): Promise<Stored> {
         if (cached?.state === "ready") {
           stored = { state: "ready", gauge: { ...cached.gauge, key: subject.key, targetUrl: subject.link } }; break;
         }
-        const { items, window } = await collectAdaptive(target.name, sourcesFor(target), { link: target.link, domain: target.scope === "domain" ? target.domain : undefined, budgetMs: 10_000 });
+        /* The bar reads the whole three years in one pass: general standing, not the latest quarter. */
+        const { items, window } = await collectAdaptive(target.name, sourcesFor(target), { link: target.link, domain: target.scope === "domain" ? target.domain : undefined, aliases: target.aliases, months: 36, budgetMs: 10_000 });
         if (items.filter(item => item.kind !== "video").length < settings.minItems()) continue;
         const gauge = await liteGauge(target, items, window, 12_000);
         if (!gauge) continue;

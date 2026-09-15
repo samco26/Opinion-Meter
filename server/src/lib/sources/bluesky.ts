@@ -1,19 +1,20 @@
 /* Bluesky: the public AppView when it will answer, or a signed-in session
    with an app password when one is configured (the public search door
-   sometimes refuses server requests). Posts by name — the most-liked and
-   the newest — or posts that link to a page or to a website. Each post is
-   one opinion. */
+   sometimes refuses server requests). Posts by name — every name the
+   subject goes by, the most-liked and the newest — or posts that link to
+   a page or to a website. Each post is one opinion. */
 
 import type { SourceItem } from "../types";
 import { env } from "../env";
 import { normaliseUrl } from "../subject";
-import { getJson, getOnce, HttpError, inWindow, statusFor, type Collected, type CollectOptions, type Connector } from "../http";
+import { getJson, getOnce, HttpError, inWindow, searchTerms, statusFor, type Collected, type CollectOptions, type Connector } from "../http";
 
 const PUBLIC_API = "https://public.api.bsky.app/xrpc/app.bsky.feed.searchPosts";
 const PDS = "https://bsky.social/xrpc";
 const PAGE = 100;
-/* Most-liked pages per reading; the newest get one page. */
+/* Most-liked pages per reading; an alias gets fewer; the newest get one page. */
 const TOP_PAGES = { lite: 1, full: 5 } as const;
+const ALIAS_PAGES = 2;
 const LATEST_PAGES = 1;
 
 interface SearchResponse {
@@ -67,20 +68,25 @@ function convert(res: SearchResponse, opts: CollectOptions): SourceItem[] {
   });
 }
 
+/* What to search for: the link, the website, or every name of the subject. */
+function queries(opts: CollectOptions): Query[] {
+  const top = opts.depth === "full" ? TOP_PAGES.full : TOP_PAGES.lite;
+  if (opts.link) return [{ q: new URL(opts.link).hostname.replace(/^www\./, ""), sort: "top", url: opts.link, pages: top }];
+  if (opts.domain) return [{ q: opts.domain, sort: "top", domain: opts.domain, pages: top }, { q: opts.subject, sort: "latest", domain: opts.domain, pages: LATEST_PAGES }];
+  return searchTerms(opts).flatMap((term, index): Query[] => [
+    { q: term, sort: "top", pages: index === 0 ? top : Math.min(top, ALIAS_PAGES) },
+    { q: term, sort: "latest", pages: LATEST_PAGES },
+  ]);
+}
+
 async function collect(opts: CollectOptions): Promise<Collected> {
   const auth = await session(opts.signal).catch(() => null);
   const base = auth ? `${PDS}/app.bsky.feed.searchPosts` : PUBLIC_API;
   const headers = auth ? { Authorization: `Bearer ${auth.token}` } : undefined;
-  const top = opts.depth === "full" ? TOP_PAGES.full : TOP_PAGES.lite;
-  const queries: Query[] = opts.link
-    ? [{ q: new URL(opts.link).hostname.replace(/^www\./, ""), sort: "top", url: opts.link, pages: top }]
-    : opts.domain
-      ? [{ q: opts.domain, sort: "top", domain: opts.domain, pages: top }, { q: opts.subject, sort: "latest", domain: opts.domain, pages: LATEST_PAGES }]
-      : [{ q: opts.subject, sort: "top", pages: top }, { q: opts.subject, sort: "latest", pages: LATEST_PAGES }];
 
   const selected = new Map<string, SourceItem>();
   let limited = false, failure = "", refused = false;
-  for (const query of queries) {
+  for (const query of queries(opts)) {
     const url = new URL(base);
     url.searchParams.set("q", query.q);
     url.searchParams.set("sort", query.sort);
@@ -116,7 +122,8 @@ async function collect(opts: CollectOptions): Promise<Collected> {
       : "Bluesky's public search door refused the request. Sign the server in with a Bluesky app password (BLUESKY_IDENTIFIER and BLUESKY_APP_PASSWORD) to read Bluesky.";
     return { items, canExpand: false, status: { source: "bluesky", availability: "unavailable", itemsAnalysed: 0, note } };
   }
-  const how = `most-liked and newest posts, ${PAGE} per page${opts.depth === "full" ? ", up to five pages of most-liked across all dates" : ""}${auth ? ", signed in" : ""}`;
+  const terms = searchTerms(opts);
+  const how = `most-liked and newest posts, ${PAGE} per page${opts.depth === "full" ? ", up to five pages of most-liked over the last three years" : ""}${!opts.link && !opts.domain && terms.length > 1 ? `, searched as ${terms.join(", ")}` : ""}${auth ? ", signed in" : ""}`;
   return {
     items, canExpand: true,
     status: { ...statusFor("bluesky", items.length, PAGE), ...(failure || limited ? { availability: items.length ? "partial" as const : "unavailable" as const } : {}), note: `Collected ${items.length} Bluesky posts (${how}). ${failure || (limited ? "More matches may exist beyond the pages read." : "Reached the end of the returned results.")}` },

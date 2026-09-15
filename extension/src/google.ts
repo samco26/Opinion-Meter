@@ -5,7 +5,8 @@
    source carousels and other untitled links get nothing. The query's
    card goes beside the knowledge panel's title when there is room. */
 import type { ExtensionConfig } from "./shared";
-export interface Found { url: string; title: string; anchor: HTMLElement; heading?: HTMLElement; line?: HTMLElement; size?: number; unavailable?: string }
+/* site: the name Google prints beside the favicon ("Google Play", "eSafety Commissioner"), which the server uses to name the site. */
+export interface Found { url: string; title: string; site?: string; anchor: HTMLElement; heading?: HTMLElement; line?: HTMLElement; size?: number; unavailable?: string }
 export interface Placement { parent: HTMLElement; before: Element | null; side: boolean; square: boolean }
 const PRODUCT = "[data-product-id], [data-docid], [data-pv-entrypoint], .sh-dgr__grid-result, .sh-dlr__list-result, .pla-unit";
 const clean = (s: string | null | undefined) => (s ?? "").replace(/\s+/g, " ").trim().slice(0, 300);
@@ -30,7 +31,7 @@ const visible = (node: HTMLElement) => !node.closest('[hidden], [aria-hidden="tr
 /* The site-name line: Google draws the favicon, the site's name and its
    address above the title; the name span when there is one, else the
    row holding the address. The bar is sized to that text. */
-function siteLine(anchor: HTMLElement): { line: HTMLElement; size: number } | undefined {
+function siteLine(anchor: HTMLElement): { line: HTMLElement; size: number; site?: string } | undefined {
   const cite = anchor.querySelector<HTMLElement>("cite") ?? anchor.parentElement?.querySelector<HTMLElement>("cite") ?? null;
   if (!cite) return undefined;
   const row = cite.parentElement, block = row?.parentElement;
@@ -39,7 +40,8 @@ function siteLine(anchor: HTMLElement): { line: HTMLElement; size: number } | un
   const line = nameSpan ?? row;
   if (!line) return undefined;
   const px = parseFloat(getComputedStyle(nameSpan ?? cite).fontSize) || 14;
-  return { line, size: Math.max(9, Math.round(px * 0.85)) };
+  const site = clean(nameSpan?.textContent) || undefined;
+  return { line, size: Math.max(9, Math.round(px * 0.85)), site };
 }
 export function readResults(config: ExtensionConfig, seen: WeakMap<Element, string>): Found[] {
   const found: Found[] = [];
@@ -67,27 +69,26 @@ export function readResults(config: ExtensionConfig, seen: WeakMap<Element, stri
     if (seen.get(anchor) === signature) continue;
     seen.set(anchor, signature);
     const site = product ? undefined : siteLine(node);
-    found.push({ url: url ?? "", title, anchor, heading: productTitle ?? headline ?? undefined, line: site?.line, size: site?.size, unavailable });
+    found.push({ url: url ?? "", title, site: site?.site, anchor, heading: productTitle ?? headline ?? undefined, line: site?.line, size: site?.size, unavailable });
   }
   return found;
 }
 export function queryPlacement(config: ExtensionConfig): Placement | null {
   const main = document.querySelector<HTMLElement>(config.google.results);
   if (!main) return null;
-  /* Beside the knowledge panel's title and subtitle when the row has room
-     for a small square; under the subtitle when it has not. */
+  /* To the right of the knowledge panel's title and subtitle, as a small
+     square pinned to the header row's right edge; the row is given room
+     for it so a long title wraps beside it rather than under it. */
   const title = document.querySelector<HTMLElement>('#rhs [data-attrid="title"]');
   const subtitle = document.querySelector<HTMLElement>('#rhs [data-attrid="subtitle"]');
   if (title && visible(title)) {
     let column: HTMLElement | null = title.parentElement;
     while (column && subtitle && !column.contains(subtitle)) column = column.parentElement;
     const row = column?.parentElement ?? null;
-    if (column && row && getComputedStyle(row).display.includes("flex")) {
-      const used = [...row.children].filter((child) => child !== column && !child.hasAttribute("data-opinion-meter")).reduce((width, child) => width + child.getBoundingClientRect().width, 0);
-      const text = Math.max(title.getBoundingClientRect().width, subtitle?.getBoundingClientRect().width ?? 0);
-      const spare = row.getBoundingClientRect().width - used - text - 56;
-      if (spare >= 130) return { parent: row, before: null, side: true, square: true };
-      return { parent: column, before: null, side: true, square: false };
+    if (column && row) {
+      if (getComputedStyle(row).position === "static") row.style.setProperty("position", "relative");
+      row.style.setProperty("padding-right", "136px");
+      return { parent: row, before: null, side: true, square: true };
     }
   }
   const overview = [...document.querySelectorAll<HTMLElement>('[data-mcpr], [data-aim], [data-sgrd]')];

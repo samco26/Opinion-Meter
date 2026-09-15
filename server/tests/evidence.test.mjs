@@ -96,7 +96,8 @@ test("junk that could never carry a view is dropped before sampling", () => {
     item("e", "youtube", "who else is watching in 2026"),
     item("f", "youtube", "Great app!"),
     item("g", "hn", "Terrible and overpriced, avoid."),
+    item("h", "youtube", "Love it."),
   ]);
   assert.equal(dropped, 5);
-  assert.deepEqual(kept.map((entry) => entry.id), ["v", "f", "g"]);
+  assert.deepEqual(kept.map((entry) => entry.id), ["v", "f", "g", "h"]);
 });

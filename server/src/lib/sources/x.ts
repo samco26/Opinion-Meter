@@ -8,7 +8,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import type { SearchWindow, SourceItem } from "../types";
 import { env, envInt } from "../env";
 import { SEARCH_MONTHS, monthsBefore } from "../window";
-import { getJson, getOnce, reasonFor, statusFor, type Collected, type CollectOptions, type Connector } from "../http";
+import { getJson, getOnce, reasonFor, searchTerms, statusFor, type Collected, type CollectOptions, type Connector } from "../http";
 
 const API = "https://api.x.com/2/tweets/search/all";
 const END_TIME_SAFETY_MS = 15_000;
@@ -34,12 +34,13 @@ function refund(n: number): void {
   if (n > 0 && budgetDay === new Date().toISOString().slice(0, 10)) spentToday = Math.max(0, spentToday - n);
 }
 
-export function xTerms(opts: Pick<CollectOptions, "subject" | "link">): string {
+export function xTerms(opts: Pick<CollectOptions, "subject" | "link" | "aliases">): string {
   if (opts.link) {
     const u = new URL(opts.link);
     return `url:"${u.hostname.replace(/^www\./, "")}${u.pathname.replace(/\/$/, "")}"`;
   }
-  return `"${opts.subject.replace(/"/g, "")}"`;
+  const terms = searchTerms(opts).map((term) => `"${term.replace(/"/g, "")}"`);
+  return terms.length > 1 ? `(${terms.join(" OR ")})` : terms[0];
 }
 
 async function collectArchive(opts: CollectOptions, to: Date): Promise<Collected> {
