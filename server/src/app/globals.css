@@ -2,7 +2,6 @@
   --bg:#6f7378; --ink:#202124; --muted:#5f6368; --line:#20212425;
   --accent:#bdc1c6; --accentHover:#dadce0;
   --sentPos:#3fae66; --sentNeu:#525a5f; --sentNeg:#d95d52;
-  --star:#f5b400; --starEmpty:#20212422;
   --radius:32px; --easeOut:cubic-bezier(.16,1,.3,1);
 }
 *{box-sizing:border-box}
@@ -105,8 +104,6 @@ a{color:inherit}
 .tile{border-radius:22px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;padding:18px 14px}
 .score{font-variant-numeric:tabular-nums;letter-spacing:-1.5px;line-height:1}.score-md{font-size:44px}
 .approval{font-size:12px;color:var(--muted);line-height:1.3}
-.stars{display:inline-block;font-size:18px;letter-spacing:1px;line-height:1;background:linear-gradient(90deg,var(--star) var(--fill),var(--starEmpty) var(--fill));-webkit-background-clip:text;background-clip:text;color:transparent;white-space:nowrap}
-.stars-lg{font-size:26px}.stars-xs{font-size:12px;letter-spacing:.5px}
 .list,.chips,.cards{max-height:190px;overflow:auto;overscroll-behavior:contain;scrollbar-width:none;padding-bottom:18px;-webkit-mask-image:linear-gradient(#000 calc(100% - 18px),transparent);mask-image:linear-gradient(#000 calc(100% - 18px),transparent)}
 .list::-webkit-scrollbar,.chips::-webkit-scrollbar,.cards::-webkit-scrollbar{display:none}
 .chips{max-height:130px}.cards{max-height:155px}
@@ -132,7 +129,7 @@ a{color:inherit}
   .result-copy{padding:12px 10px 4px}.overall-answer{font-size:15px;line-height:1.4;letter-spacing:-.2px}.sample-label{font-size:10px;margin-bottom:8px}.source-buttons{margin-top:12px;gap:8px}.source-row{margin-top:12px;gap:12px}.srcbtn{width:40px;height:40px}.result-copy .sentiment{margin:12px 0 0}.result-copy .sentbar{height:10px}.sent-legend{font-size:10px;padding-top:4px}.text-action{font-size:11px;min-height:30px;padding:6px 0}
   .opinion-pill{font-size:12px;padding:8px 12px;line-height:1.35}.evidence-screen{border-radius:27px}.evidence-nav{padding:9px 15px}.back-button,.subject-chip{font-size:12px}.evidence-scroll{padding:21px 17px}.evidence-scroll h2{font-size:22px}.platform-heading{gap:18px;margin-bottom:22px}.post-section{padding:15px 14px;border-radius:23px}.post-section h3{font-size:15px;margin-bottom:12px}.comment-pill{font-size:12px;line-height:1.5;padding:9px 12px;border-radius:22px}.post-list{gap:11px}.evidence-footer{font-size:10px;padding:9px 16px}.all-opinions{grid-template-columns:1fr;gap:10px}
   .pbody{display:flex;flex-direction:column;gap:10px;padding:10px 10px 8px}.pbody>*{flex-shrink:0}
-  .pbody .rating-strip{margin:0;gap:6px}.pbody .tile-strip{flex:1 1 auto;min-width:0;padding:6px 12px;gap:10px}.pbody .tile-strip .score-md{font-size:30px}.pbody .tile-strip .approval{font-size:10.5px;white-space:normal;line-height:1.2}.pbody .tile-meta{min-width:0}.pbody .tile-strip .stars{font-size:15px}
+  .pbody .rating-strip{margin:0;gap:6px}.pbody .tile-strip{flex:1 1 auto;min-width:0;padding:6px 12px;gap:10px}.pbody .tile-strip .score-md{font-size:30px}.pbody .tile-strip .approval{font-size:10.5px;white-space:normal;line-height:1.2}.pbody .tile-meta{min-width:0}
   .pbody .pstack{gap:5px}.pbody .pstack .srcbtn{width:44px}.pbody .answer-small{font-size:13px;line-height:1.4;margin-top:0}
 }
 @supports not(backdrop-filter:blur(1px)){.glass{background:#e8e9df}.ctl{background:#f0ede3}}
@@ -142,8 +139,13 @@ html:has(.embed),body:has(.embed){background:transparent}
 body:has(.embed)>.ground{display:none}
 .embed{padding:0}
 .embed-card{padding:10px 14px 12px;background:transparent;border:0;border-radius:22px;max-height:100%}
-.embed-scroll{overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;min-height:0}
-.embed-content{display:flow-root}
+/* The card itself does not scroll: the content column is held to the
+   frame and the opinions list inside it gives way (down to a minimum) and
+   scrolls on its own. Only a detail screen, a long list of posts, or a
+   window too short even for that makes the frame scroll. */
+.embed-scroll{display:flex;flex-direction:column;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;min-height:0}
+.embed-content{display:flex;flex-direction:column;flex:1 1 auto;min-height:0}
+.embed-content>*{flex:0 0 auto}.embed-content>.text-action{align-self:flex-start}
 .embed .opinion-list{overflow:visible;max-height:none;margin:0;padding:4px 2px 6px;mask-image:none;-webkit-mask-image:none;gap:7px}
 .embed .opinion-pill{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 13px;font-size:13px;border-radius:18px;animation:none}
 .embed .opinion-pill small{white-space:nowrap;opacity:.8}
@@ -185,14 +187,13 @@ body:has(.embed)>.ground{display:none}
 .embed-head{padding:2px 0 4px}
 .embed .srcbtn{width:40px;height:40px}
 
-/* v0.7: the bar across the whole card, the platform buttons and stars on
-   the left beneath it with the count on the right, recurring opinions
-   scrolling on their own, a minimal loading state. */
+/* v0.7–0.8: the bar across the whole card, the platform buttons on the
+   left beneath it with the count on the right, recurring opinions giving
+   way and scrolling on their own, a loading state that is just a strip. */
 .embed .result-copy .sentiment{margin:14px 0 0}.embed .result-copy .sentbar{height:14px}
 .under-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:8px}
 .under-left{display:flex;align-items:center;gap:10px}.under-left .source-buttons{margin-top:0;gap:2px}
 .under-bar .reading-count{margin:0;white-space:nowrap}
-.rating-pill{display:inline-flex;align-items:center;gap:6px;font-size:13px;white-space:nowrap}
-.embed .opinion-list{max-height:300px;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#5f636855 transparent;padding-right:4px;mask-image:none;-webkit-mask-image:none}
+.embed .opinion-list{flex:0 1 auto;min-height:120px;max-height:300px;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#5f636855 transparent;padding-right:4px;mask-image:none;-webkit-mask-image:none}
 .embed .opinion-list::-webkit-scrollbar{width:8px}.embed .opinion-list::-webkit-scrollbar-thumb{background:#5f63683d;border-radius:99px;border:2px solid transparent;background-clip:padding-box}
-.embed .loading-state{padding:10px 6px 4px;animation:none}.embed .loading-state p{margin-top:12px;text-align:center;font-size:13px}
+.embed .loading-state{padding:6px 6px 2px;animation:none}.embed .loading-state p{margin-top:10px;text-align:center;font-size:13px}

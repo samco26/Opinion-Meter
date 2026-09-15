@@ -1,10 +1,12 @@
 import { createBar, openOverlay, type Bar } from "./ui";
-import { queryPlacement, readResults, type Found, type QueryPlace } from "./google";
+import { kpHeader, queryPlacement, readResults, type Found, type QueryPlace } from "./google";
 import { send, type ConfigReply, type ExtensionConfig, type Gauge, type GaugeRequest, type GaugeResponse, type SubjectStates } from "./shared";
 
 interface Placed { bar: Bar; anchor: HTMLElement; target: HTMLElement; placement: "after" | "below" | "fit"; fitEnd?: HTMLElement }
 /* Tabs where a video's reading costs YouTube quota: no card is prepared ahead there. */
 const VIDEO_TABS = new Set(["7", "39"]);
+/* The width of every bar in an AI answer's sources panel, shrunk only when the dots are closer. */
+const FIT_WIDTH = 60;
 const udm = () => new URL(location.href).searchParams.get("udm") ?? "";
 
 let config: ExtensionConfig;
@@ -27,6 +29,16 @@ function isDark(): boolean {
   return (0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]) / 255 < 0.5;
 }
 
+/* One step under Google's search header in the stacking order, so a bar
+   passes beneath the header as the page scrolls, never over it. */
+function headerLevel(): number {
+  let level = NaN;
+  for (let el = document.querySelector<HTMLElement>("#searchform"); el && el !== document.body; el = el.parentElement) {
+    const style = getComputedStyle(el);
+    if (style.position !== "static" && style.zIndex !== "auto") level = parseInt(style.zIndex, 10);
+  }
+  return Number.isFinite(level) ? Math.max(1, level - 1) : 127;
+}
 /* Every bar lives on one layer above the page, pinned to its target by
    page coordinates, so Google's own layout is never touched and nothing
    of Google's can clip a bar or its glow. */
@@ -35,9 +47,10 @@ function layer(): HTMLElement {
   if (!node) {
     node = document.createElement("div");
     node.setAttribute("data-opinion-meter", "layer");
-    node.style.cssText = "position:absolute;left:0;top:0;width:0;height:0;z-index:2147483000;pointer-events:none";
+    node.style.cssText = "position:absolute;left:0;top:0;width:0;height:0;pointer-events:none";
     document.body.append(node);
   }
+  node.style.zIndex = String(headerLevel());
   return node;
 }
 const onPage = (r: DOMRect) => ({ left: r.left + scrollX, top: r.top + scrollY, right: r.right + scrollX, bottom: r.bottom + scrollY, width: r.width, height: r.height });
@@ -57,13 +70,19 @@ function pinBar({ bar, anchor, target, placement, fitEnd }: Placed) {
     host.style.left = `${Math.round(t.left)}px`;
     host.style.top = `${Math.round(t.bottom + 4)}px`;
   } else {
-    /* After the label's visible text, shrunk to whatever room is left before the dots. */
+    /* After the label's visible text. Google clips a long label inside a
+       fixed-width box and the text runs on unseen past it, so the visible
+       end is the nearest clipping box's edge, never the text's own. */
     const range = document.createRange();
     range.selectNodeContents(target);
     const text = onPage(range.getBoundingClientRect());
-    const end = Math.min(text.right || t.right, t.right);
+    let clip = Infinity;
+    for (let el: HTMLElement | null = target, depth = 0; el && el !== anchor.parentElement && depth < 12; el = el.parentElement, depth++) {
+      if (getComputedStyle(el).overflowX !== "visible") clip = Math.min(clip, onPage(el.getBoundingClientRect()).right);
+    }
+    const end = Math.min(text.right || t.right, t.right, clip);
     const limit = fitEnd && shown(fitEnd) ? onPage(fitEnd.getBoundingClientRect()).left - 10 : onPage(anchor.getBoundingClientRect()).right - 12;
-    const width = Math.max(20, Math.min(84, Math.floor(limit - end - 8)));
+    const width = Math.max(20, Math.min(FIT_WIDTH, Math.floor(limit - end - 8)));
     host.style.setProperty("--om-width", `${width}px`);
     host.style.left = `${Math.round(end + 8)}px`;
     host.style.top = `${Math.round((text.height ? text.top : t.top) + ((text.height || t.height) - h) / 2)}px`;
@@ -73,29 +92,29 @@ function pinQuery() {
   if (!queryBar || !queryPlace || queryPlace.mode === "flow") return;
   const host = queryBar.host;
   if (queryPlace.mode === "kp") {
-    if (!shown(queryPlace.column)) { host.style.visibility = "hidden"; return; }
+    if (!shown(queryPlace.title)) { host.style.visibility = "hidden"; return; }
     host.style.visibility = "";
-    const column = onPage(queryPlace.column.getBoundingClientRect()), row = onPage(queryPlace.row.getBoundingClientRect()), panel = onPage(queryPlace.panel.getBoundingClientRect());
+    const header = kpHeader(queryPlace.title, queryPlace.subtitle, queryPlace.others);
+    const panel = onPage(queryPlace.panel.getBoundingClientRect());
     const w = host.offsetWidth || 124, h = host.offsetHeight || 60;
-    /* On the same line as the logo, the title and the subtitle; under them only when the panel is too narrow. */
-    if (column.right + 16 + w <= panel.right - 4) {
-      host.style.left = `${Math.round(column.right + 16)}px`;
-      host.style.top = `${Math.round(row.top + (row.height - h) / 2)}px`;
-    } else {
-      host.style.left = `${Math.round(column.left)}px`;
-      host.style.top = `${Math.round(column.bottom + 8)}px`;
-    }
+    /* Right-aligned on the title's lines, between the text and anything else on them. */
+    const limit = Math.min(header.limit + scrollX, panel.right - 12);
+    host.style.left = `${Math.round(Math.max(header.right + scrollX + 16, limit - w))}px`;
+    host.style.top = `${Math.round(header.top + scrollY + (header.bottom - header.top - h) / 2)}px`;
     return;
   }
   if (!shown(queryPlace.panel)) { host.style.visibility = "hidden"; return; }
   host.style.visibility = "";
   const p = onPage(queryPlace.panel.getBoundingClientRect());
+  /* A narrow sources box gets the name alone, never "of p…". */
+  host.toggleAttribute("data-narrow", p.width < 460);
   host.style.width = `${Math.round(p.width)}px`;
   host.style.left = `${Math.round(p.left)}px`;
   const h = host.offsetHeight || 44;
   host.style.top = `${Math.round(queryPlace.below ? p.bottom + 12 : p.top - h - 12)}px`;
 }
 function reposition() {
+  if (placements.size || queryBar) layer();
   for (const placed of placements.values()) pinBar(placed);
   pinQuery();
 }

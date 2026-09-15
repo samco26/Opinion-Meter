@@ -39,7 +39,8 @@ const BAR_CSS = `
 :host([data-dark]) .big .tag,:host([data-dark]) .big .muted,:host([data-dark]) .big .count,:host([data-dark]) .big .count b{color:inherit}
 :host([data-panel]) .big{max-width:none}
 .empty .seg{background:transparent;outline:1px solid #8a949b88;outline-offset:-1px}
-:host([data-dark]) .empty .seg{outline-color:#9aa0a688}
+:host([data-dark]) .empty .seg{background:transparent;outline-color:#9aa0a688}
+:host([data-narrow]) .big .title:has(.name) .lead,:host([data-narrow]) .big .title .of{display:none}
 .estimated .seg{outline:1px dashed #9aa0a6;outline-offset:2px}
 :host([data-square]){width:124px}
 :host([data-square]) .big,:host([data-square][data-dark]) .big{flex-direction:column;align-items:stretch;gap:5px;width:100%;min-width:0;max-width:none;margin:0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;font-size:12px}
@@ -149,6 +150,20 @@ function countText(gauge: Gauge): HTMLElement {
   return count;
 }
 
+/* "What people think of Kia": the lead words, then the name. A narrow card
+   (above an AI answer's sources) keeps only the name; beside a knowledge
+   panel's title, only the lead. */
+function titleOf(name?: string, bold = false): HTMLElement {
+  const title = el("span", "title");
+  title.append(el("span", "lead", "What people think"));
+  if (name !== undefined) {
+    const span = el("span", "name");
+    span.append(el("span", "of", " of "), bold ? Object.assign(el("b"), { textContent: name }) : name);
+    title.append(span);
+  }
+  return title;
+}
+
 const SWALLOW = ["mousedown", "mouseup", "pointerdown", "pointerup", "auxclick", "touchstart", "touchend"] as const;
 
 export function createBar(opts: { big?: boolean; title?: string; dark?: boolean; size?: number; bare?: boolean; onOpen: (gauge: Gauge | undefined, anchor: DOMRect) => void }): Bar {
@@ -200,20 +215,16 @@ export function createBar(opts: { big?: boolean; title?: string; dark?: boolean;
     host.hidden = false;
     if (state.kind === "empty") {
       current = undefined;
-      if (opts.big) {
-        const title = el("span", "title", "What people think");
-        title.append(Object.assign(el("span", "name"), { textContent: ` of ${opts.title ?? "this search"}` }));
-        bar.append(title, segments(), el("span", "count muted", state.thin ? "Not enough opinions" : "No verdict yet"));
-      } else bar.append(segments());
+      if (opts.big) bar.append(titleOf(opts.title ?? "this search"), segments(), el("span", "count muted", state.thin ? "Not enough opinions" : "No verdict yet"));
+      else bar.append(segments());
       detail = state.reason;
       bar.setAttribute("aria-label", `${opts.title ?? "This link"}: no verdict. ${state.reason}`);
       reveal();
       return;
     }
     if (state.kind === "loading") {
-      const title = el("span", "title", "What people think");
-      title.append(Object.assign(el("span", "name"), { textContent: " of what you searched for" }));
-      bar.append(title, segments(), el("span", "count muted", "reading the crowd…"));
+      /* Just the lead and the moving bar; no words about the wait. */
+      bar.append(titleOf(), segments());
       bar.setAttribute("aria-label", "Reading what people think");
       current = undefined;
       reveal();
@@ -221,13 +232,7 @@ export function createBar(opts: { big?: boolean; title?: string; dark?: boolean;
     }
     const { gauge } = state;
     current = gauge;
-    if (opts.big) {
-      const title = el("span", "title", "What people think");
-      const name = el("span", "name", " of ");
-      name.append(Object.assign(el("b"), { textContent: gauge.name }));
-      title.append(name);
-      bar.append(title);
-    }
+    if (opts.big) bar.append(titleOf(gauge.name, true));
     bar.append(segments(gauge), countText(gauge));
     if (gauge.simulated) bar.append(el("span", "tag", "estimated"));
     detail = `${gauge.simulated ? "Unverified word-count estimate. " : ""}${gauge.sentence}`;
@@ -256,7 +261,8 @@ export function openOverlay(opts: { url: string; anchor: DOMRect; title: string;
   panel.setAttribute("aria-modal", "true");
   panel.setAttribute("aria-label", `What people think of ${opts.title}`);
   const vw = window.innerWidth, vh = window.innerHeight;
-  const width = Math.min(600, vw - 24), height = Math.min(210, vh - 24);
+  /* Short until the card arrives: the loading state is a strip, not a box. */
+  const width = Math.min(600, vw - 24), height = Math.min(96, vh - 24);
   const below = opts.anchor.bottom + 8;
   panel.style.width = `${width}px`;
   panel.style.height = `${height}px`;
@@ -295,7 +301,7 @@ export function openOverlay(opts: { url: string; anchor: DOMRect; title: string;
     if (data.type === "close") close();
     if (data.type === "gauge" && data.gauge && typeof data.gauge.key === "string" && data.gauge.split) opts.onGauge?.(data.gauge);
     if (data.type === "resize" && typeof data.height === "number" && Number.isFinite(data.height)) {
-      const height = Math.min(Math.max(140, data.height), window.innerHeight - 24, 720);
+      const height = Math.min(Math.max(72, data.height), window.innerHeight - 24, 720);
       panel.style.height = `${height}px`;
       panel.style.top = `${Math.max(12, Math.min(below, window.innerHeight - height - 12))}px`;
     }

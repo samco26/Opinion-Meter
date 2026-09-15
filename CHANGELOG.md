@@ -2,6 +2,19 @@
 
 What changed in each version, in plain words, newest first. The version number lives in three places and moves together: `server/package.json`, `extension/package.json` and the health door (`server/src/app/api/health/route.ts`). **Rule:** every push that changes what a reader sees or what the server does adds an entry here in the same commit (see AGENTS.md).
 
+## 0.8.0 — 15 September 2026
+
+- Result bars on the All tab sit beside the site's name again (its line is free there); on the Videos and Forums tabs, where the channel or community follows the name, they stay after the dots.
+- The bar layer sits one step under Google's search header in the stacking order, so bars pass beneath the header as the page scrolls instead of over it.
+- The query card on a knowledge panel is right-aligned on the title and subtitle lines, between the text and any logo; with no room it goes above the results, never over the panel's image.
+- A loading query card shows only "What people think" and the moving bar; no "reading the crowd…".
+- AI answer sources: every bar sits after the label's visible text at one width. Google clips long labels; the text ran on unseen past the dots and the bar followed it out of the box.
+- The narrow card above an AI Overview's sources keeps only the name, so "of p…" no longer happens.
+- Phantom bar fixed: Google's built-but-unseen pop-ups (the "My Ad Centre" link) no longer get a bar; a link inside a box fixed to the window, or made invisible, is never a result.
+- Thin "no verdict" bars are outlines in dark mode too (they were filled grey).
+- Drawer: stars removed; the loading state is a short strip; the card never scrolls, the recurring opinions list gives way and scrolls on its own.
+- X's refusal note no longer repeats X's words.
+
 ## 0.7.0 — 15 September 2026
 
 - The bar and the drawer are one reading: the bar reads the same three years, platforms and 250-entry sample as the card; the card's numbers replace the bar's whenever a card is made; and a drawer that opens sends its numbers back to the bar under it.

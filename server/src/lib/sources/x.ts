@@ -96,7 +96,7 @@ async function collectArchive(opts: CollectOptions, to: Date): Promise<Collected
           return { items, canExpand: false, status: { ...statusFor("x", items.length, max), note, window } };
         } catch (again) {
           refund(max);
-          return off(`X refused both the archive search and the 7-day search.${said(error)}${said(again)}`);
+          return off(`X refused both the archive search and the 7-day search.${said(error)}${said(again) === said(error) ? "" : said(again)}`);
         }
       }
       refund(max);

@@ -53,7 +53,14 @@ export function Embed({ subjectKey }: { subjectKey: string }) {
   useEffect(() => {
     const node = content.current;
     if (!node) return;
-    const measure = () => tell({ type: "resize", height: Math.ceil(node.scrollHeight + 76) });
+    /* The height the card wants: the opinions list at its full size (it
+       shrinks to fit a short window and scrolls on its own) plus the
+       frame — the title bar counted only once it is shown. */
+    const measure = () => {
+      const list = node.querySelector<HTMLElement>(".opinion-list");
+      const folded = list ? Math.max(0, Math.min(300, list.scrollHeight) - list.clientHeight) : 0;
+      tell({ type: "resize", height: Math.ceil(node.scrollHeight + folded + (phase.name === "loading" ? 26 : 76)) });
+    };
     const observer = new ResizeObserver(measure);
     observer.observe(node); measure();
     return () => observer.disconnect();

@@ -2,6 +2,12 @@
 
 Where Opinion Meter is up to, for whoever (or whatever) picks it up next. README.md is the specification; AGENTS.md the rules; CHANGELOG.md the version history; this is the state.
 
+## v0.8 — 15 September 2026 (evening)
+
+Built from the owner's tests of v0.7 (peptides with an AI Overview, youtube with a knowledge panel, kia, the App Store drawer). See CHANGELOG.md. Findings: (1) **the "phantom bar" that followed the reader down the kia page was a bar for Google's hidden "My Ad Centre" link** — a pop-up built into the page, kept unseen, in a box fixed to the window; the hands counted it as a result because it has a size. Now anything invisible by style, inside a fixed box, inside a menu/dialog, on Google's own service hosts, or titled like a control is skipped (`seen()`, `POPUP`, `SERVICE_HOST`, `NOT_A_TITLE` in google.ts). It looked filled grey because thin "no verdict" bars lost their outline style in dark mode (fixed in ui.ts). (2) **AI Overview source bars sat outside the box** because Google clips each label in a 200 px block while the label's text runs on unseen past the dots; `pinBar` now takes the nearest clipping ancestor's edge as the visible end, one width (60 px) for all. (3) **The knowledge-panel card fell onto the image** because it measured the full-width title block; `kpHeader()` measures the text itself plus the dots, treats a logo or thumbnail on those lines as a limit, and `queryPlacement` falls through to the flow when the card would not fit. (4) Bars painted over Google's floating search header: the layer's stacking level is now one under `#searchform`'s (128 → 127), read live. Also: no loading words on the query card; stars gone; the drawer's card never scrolls (flex column, the opinions list gives way to a 120 px minimum); the loading drawer is a ~75 px strip; X's note deduplicated.
+
+X still reads nothing: the live card says "Your monthly spend cap has been reached" for both searches — the owner raises the cap in the X developer portal (Billing); it resets on 1 October otherwise.
+
 ## v0.7 — 15 September 2026 (afternoon, third pass)
 
 CI run #23 green; server 0.7.0 live. See CHANGELOG.md for the list. The two findings that matter: (1) **the bar and the drawer disagreed because the bar rested on a 19-opinion quick pass** — now the bar reads the same three years, platforms and 250-entry sample as the card, the card writes its numbers back into the gauge (`rememberGaugeFromCard` in gauge.ts), and the embed posts a `gauge` message to the drawer host so the bar under it updates on the spot; live check: Reddit bar 51/0/49, card 51/0/49. (2) **X is refused because the developer console's monthly spend cap is reached** — the note now carries X's own words; the owner raises the cap in the X developer portal (Billing). The 7-day fallback is in place for tokens without archive access. Also: Shopping tiles sit in an aria-hidden block (visibility check relaxed); AI answer sources get a bare bar shrunk to fit before the dots; sites outside the table are named by the AI per host (`nameSites`); no prefetch on Videos tabs; thin bars hover-only; drawer relaid out (full-width bar, gold stars + icons left, count right, opinions list scrolls on its own, minimal loading state with rotating phrases).
@@ -22,16 +28,17 @@ Built from the owner's live tests of v0.4/v0.5 across the All, Images, Videos, N
 
 ## Not yet verified (in order of risk)
 
-1. **v0.7 on any live page** — the run-23 package is the one to load; v0.6 was seen working on the All tab (bars right of the dots). Every placement above was written from DOM inspections made through the owner's Chrome (All, News, Forums, Videos, Shopping, AI Overview), not seen drawn.
-2. **AI Mode** (`udm=50`) could not be inspected (the connector refuses scripts on its tokenised URL); the "Show all" panel logic is assumed to match the AI Overview's.
-3. **The knowledge-panel same-line placement** relies on the title column's right edge; a very long title may push the card under the subtitle (the intended fallback).
-4. **YouTube** quota status after the reset (5 pm Sydney).
-5. **Open questions for the owner** (asked 15 September, afternoon): the unfinished sentence "also these clickable recurring op."; whether stars should stay coloured under the greyscale palette; whether Shopping bars rate the seller (as built) or the product.
+1. **v0.8 on any live page** — written from DOM inspections through the owner's Chrome (peptides AI Overview sources box, youtube knowledge panel, kia results), not seen drawn. Watch: bars beside the site name on the All tab; the kia page without the phantom; the AI Overview bars inside their box; the knowledge-panel card on the title lines.
+2. **The header layering** — Google's floating search header never appeared in the assistant's test window, so "bars slide under the header" is reasoned from `#searchform`'s stacking level (128), not seen. If any Google box now covers a bar, the fallback is clipping the layer at the header's bottom edge instead.
+3. **The drawer without a card scrollbar** — the flex layout and the height the embed asks for (list unfolded) were not run locally (no Node); CI builds it, the owner sees it.
+4. **AI Mode** (`udm=50`) still uninspected (the connector refuses scripts on its tokenised URL).
+5. **YouTube** quota status after the reset (5 pm Sydney).
+6. **Open with the owner**: the unfinished sentence "also these clickable recurring op."; raising X_MAX_RESULTS above 20 once the cap is lifted.
 
 ## Immediate next actions
 
-1. **Load the run-23 package**: GitHub → Actions → the top green run ("v0.7: one reading for bar and drawer…", #23) → Artifacts → `opinion-meter-chrome` → tell the assistant (it unpacks over `extension/dist/chrome`) → Reload at `chrome://extensions`.
-2. **Walk the tabs** for "twitter" (All, News, Forums, Videos, Images, AI Mode), "youtube logo" (Videos, Images), "arnold workout" (Shopping), "peptides" (AI Overview) and report placement.
+1. **Load the v0.8 package**: GitHub → Actions → the top green run ("v0.8: …") → Artifacts → `opinion-meter-chrome` → tell the assistant (it unpacks over `extension/dist/chrome`) → Reload at `chrome://extensions`.
+2. **Walk the pages**: "kia" (All: bars beside the names, no phantom, scroll under the header), "youtube" (knowledge panel card on the title lines), "peptides" (AI Overview: bars inside the box, the narrow card's name), "twitter" (News), a drawer (no card scrollbar, short loading strip, no stars).
 3. **X monthly spend cap** — raise it in the X developer portal (Billing); until then X reads nothing. **YouTube quota increase** — still urgent.
 4. Reddit stays parked.
 
@@ -44,7 +51,9 @@ The hands read the page — titled results, news cards, shopping tiles, an AI an
 - Bash heredocs over ~8 KB fail on this Windows machine (command-length limit); large files are written with the file tool. Perl is available for small in-place edits; use `\Q…\E` around literal text.
 - The in-app browser gets a Google CAPTCHA; the owner's own Chrome (via the Chrome connector) renders Google with the extension's bars, runs JavaScript for DOM inspection (not on AI Mode's tokenised URLs) and reads the private repo's Actions pages and logs (open the job URL with `#step:N` and read the page text). It cannot open `chrome://` pages; clicking an artifact download link only works while the owner is not using Chrome — otherwise the owner downloads it (two clicks; from the *newest green* run) and the assistant unpacks it from Downloads. The owner may press Reload before the unpack — check the loaded build (`querySquare`/layer presence) before diagnosing.
 - Google's result containers carry CSS transforms and the results column clips: nothing of ours goes inside them any more; the layer at the document root is the only place bars live.
-- Google's "About this result" dots sit outside the result's anchor, on the address line, on All, Forums and Videos; News has no dots and no `cite`; Shopping tiles have no link element; AI answer sources are `li` entries whose overlay link has no text.
+- Google's "About this result" dots sit outside the result's anchor, on the address line, on All, Forums and Videos; News has no dots and no `cite`; Shopping tiles have no link element; AI answer sources are `li` entries whose overlay link has no text, with the label clipped by a 200 px block (`overflow:hidden`) while the label span itself runs on.
+- Google keeps pop-ups built into the page but unseen (the "My Ad Centre" link, "About this result" dialogs): they have a size, so `getClientRects()` alone does not mean visible — use `checkVisibility` and refuse anything under a `position:fixed` ancestor.
+- The Chrome connector: scripts in a background tab stall (timers are throttled; 45 s timeouts) — run them on the active tab; on Google's tokenised URLs a result that looks like query-string data (`key=value` text) is blocked, so return compact JSON; a tab the connector opens may be moved out of its group by the owner.
 - `SEARCH_ENGINES` must be checked after the sites table (Google Play is on google.com); every `SubjectKind` needs a label in `CategoryCard.tsx`; `querySelectorAll<HTMLElement>("a[href]")` has no `.href` for the type checker — use `HTMLAnchorElement`.
 - Git's housekeeping in the OneDrive-synced repo makes OneDrive ask about deleting hundreds of `.git/objects` files; it is safe.
 - The office network answers requests to `public.api.bsky.app` with a proxy 403 page; probe Bluesky only through the server's doors.
