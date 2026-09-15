@@ -71,15 +71,15 @@ async function collect(opts: CollectOptions): Promise<Collected> {
   const q = searchTerms(opts).join(" | ");
   const failures: string[] = [];
   let videos: Video[] = [];
-  try {
-    videos = await findVideos(q, key, opts);
-  } catch (err) {
-    /* A linked video can still be read when the search itself fails. */
-    if (!linked) return { items: [], canExpand: false, status: { source: "youtube", availability: "unavailable", itemsAnalysed: 0, note: quotaExhausted(err) ? QUOTA_NOTE : reasonFor(err, opts.signal.aborted) } };
-    failures.push(quotaExhausted(err) ? QUOTA_NOTE : reasonFor(err, opts.signal.aborted));
+  /* A linked video is read from its own comments alone: no search, no other videos. */
+  if (linked) videos = [{ id: { videoId: linked }, snippet: { title: opts.subject } }];
+  else {
+    try {
+      videos = (await findVideos(q, key, opts)).slice();
+    } catch (err) {
+      return { items: [], canExpand: false, status: { source: "youtube", availability: "unavailable", itemsAnalysed: 0, note: quotaExhausted(err) ? QUOTA_NOTE : reasonFor(err, opts.signal.aborted) } };
+    }
   }
-  videos = videos.slice();
-  if (linked && !videos.some((v) => v.id?.videoId === linked)) videos.unshift({ id: { videoId: linked }, snippet: { title: opts.subject } });
   const items: SourceItem[] = videos.map((v) => ({
     id: `youtube:video:${v.id!.videoId}`, source: "youtube", kind: "video",
     text: tidy(`${v.snippet!.title ?? ""}. ${v.snippet!.description ?? ""}`, 600),
@@ -157,7 +157,9 @@ async function collect(opts: CollectOptions): Promise<Collected> {
   const asked = Math.max(1, videos.length) * PER_PAGE * pagesPerVideo;
   const terms = searchTerms(opts);
   const notes = [
-    `Read ${count} comments from ${videos.length} of up to ${MAX_VIDEOS} matching videos${terms.length > 1 ? ` (searched ${terms.join(", ")})` : ""} (up to ${PER_PAGE * pagesPerVideo} per video, most relevant first, plus the newest when a video came back short${linked ? `; the linked video's own comments up to ${PER_PAGE * LINKED_VIDEO_PAGES}` : ""}), filtered to the search window.`,
+    linked
+      ? `Read ${count} comments on this video (up to ${PER_PAGE * LINKED_VIDEO_PAGES}, most relevant first, plus the newest when the first pages came back short).`
+      : `Read ${count} comments from ${videos.length} of up to ${MAX_VIDEOS} matching videos${terms.length > 1 ? ` (searched ${terms.join(", ")})` : ""} (up to ${PER_PAGE * pagesPerVideo} per video, most relevant first, plus the newest when a video came back short), filtered to the search window.`,
     quota ? QUOTA_NOTE : "",
     disabled ? `${disabled} of the videos have comments turned off.` : "",
     failures.length ? `${failures.length} requests could not be read. ${[...new Set(failures)].join(" ")}` : "",

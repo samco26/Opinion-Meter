@@ -20,7 +20,9 @@ import type { Gauge, GaugeRequest, GaugeResponse, SourceId, Subject, SubjectStat
    are read. */
 export const LITE_SOURCES: SourceId[] = ["youtube", "hn", "bluesky"];
 export const LINK_SOURCES: SourceId[] = ["hn", "bluesky"];
-export const sourcesFor = (subject: Subject): SourceId[] => subject.link ? [...LINK_SOURCES, ...(youtubeVideoId(subject.link) ? ["youtube" as const] : [])] : LITE_SOURCES;
+/* A YouTube video is read from its own comments alone (the owner's rule for
+   the Videos tab); any other link is looked up on the platforms that search by link. */
+export const sourcesFor = (subject: Subject): SourceId[] => subject.link ? (youtubeVideoId(subject.link) ? ["youtube"] : LINK_SOURCES) : LITE_SOURCES;
 const MAX_RESULTS = 20;
 const PENDING_TTL = 120;
 const NONE_TTL = 6 * 3600;

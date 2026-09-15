@@ -57,6 +57,5 @@ export function Answer({ card, onChoose }: { card: Card; onChoose: (id: SourceId
       <SourceButtons sources={card.sources} bySource={card.bySource.map((reading) => reading.source)} onChoose={onChoose} />
       <SentimentBar compact figures split={card.sentiment} note={analysed < LIMITED_BELOW ? "Limited results on subject found" : undefined} />
     </div>
-    <Coverage sources={card.sources} />
   </div>;
 }
