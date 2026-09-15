@@ -2,6 +2,12 @@
 
 What changed in each version, in plain words, newest first. The version number lives in three places and moves together: `server/package.json`, `extension/package.json` and the health door (`server/src/app/api/health/route.ts`). **Rule:** every push that changes what a reader sees or what the server does adds an entry here in the same commit (see AGENTS.md).
 
+## 0.13.0 — 16 September 2026
+
+- The site's card can be dragged anywhere on the window; where it lands is where it appears next time, on every site, kept inside the window. The fade on scroll is unchanged. A drag does not open the drawer.
+- The site's card wears the drawer's frosted background, in light and dark, and its name and verdict are bold.
+- Four packages from one build: Chrome (also Brave, Opera, Vivaldi, Arc), Edge (the same package under its own name, for the Edge store), Firefox, and Safari (the extension folder in Safari's shape). A Mac job in CI turns the Safari folder into an unsigned Mac app on request (a manual run, or a push whose message says [safari]).
+
 ## 0.12.0 — 15 September 2026
 
 - "Take the bar with you" is on by default. The label now names every site, so the browser says so at install; the one-time note and the permission step are gone. The menu behind the toolbar icon turns it off.

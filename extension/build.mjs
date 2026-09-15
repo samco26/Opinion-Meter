@@ -1,12 +1,14 @@
-/* Builds the extension: one bundle each for the hands, the brain and the
-   options page, then a Chrome package and a Firefox package with their
-   own manifests. dist/<target>/ is what "Load unpacked" points at.
+/* Builds the extension: one bundle each for the hands, the brain, the
+   menu and the site script, then one package per browser with its own
+   manifest. dist/<target>/ is what "Load unpacked" points at.
 
-   The Chrome package is the one for every Chromium browser: Chrome, Edge,
-   Brave, Opera, Vivaldi and Arc all install it unchanged. Firefox needs
-   its own manifest (a background script instead of a service worker, an
-   add-on id, and host permissions spelt out so Firefox can ask for them).
-   Safari would need Apple's converter on a Mac; not built here. */
+   Chrome and Edge share one manifest (Brave, Opera, Vivaldi and Arc
+   install the Chrome package unchanged; the Edge package is the same
+   under its own name, for the Edge store). Firefox needs its own (a
+   background script instead of a service worker, an add-on id, host
+   permissions spelt out). Safari takes the Chrome shape without the
+   Chrome version key; Apple's converter on a Mac (the ci.yml "safari-app"
+   job) turns that folder into a Mac app. */
 
 import { build } from "esbuild";
 import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -39,10 +41,12 @@ const manifest = (target) => ({
   /* The icon opens the menu; the same page serves as the settings page, in a tab. */
   options_ui: { page: "popup.html", open_in_tab: true },
   action: { default_title: "Opinion Meter", default_popup: "popup.html" },
-  ...(target === "firefox" ? { browser_specific_settings: { gecko: { id: "opinion-meter@samco26.github.io", strict_min_version: "127.0" } } } : { minimum_chrome_version: "111" }),
+  ...(target === "firefox" ? { browser_specific_settings: { gecko: { id: "opinion-meter@samco26.github.io", strict_min_version: "127.0" } } }
+    : target === "safari" ? { browser_specific_settings: { safari: { strict_min_version: "16.4" } } }
+    : { minimum_chrome_version: "111" }),
 });
 
-for (const target of ["chrome", "firefox"]) {
+for (const target of ["chrome", "edge", "firefox", "safari"]) {
   const out = `dist/${target}`;
   rmSync(out, { recursive: true, force: true });
   mkdirSync(out, { recursive: true });

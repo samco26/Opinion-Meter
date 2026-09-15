@@ -17,7 +17,11 @@ const BAR_CSS = `
 :host([data-site]){position:fixed;top:12px;right:12px;width:224px;z-index:2147483000;pointer-events:auto;transition:opacity 280ms ease}
 :host([data-site][data-faint]){opacity:.22}
 :host([data-site][data-faint]:hover),:host([data-site][data-faint]:focus-within){opacity:1}
-:host([data-site]) .big{width:224px;max-width:224px;min-width:0;padding:8px 12px;gap:8px;overflow:hidden}
+:host([data-site]) .big{width:224px;max-width:224px;min-width:0;padding:8px 12px;gap:8px;overflow:hidden;background:#f3f5f6d9;border:1px solid #ffffff99;backdrop-filter:blur(22px) saturate(1.05);-webkit-backdrop-filter:blur(22px) saturate(1.05);box-shadow:0 12px 32px #0003}
+:host([data-site][data-dark]) .big{background:#303134d9;border-color:#ffffff1f;box-shadow:0 12px 32px #0006}
+:host([data-site]) .big:hover{background:#f3f5f6ee}:host([data-site][data-dark]) .big:hover{background:#303134ee}
+:host([data-site]) .big .title b,:host([data-site]) .big .count b{font-weight:700}
+:host([data-site][data-dragging]) .big{cursor:grabbing}
 :host([data-site]) .big .title{flex:0 1 auto;max-width:64px}
 :host([data-site]) .big .seg{flex:1 1 48px;min-width:40px}
 :host([data-site]) .big .count{font-size:12px}
@@ -206,8 +210,9 @@ export function isDark(): boolean {
 }
 
 /* site: the fixed card at the top right of another site (the name alone,
-   224 px wide like Google's own pill buttons), with a × that calls onDismiss. */
-export function createBar(opts: { big?: boolean; title?: string; dark?: boolean; size?: number; bare?: boolean; site?: boolean; onDismiss?: () => void; onOpen: (gauge: Gauge | undefined, anchor: DOMRect) => void }): Bar {
+   224 px wide like Google's own pill buttons), with a × that calls
+   onDismiss; it can be dragged anywhere, and onMove hears where it lands. */
+export function createBar(opts: { big?: boolean; title?: string; dark?: boolean; size?: number; bare?: boolean; site?: boolean; onDismiss?: () => void; onMove?: (pos: { left: number; top: number }) => void; onOpen: (gauge: Gauge | undefined, anchor: DOMRect) => void }): Bar {
   const host = el("div");
   host.setAttribute("data-opinion-meter", opts.site ? "site" : opts.big ? "query" : "result");
   if (opts.dark) host.setAttribute("data-dark", "");
@@ -232,15 +237,51 @@ export function createBar(opts: { big?: boolean; title?: string; dark?: boolean;
   let detail = "";
   /* A thin reading is hover-only: there is no card worth opening. */
   let still = false;
+  /* The click that ends a drag is not a click. */
+  let suppress = false;
   /* A bar must never act as the link it sits beside. */
   for (const type of SWALLOW) bar.addEventListener(type, (event) => event.stopPropagation());
   bar.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
+    if (suppress) { suppress = false; return; }
     if (still) return;
     hideTip();
     opts.onOpen(current, bar.getBoundingClientRect());
   });
+  /* A site's card can be dragged anywhere on the window. */
+  if (opts.site) {
+    let start: { x: number; y: number; left: number; top: number } | null = null;
+    let dragging = false;
+    bar.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0) return;
+      const box = host.getBoundingClientRect();
+      start = { x: event.clientX, y: event.clientY, left: box.left, top: box.top };
+      dragging = false;
+      bar.setPointerCapture(event.pointerId);
+    });
+    bar.addEventListener("pointermove", (event) => {
+      if (!start) return;
+      const dx = event.clientX - start.x, dy = event.clientY - start.y;
+      if (!dragging && Math.hypot(dx, dy) < 4) return;
+      dragging = true;
+      host.setAttribute("data-dragging", "");
+      const w = host.offsetWidth || 224, h = host.offsetHeight || 46;
+      host.style.left = `${Math.round(Math.max(4, Math.min(window.innerWidth - w - 4, start.left + dx)))}px`;
+      host.style.top = `${Math.round(Math.max(4, Math.min(window.innerHeight - h - 4, start.top + dy)))}px`;
+      host.style.right = "auto";
+    });
+    const settle = (event: PointerEvent) => {
+      if (!start) return;
+      if (bar.hasPointerCapture(event.pointerId)) bar.releasePointerCapture(event.pointerId);
+      if (dragging) { suppress = true; opts.onMove?.({ left: parseFloat(host.style.left) || 0, top: parseFloat(host.style.top) || 0 }); }
+      start = null;
+      dragging = false;
+      host.removeAttribute("data-dragging");
+    };
+    bar.addEventListener("pointerup", settle);
+    bar.addEventListener("pointercancel", settle);
+  }
   const over = () => showTip(detail, bar.getBoundingClientRect(), opts.dark);
   bar.addEventListener("mouseenter", over);
   bar.addEventListener("mouseleave", hideTip);

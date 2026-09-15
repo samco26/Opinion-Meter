@@ -3,6 +3,7 @@ name: ci
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 jobs:
   server:
@@ -38,5 +39,46 @@ jobs:
           path: extension/dist/chrome
       - uses: actions/upload-artifact@v4
         with:
+          name: opinion-meter-edge
+          path: extension/dist/edge
+      - uses: actions/upload-artifact@v4
+        with:
           name: opinion-meter-firefox
           path: extension/dist/firefox
+      - uses: actions/upload-artifact@v4
+        with:
+          name: opinion-meter-safari
+          path: extension/dist/safari
+
+  # Apple's converter and Xcode only run on a Mac, and a Mac minute costs
+  # ten Linux minutes of the free allowance, so this runs on request: a
+  # manual run from the Actions tab, or a push whose message contains
+  # [safari]. The app it makes is unsigned: it runs on a Mac after "Open"
+  # from the right-click menu, with Safari's Develop menu set to allow
+  # unsigned extensions. Signing and the App Store need an Apple developer
+  # account.
+  safari-app:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[safari]')
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install --no-audit --no-fund
+        working-directory: extension
+      - run: npm run build
+        working-directory: extension
+      - name: Convert to a Safari app and build it (unsigned)
+        run: |
+          xcrun safari-web-extension-converter "$PWD/extension/dist/safari" --project-location "$PWD/build/safari" --app-name "Opinion Meter" --bundle-identifier app.opinionmeter.extension --macos-only --no-open --no-prompt --copy-resources --force
+          proj=$(find build/safari -maxdepth 3 -name "*.xcodeproj" | head -1)
+          echo "project: $proj"
+          scheme=$(xcodebuild -list -json -project "$proj" | python3 -c 'import json,sys; s=json.load(sys.stdin)["project"]["schemes"]; print([x for x in s if "Extension" not in x][0])')
+          echo "scheme: $scheme"
+          xcodebuild -project "$proj" -scheme "$scheme" -configuration Release -derivedDataPath build/derived CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO build
+          cd build/derived/Build/Products/Release && zip -qry "$GITHUB_WORKSPACE/opinion-meter-safari-app.zip" "Opinion Meter.app"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: opinion-meter-safari-app
+          path: opinion-meter-safari-app.zip
