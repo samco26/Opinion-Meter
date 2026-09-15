@@ -2,51 +2,48 @@
 
 Where Opinion Meter is up to, for whoever (or whatever) picks it up next. README.md is the specification; AGENTS.md the rules; this is the state.
 
-## v0.3 — what changed on 15 September 2026
+## v0.4 — what changed on 15 September 2026
 
-Built from the owner's first live test (Google search "youtube" in Chrome, 14 September).
+Built from the owner's second live test (Google search "twitter") and the owner's answers to the pipeline questions (README decisions log, 15 September).
 
-**What a result's bar is about.** A result names the thing its page represents: rules first (shops, film sites, app stores, GitHub, a YouTube video by its ID, a site's front page — `youtube.com` is "YouTube"), then one batched AI call for the rest (a review page names its product; a how-to page names nothing). The query and a result about the same thing share one reading. Only without an AI key does an unnamed page fall back to the old page-then-website reading. (`server/src/lib/subject.ts`, `target.ts`, `gauge.ts`, `card-context.ts`.)
+**The classifier.** Five lists instead of four: positive, negative, neutral (a genuine middling view only), event (a reaction to one incident — never in the bar) and irrelevant (questions, facts, wishes, comparisons without a verdict, chatter). Junk that could never carry a view — timestamps, "first!", emoji, bare links, one-word comments — is dropped before sampling (`prefilter` in `analysis/prompt.ts`); the YouTube status note says how many. The bar counts everything said about the subject, business decisions and politics included; whatever the subject is, positive means they like or recommend it.
 
-**General standing, not the news.** The summary and the bar's sentence describe how people regard the subject over time and may not hinge on an incident the reader has no context for. A new `recent` line ("Lately …") carries a notable recent development when the newest entries show one, with roughly when it happened; otherwise it is empty. Momentary "is it down?" reports are classified irrelevant. (`analysis/prompt.ts`, `lite.ts`, `analyse.ts`; `Card.recent` in `types.ts`.)
+**Windows.** General standing reaches back three years (the deep HN/Bluesky search no longer goes to 2006). "Lately" covers the last 60 days and only developments about the subject itself; the model lists the event entries it rests on and the server keeps the line only when at least two are dated within the window (`analyse.ts`). Readings in memory carry a version (`gauge:2:`, `card:2:`) so a classifier change recomputes rather than serves old numbers.
 
-**Every platform gets its share.** The sample the model reads now takes turns across platforms and caps any one thread at two fifths, so 2,000 Hacker News entries can no longer crowd YouTube down to three comments. Search windows widen platform by platform (a platform stops at 25 opinions; the others keep going). (`prompt.ts` `sample()`, `sources/adaptive.ts`.)
+**Naming.** With an AI key every result is named by the batched call (a YouTube video keeps its rule-made identity), so `x.com`, the Play and App Store listings and the query "twitter" all come back as the same X. The naming prompt asks for the current official name ("X", not "X (Formerly Twitter)"). Live check: four results and the query → one key `name:x`.
 
-**More from each platform.** YouTube: up to 20 videos, 100 most-relevant comments each (200 for the full card), the newest when a page came back short, a linked video's own comments five pages deep; videos with comments turned off are counted, not reported as refusals. Hacker News quick pass: 15 stories × 30 comments; website subjects search by address. Bluesky: most-liked and newest, `lang=en`, up to five pages for the card, and an optional signed-in session (`BLUESKY_IDENTIFIER` + `BLUESKY_APP_PASSWORD`) because the public search door refused the server's requests ("Access was refused" in the live card). Every outgoing request now carries a User-Agent. (`sources/youtube.ts`, `hn.ts`, `bluesky.ts`, `http.ts`, `.env.example`.)
+**Sources.** Reddit off (no application has succeeded); X on for the full card with a default budget of 1,000 posts a day (`X_DAILY_POST_BUDGET`, the owner's token). Bluesky signed in; memory persistent (both confirmed by `/api/health`).
 
-**The bars.** A result's bar sits inside the title, right after its last word, with the bar plus "42% positive · 43 opinions"; 14 px tall; fades in; invisible until a reading exists (no placeholders, so nothing is drawn over knowledge-panel images or untitled links). Colours adapt to Google's dark theme. The tooltip is fixed to the viewport, beside the button rather than inside it, so no clipped or transformed ancestor can cut or flip it. (`extension/src/ui.ts`, `content.ts`, `google.ts`.)
+**Prefetch.** When results appear, the hands ask the brain to prepare the query's card (and the first result's, when different); a finished card is held for 15 minutes (AGENTS.md rule amended) so the drawer opens at once. Cost: one full analysis (X included) per fresh search subject, whether or not anyone clicks.
 
-**The drawer.** No "opinions about this specific page / open page" line; the "Lately" line under the summary; the three percentages under the bar and in every platform legend; a quiet rounded scrollbar; fades on everything pressable. (`components/Answer.tsx`, `SentimentBar.tsx`, `Embed.tsx`, `globals.css`.)
-
-**Browsers.** One Chrome package for Chrome, Edge, Brave, Opera, Vivaldi and Arc; the Firefox package now declares its host permissions so Firefox can grant them (desktop and Android). Safari is documented as needing a Mac. Messages to a sleeping brain are retried. (`extension/build.mjs`, `shared.ts`, `extension/README.md`.)
-
-Version 0.3.0 on both halves; `/api/health` reports it and whether Bluesky is signed in.
+**The bars.** A result's bar sits on the site-name line, beside the site's name, sized to that text (`google.ts` `siteLine`, `content.ts` `place`), showing "38% negative" but no opinion count; the count stays in the drawer. Thin evidence draws an empty outline bar (`thin` on the none state). The query's card sits beside the knowledge panel's title as a small square when the row has room, else under the subtitle, else where it was (`queryPlacement`). The tooltip hangs off the page root — Google's result containers carry transforms, which had displaced the old fixed tooltip to mid-page — and a ring animates on hover. The drawer's subject is a plain heading. Version 0.4.0 on both halves.
 
 ## Not yet verified (in order of risk)
 
-1. **This commit's CI run** — typecheck, build and 20 tests. Nothing has run locally (no Node on the owner's machines).
-2. **The bar inside Google's title element** on a live results page: written against `a[href]:has(h3)`; a clamped or single-line title could hide the bar on very long titles.
-3. **Bluesky live**: still refused until the app password is set on Vercel; with it set, the signed-in path has only been reasoned through, not run.
-4. **The `recent` line**: the model may over-use it; tune with the owner's answers to the pipeline questions.
-5. **YouTube quota**: about 150–200 units per fresh subject now; the free 10,000/day covers roughly 50–65 fresh subjects. Request a quota increase before any public listing.
+1. **The v0.4 extension on a live page** — placement beside the site name was previewed by injecting a mock into the owner's Chrome (looked right at 952 px and 1900 px); the real bars have not been seen since the reload.
+2. **The knowledge-panel square** on pages other than "twitter": the room check (`spare >= 130`) is a guess from one layout.
+3. **Ads**: the page tested had none; the code path (`#tads`, `/aclk` destinations) has not been exercised live.
+4. **The event bucket may be too eager**: the first "twitter" card classed 0 of 77 Hacker News entries as views (most were reactions to news). The rule now says a lasting judgement prompted by an incident is a view; watch the next readings.
+5. **Cost**: prefetch + X on every fresh search subject. Fine at friend scale; revisit before any listing.
 
 ## Immediate next actions
 
-1. **Connect the memory.** `/api/health` still says `"memory":{"persistent":false}`. Without Upstash every Vercel instance forgets: the same search gives different numbers each time (42% then 65% for YouTube in one afternoon) and polls for pending readings miss. Vercel → Storage → Upstash Redis (Marketplace) → connect to the project → redeploy.
-2. **Sign Bluesky in.** Create an app password in Bluesky (Settings → Privacy and security → App passwords) and set `BLUESKY_IDENTIFIER` (the handle) and `BLUESKY_APP_PASSWORD` on Vercel; redeploy. Then `/api/health` shows `blueskyLogin: true`.
-3. **Reload the extension** from this run's `opinion-meter-chrome` artifact: unzip over `extension/dist/chrome`, then the Reload arrow on the card at `chrome://extensions`.
-4. **Settle the pipeline questions** (asked in the conversation of 15 September; to be recorded in README section 18 once answered): what the bar measures for a company versus a product, how far back "general" reaches, when "Lately" is allowed, tone and length, and how thin evidence is shown.
-5. **Keys and caps** as before: a hard monthly spend cap in the OpenAI dashboard; the YouTube quota increase.
-6. **The new Reddit application**: draft from README section 10; mention the earlier ticket; register the app at reddit.com/prefs/apps first for the client id.
+1. **Reload the extension** from run #11's `opinion-meter-chrome` artifact (already unzipped over `extension/dist/chrome` when this handoff was written — if not, GitHub → Actions → run 11 → download → unzip) → `chrome://extensions` → Reload.
+2. **Look at "twitter" and a product search** ("sony xm6") and report: bar position, square placement, hover ring, tooltip position, drawer title.
+3. **Answer the junk-filter questions** (in the conversation of 15 September): minimum length, whether "I wish it had X" is negative or nothing, whether "Great app!" counts.
+4. **YouTube quota increase** before any listing; **OpenAI spend cap** now.
+5. **Reddit**: parked. The connector stays in the code, off.
 
 ## How the pieces talk (one paragraph)
 
-The hands read Google's titled results and the query, the brain POSTs them to `/api/gauge` with the install token, the server names each result's subject (rules first, one batched AI call for the rest), merges duplicates, answers from memory or computes a lite gauge within 20 seconds, and keeps unfinished work alive for the extension to poll (`GET /api/gauge?keys=`). A bar appears beside each named result's title once its reading exists, and one card above the results (or the reference column) for the query. Clicking a bar opens the drawer: an overlay framing `/embed?key=…`, which fetches `/api/card?key=` (full analysis; X only here) and draws the card, the "Lately" line, opinions and evidence. `/api/config` is read on start; the memory key `config:override` changes it instantly (kill switch, selectors).
+The hands read Google's titled results and the query, the brain POSTs them to `/api/gauge` with the install token, the server names each result's subject (rules for a YouTube video, one batched AI call for the rest), merges duplicates, answers from memory or computes a lite gauge within 20 seconds, and keeps unfinished work alive for the extension to poll (`GET /api/gauge?keys=`). The brain then asks `/api/card?key=` for the query's card so it is ready. A bar appears on each named result's site-name line once its reading exists, and a card beside the knowledge panel's title (or under it, or above the results) for the query. Clicking a bar opens the drawer: an overlay framing `/embed?key=…`, which fetches `/api/card?key=` (held 15 minutes) and draws the card, the "Lately" line, opinions and evidence. `/api/config` is read on start; the memory key `config:override` changes it instantly (kill switch, selectors).
 
 ## Gotchas learned
 
-- Bash heredocs over ~8 KB fail on this Windows machine (command-length limit); large files are written with the file tool. Perl is available for small in-place edits; escaping regex metacharacters in one-liners is error-prone — prefer the file tools.
-- The in-app browser gets a Google CAPTCHA; the owner's own Chrome (via the Chrome connector) can read the private GitHub repo's Actions pages and shows the extension's bars on Google, but cannot open `chrome://` pages or click Reload — the owner does that.
-- The office network answers requests to `public.api.bsky.app` with a proxy 403 page, so Bluesky cannot be probed from the owner's machine; probe through the server's doors instead.
+- Bash heredocs over ~8 KB fail on this Windows machine (command-length limit); large files are written with the file tool. Perl is available for small in-place edits; escaping regex metacharacters in one-liners is error-prone — prefer the file tools, or `\Q…\E`.
+- The in-app browser gets a Google CAPTCHA; the owner's own Chrome (via the Chrome connector) renders Google with the extension's bars, runs JavaScript for DOM inspection and mock placements, and reads the private GitHub repo's Actions pages — but cannot open `chrome://` pages or click Reload, and its tab group sometimes drops (call tabs_context again).
+- Google's result containers (`span.V9tjod`, `div.ESMNde`, the `h3`) carry CSS transforms: anything `position:fixed` inside them is positioned relative to them. Put fixed things on the document root.
+- Google Actions artifacts download as `opinion-meter-chrome (N).zip` in Downloads; pick the newest.
+- The office network answers requests to `public.api.bsky.app` with a proxy 403 page; probe Bluesky only through the server's doors.
 - Line endings are forced to LF by `.gitattributes`; the CRLF warnings on commit are noise.
 - The old site (`Desktop/t`, what-are-people-saying.vercel.app) is untouched and still has its own pending Reddit application, whose limits do not apply to this project.
