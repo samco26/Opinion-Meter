@@ -13,9 +13,34 @@ export type Message =
   | { type: "gauge"; request: GaugeRequest }
   | { type: "poll"; keys: string[] }
   /* Ask the server to prepare a subject's full card now, so the drawer opens at once later. */
-  | { type: "prefetch"; key: string };
+  | { type: "prefetch"; key: string }
+  /* From a page on another site: the reading remembered for it, if any. */
+  | { type: "site"; url: string }
+  /* The × on a site's card: hide it on that site until its bar is next loaded on Google. */
+  | { type: "site-hide"; url: string }
+  /* The one-time note on Google: shown, opened the settings, or declined. */
+  | { type: "offer"; choice: "seen" | "open" | "dismiss" }
+  /* The settings page turned "take the bar with you" on or off (it holds the permission itself). */
+  | { type: "sites"; enabled: boolean };
 
-export interface ConfigReply { server: string; config: ExtensionConfig }
+/* sites: whether the reader has allowed the card on other sites, and whether the one-time note is still to be shown. */
+export interface ConfigReply { server: string; config: ExtensionConfig; sites: { granted: boolean; offer: boolean } }
+
+/* A reading carried from Google to a site: the subject, its numbers, and
+   the request that made it, so the drawer can recover the card. */
+export interface SiteReading { key: string; gauge: Gauge; context: GaugeRequest; at: number }
+export interface SiteReply { reading: SiteReading | null; server: string }
+
+/* The site a host belongs to: kia.com for www.kia.com, abc.net.au for
+   www.abc.net.au, bbc.co.uk for www.bbc.co.uk. */
+const TWO_PART = /(?:^|\.)(?:com|co|net|org|gov|edu|ac|or|ne|go)\.[a-z]{2}$/i;
+export function siteOf(host: string): string {
+  const h = host.toLowerCase().replace(/^www\./, "");
+  return h.split(".").slice(-(TWO_PART.test(h) ? 3 : 2)).join(".");
+}
+export const hostOf = (url: string) => new URL(url).hostname.toLowerCase().replace(/^www\./, "");
+/* The page itself, without its fragment. */
+export const pageOf = (url: string) => { const u = new URL(url); return `${u.origin}${u.pathname}${u.search}`; };
 
 function once<T>(message: Message): Promise<T> {
   return new Promise((resolve, reject) => {

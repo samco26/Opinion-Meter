@@ -2,6 +2,11 @@
 
 What changed in each version, in plain words, newest first. The version number lives in three places and moves together: `server/package.json`, `extension/package.json` and the health door (`server/src/app/api/health/route.ts`). **Rule:** every push that changes what a reader sees or what the server does adds an entry here in the same commit (see AGENTS.md).
 
+## 0.11.0 — 15 September 2026
+
+- **Take the bar with you.** Off until turned on. The first time a reading lands on Google, a one-time note offers it; "Turn on" opens the settings, where the browser asks for permission to run on other sites. With it on, a site whose bar was loaded on Google shows the same pill fixed at the top right of every page of that site (the name, the bar and the verdict, 224 px wide like Google's own pill buttons), with a × that hides it there until the bar is next loaded on Google. Clicking opens the drawer as on Google; the drawer stays with the card. The reading comes from the brain's memory, filed when the bar was ready on Google (by host, by site for a site's own address, by page for a video), kept until the browser closes. Nothing about the visited page is sent anywhere; the privacy page and README say so. The toolbar icon opens the settings.
+- The settings page wears the same grey look as the rest.
+
 ## 0.10.1 — 15 September 2026
 
 - The drawer is dark on Google's dark theme, as intended: the frame had been given a different colour scheme from the page inside it, which makes the browser paint an opaque white canvas behind that page.

@@ -14,6 +14,14 @@ const BAR_CSS = `
 .bar.still{cursor:default}
 :host([data-flow]){position:static;display:block;margin:0 0 16px}
 :host([hidden]){display:none!important}
+:host([data-site]){position:fixed;top:12px;right:12px;width:224px;z-index:2147483000;pointer-events:auto}
+:host([data-site]) .big{width:224px;max-width:224px;min-width:0;padding:8px 12px;gap:8px;overflow:hidden}
+:host([data-site]) .big .title{flex:0 1 auto;max-width:64px}
+:host([data-site]) .big .seg{flex:1 1 48px;min-width:40px}
+:host([data-site]) .big .count{font-size:12px}
+.dismiss{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;border:0;padding:0;background:#dfe1e5;color:#1f1f1f;font:14px/20px "Google Sans",Helvetica,Arial,sans-serif;text-align:center;cursor:pointer;opacity:0;transition:opacity 160ms ease,transform 160ms ease}
+:host(:hover) .dismiss,.dismiss:focus-visible{opacity:1}.dismiss:hover{transform:scale(1.12)}
+:host([data-dark]) .dismiss{background:#5f6368;color:#e8eaed}
 .bar{display:inline-flex;align-items:center;gap:7px;margin:0;padding:0;border:0;background:transparent;font:12px/1.2 "Google Sans",Helvetica,"Helvetica Neue",Arial,sans-serif;color:#1f1f1f;cursor:pointer;position:relative;white-space:nowrap;vertical-align:middle;text-align:left;opacity:0;transition:opacity 280ms ease}
 .bar.shown{opacity:1}
 .bar:focus-visible{outline:3px solid #5f6368;outline-offset:4px;border-radius:99px}
@@ -66,6 +74,7 @@ const OVERLAY_CSS = `
 .back{position:fixed;inset:0;z-index:2147483646}.back.out{pointer-events:none}
 .panel{position:absolute;z-index:2147483647;border-radius:24px;overflow:hidden;border:1px solid #ffffff99;box-shadow:0 24px 72px #0005;background:#f3f5f6d9;backdrop-filter:blur(22px) saturate(1.05);-webkit-backdrop-filter:blur(22px) saturate(1.05);animation:in 240ms cubic-bezier(.16,1,.3,1) both;transition:height 180ms ease}
 .panel.dark{background:#303134d9;border-color:#ffffff1f;box-shadow:0 24px 72px #0008}
+.panel.fixed{position:fixed}
 .panel.out{animation:out 160ms ease both;pointer-events:none}
 @keyframes in{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:none}}
 @keyframes out{to{opacity:0;transform:translateY(6px) scale(.98)}}
@@ -173,11 +182,21 @@ function titleOf(name?: string, bold = false): HTMLElement {
 
 const SWALLOW = ["mousedown", "mouseup", "pointerdown", "pointerup", "auxclick", "touchstart", "touchend"] as const;
 
-export function createBar(opts: { big?: boolean; title?: string; dark?: boolean; size?: number; bare?: boolean; onOpen: (gauge: Gauge | undefined, anchor: DOMRect) => void }): Bar {
+/* Google's dark theme is a page background, not a media query; other sites are read the same way. */
+export function isDark(): boolean {
+  const rgb = getComputedStyle(document.body).backgroundColor.match(/\d+(\.\d+)?/g)?.map(Number) ?? [];
+  if (rgb.length < 3 || (rgb.length === 4 && rgb[3] === 0)) return matchMedia("(prefers-color-scheme: dark)").matches;
+  return (0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]) / 255 < 0.5;
+}
+
+/* site: the fixed card at the top right of another site (the name alone,
+   224 px wide like Google's own pill buttons), with a × that calls onDismiss. */
+export function createBar(opts: { big?: boolean; title?: string; dark?: boolean; size?: number; bare?: boolean; site?: boolean; onDismiss?: () => void; onOpen: (gauge: Gauge | undefined, anchor: DOMRect) => void }): Bar {
   const host = el("div");
-  host.setAttribute("data-opinion-meter", opts.big ? "query" : "result");
+  host.setAttribute("data-opinion-meter", opts.site ? "site" : opts.big ? "query" : "result");
   if (opts.dark) host.setAttribute("data-dark", "");
   if (opts.bare) host.setAttribute("data-bare", "");
+  if (opts.site) { host.setAttribute("data-site", ""); host.setAttribute("data-narrow", ""); }
   if (opts.size) host.style.setProperty("--om-size", `${opts.size}px`);
   const root = host.attachShadow({ mode: "open" });
   const style = el("style");
@@ -185,6 +204,14 @@ export function createBar(opts: { big?: boolean; title?: string; dark?: boolean;
   const bar = el("button", `bar${opts.big ? " big" : ""} loading`);
   bar.type = "button";
   root.append(style, bar);
+  if (opts.onDismiss) {
+    const dismiss = el("button", "dismiss", "×");
+    dismiss.type = "button";
+    dismiss.setAttribute("aria-label", "Hide on this site");
+    for (const type of SWALLOW) dismiss.addEventListener(type, (event) => event.stopPropagation());
+    dismiss.addEventListener("click", (event) => { event.preventDefault(); event.stopPropagation(); opts.onDismiss?.(); });
+    root.append(dismiss);
+  }
   let current: Gauge | undefined;
   let detail = "";
   /* A thin reading is hover-only: there is no card worth opening. */
@@ -250,11 +277,43 @@ export function createBar(opts: { big?: boolean; title?: string; dark?: boolean;
   return { host, set: render, remove: () => { hideTip(); host.remove(); } };
 }
 
+const OFFER_CSS = `
+:host{all:initial;position:fixed;top:76px;right:16px;z-index:2147483001}
+.note{display:flex;align-items:center;gap:10px;padding:9px 12px 9px 16px;border-radius:30px;background:#f3f5f6;color:#1f1f1f;font:13px/1.35 "Google Sans",Helvetica,"Helvetica Neue",Arial,sans-serif;box-shadow:0 10px 28px #20212426;max-width:min(560px,calc(100vw - 32px));animation:in 240ms cubic-bezier(.16,1,.3,1) both}
+:host([data-dark]) .note{background:#303134;color:#e8eaed;box-shadow:0 10px 28px #00000066}
+.note b{font-weight:500}
+button{font:inherit;border:0;border-radius:99px;padding:6px 12px;cursor:pointer;white-space:nowrap;background:#1f1f1f;color:#fff;transition:transform 160ms ease,opacity 160ms ease}button:hover{transform:scale(1.04)}
+button.quiet{background:transparent;color:inherit;opacity:.8}
+:host([data-dark]) button{background:#e8eaed;color:#1f1f1f}:host([data-dark]) button.quiet{background:transparent;color:inherit}
+@keyframes in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+`;
+
+/* The one-time note on Google offering the card on other sites. "Turn on"
+   leads to the settings, where the browser asks for the permission. */
+export function showOffer(opts: { dark: boolean; onChoice: (choice: "open" | "dismiss") => void }): () => void {
+  const host = el("div");
+  host.setAttribute("data-opinion-meter", "offer");
+  if (opts.dark) host.setAttribute("data-dark", "");
+  const root = host.attachShadow({ mode: "open" });
+  const style = el("style");
+  style.textContent = OFFER_CSS;
+  const note = el("div", "note");
+  const text = el("span");
+  text.append("Take the bar with you: ", Object.assign(el("b"), { textContent: "see it on the sites you open from here." }));
+  const on = el("button", undefined, "Turn on"), no = el("button", "quiet", "Not now");
+  on.addEventListener("click", () => { host.remove(); opts.onChoice("open"); });
+  no.addEventListener("click", () => { host.remove(); opts.onChoice("dismiss"); });
+  note.append(text, on, no);
+  root.append(style, note);
+  document.documentElement.append(host);
+  return () => host.remove();
+}
+
 /* The drawer: a panel over the page, near the bar that opened it, framing
    the server's embed page. Closes on the embed's say-so, Escape, or a
    click anywhere outside. Returns the close function. */
 let activeOverlay: (() => void) | undefined;
-export function openOverlay(opts: { url: string; anchor: DOMRect; title: string; dark?: boolean; message?: string; onGauge?: (gauge: Gauge) => void }): () => void {
+export function openOverlay(opts: { url: string; anchor: DOMRect; title: string; dark?: boolean; fixed?: boolean; message?: string; onGauge?: (gauge: Gauge) => void }): () => void {
   activeOverlay?.();
   const previousFocus = document.activeElement as HTMLElement | null;
   const host = el("div");
@@ -263,7 +322,8 @@ export function openOverlay(opts: { url: string; anchor: DOMRect; title: string;
   const style = el("style");
   style.textContent = OVERLAY_CSS;
   const back = el("div", "back");
-  const panel = el("div", `panel${opts.dark ? " dark" : ""}`);
+  /* fixed: opened from a card that is itself fixed to the window (a site's card), so the drawer stays with it. */
+  const panel = el("div", `panel${opts.dark ? " dark" : ""}${opts.fixed ? " fixed" : ""}`);
   panel.setAttribute("role", "dialog");
   panel.setAttribute("aria-modal", "true");
   panel.setAttribute("aria-label", `What people think of ${opts.title}`);
@@ -272,7 +332,7 @@ export function openOverlay(opts: { url: string; anchor: DOMRect; title: string;
      The panel is anchored to the page beside its bar, so it moves with the
      results as the reader scrolls rather than floating over them. */
   const width = Math.min(600, vw - 24), height = Math.min(96, vh - 24);
-  const sx = window.scrollX, sy = window.scrollY;
+  const sx = opts.fixed ? 0 : window.scrollX, sy = opts.fixed ? 0 : window.scrollY;
   const below = opts.anchor.bottom + 8;
   const topFor = (h: number) => (below + h <= vh - 12 ? below : Math.max(12, vh - h - 12)) + sy;
   panel.style.width = `${width}px`;

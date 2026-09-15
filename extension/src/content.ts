@@ -1,4 +1,4 @@
-import { createBar, openOverlay, type Bar } from "./ui";
+import { createBar, isDark, openOverlay, showOffer, type Bar } from "./ui";
 import { kpHeader, queryPlacement, readResults, textBox, type Found, type QueryPlace } from "./google";
 import { send, type ConfigReply, type ExtensionConfig, type Gauge, type GaugeRequest, type GaugeResponse, type SubjectStates } from "./shared";
 
@@ -11,6 +11,8 @@ const udm = () => new URL(location.href).searchParams.get("udm") ?? "";
 
 let config: ExtensionConfig;
 let server = "", query = "", generation = 0, dark = false;
+/* The one-time note offering the card on other sites: shown once per install, after the first reading lands. */
+let offer = false;
 let queryBar: Bar | null = null;
 let queryPlace: QueryPlace | null = null;
 let seen = new WeakMap<Element, string>();
@@ -21,13 +23,6 @@ const placements = new Map<HTMLElement, Placed>();
 const pending = new Set<string>();
 const prefetched = new Set<string>();
 const currentQuery = () => (new URL(location.href).searchParams.get("q")?.trim() ?? "").slice(0, 200);
-
-/* Google's dark theme is a page background, not a media query. */
-function isDark(): boolean {
-  const rgb = getComputedStyle(document.body).backgroundColor.match(/\d+(\.\d+)?/g)?.map(Number) ?? [];
-  if (rgb.length < 3 || (rgb.length === 4 && rgb[3] === 0)) return matchMedia("(prefers-color-scheme: dark)").matches;
-  return (0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]) / 255 < 0.5;
-}
 
 /* One step under Google's search header in the stacking order, so a bar
    passes beneath the header as the page scrolls, never over it. */
@@ -262,6 +257,11 @@ async function drain() {
         }
         apply(response.subjects);
         if (initial && !VIDEO_TABS.has(udm())) { prefetch(response.query.key); prefetch(response.results[0]?.key ?? null); }
+        if (offer && response.results.some((r) => r.key)) {
+          offer = false;
+          send({ type: "offer", choice: "seen" }).catch(() => { /* Shown regardless. */ });
+          showOffer({ dark, onChoice: (choice) => { send({ type: "offer", choice }).catch(() => { /* The settings can still be opened from the toolbar icon. */ }); } });
+        }
       } catch {
         if (epoch !== generation) continue;
         for (const bar of drawn.values()) bar.set({ kind: "empty", reason: "The reading could not finish." });
@@ -285,7 +285,7 @@ async function main() {
   if (window.top !== window || !currentQuery()) return;
   const reply = await send<ConfigReply>({ type: "config" }).catch(() => null);
   if (!reply?.config.enabled || !reply.config.google.enabled) return;
-  ({ server, config } = reply); query = currentQuery(); dark = isDark(); scan();
+  ({ server, config } = reply); offer = Boolean(reply.sites?.offer); query = currentQuery(); dark = isDark(); scan();
   let timer: number | undefined;
   new MutationObserver(records => {
     if (records.every(record => (record.target as Element).closest?.('[data-opinion-meter]') || (record.type === "childList" && [...record.addedNodes, ...record.removedNodes].every(node => node instanceof Element && node.hasAttribute('data-opinion-meter'))))) return;

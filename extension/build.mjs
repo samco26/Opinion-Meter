@@ -18,14 +18,20 @@ const { version, description } = JSON.parse(readFileSync("package.json", "utf8")
 const GOOGLE = ["com", "com.au", "co.uk", "ca", "co.nz", "ie", "co.in", "com.sg", "com.hk", "co.za", "de", "fr", "es", "it", "nl", "be", "ch", "at", "se", "no", "dk", "fi", "pl", "pt", "cz", "gr", "hu", "ro", "com.tr", "com.br", "com.mx", "com.ar", "cl", "co", "com.pe", "co.jp", "co.kr", "com.tw", "com.ph", "co.id", "com.my", "co.th", "com.vn", "ae", "com.sa", "co.il", "com.eg", "com.ng", "co.ke", "com.pk"];
 const matches = GOOGLE.map((tld) => `*://www.google.${tld}/search*`);
 
+/* "Take the bar with you" needs the other sites, asked for only when the
+   reader turns it on in the settings (never at install), and "scripting"
+   to register the site script once they have. Chrome lists optional hosts
+   under optional_host_permissions; Firefox under optional_permissions
+   (both are written for it, the one it does not know is a warning). */
+const EVERYWHERE = ["*://*/*"];
 const manifest = (target) => ({
   manifest_version: 3,
   name: "Opinion Meter",
   version,
   description,
   icons: { 16: "icons/icon16.png", 32: "icons/icon32.png", 48: "icons/icon48.png", 128: "icons/icon128.png" },
-  permissions: ["storage"],
-  ...(target === "firefox" ? { host_permissions: matches } : {}),
+  permissions: ["storage", "scripting"],
+  ...(target === "firefox" ? { host_permissions: matches, optional_permissions: EVERYWHERE, optional_host_permissions: EVERYWHERE } : { optional_host_permissions: EVERYWHERE }),
   background: target === "firefox" ? { scripts: ["background.js"] } : { service_worker: "background.js" },
   content_scripts: [{ matches, js: ["content.js"], run_at: "document_idle" }],
   options_ui: { page: "options.html", open_in_tab: false },
@@ -38,7 +44,7 @@ for (const target of ["chrome", "firefox"]) {
   rmSync(out, { recursive: true, force: true });
   mkdirSync(out, { recursive: true });
   await build({
-    entryPoints: { content: "src/content.ts", background: "src/background.ts", options: "src/options.ts" },
+    entryPoints: { content: "src/content.ts", background: "src/background.ts", options: "src/options.ts", site: "src/site.ts" },
     bundle: true, format: "iife", outdir: out, target: ["chrome111", "firefox121", "safari16"], logLevel: "info",
   });
   cpSync("src/options.html", `${out}/options.html`);
