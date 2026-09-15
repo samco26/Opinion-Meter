@@ -17,7 +17,7 @@ import type { CardResponse, GaugeRequest, Subject } from "./types";
 /* Excerpts are platform content: a card lives this long and no longer. */
 const CARD_TTL = 15 * 60;
 /* Bumped whenever the classifier changes, so old cards are not served. */
-const READING = 2;
+const READING = 3;
 
 export async function cardFor(key: string, budgetMs: number, context?: GaugeRequest): Promise<CardResponse> {
   const m = memory();

@@ -25,7 +25,7 @@ const MAX_RESULTS = 20;
 const PENDING_TTL = 120;
 const NONE_TTL = 6 * 3600;
 /* Bumped whenever the classifier changes, so old readings are not served. */
-const READING = 2;
+const READING = 3;
 const SUBJECT_TTL = 86_400;
 
 export type Stored = { state: "ready"; gauge: Gauge } | { state: "none"; reason: string; thin?: boolean };
