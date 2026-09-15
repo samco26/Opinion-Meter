@@ -238,9 +238,10 @@ export function siteSubject(result: RawResult): Subject | null {
   }
   if (!/^https?:$/.test(u.protocol)) return null;
   const host = u.hostname.toLowerCase().replace(/^(www|m)\./, "");
-  if (SEARCH_ENGINES.test(host)) return null;
+  /* Google Play is a site; Google's search, maps and shopping pages are not. */
   const known = SITES.find((site) => site.host.test(host));
   if (known) return { ...subject(known.name, known.kind), ...(known.aliases ? { aliases: known.aliases } : {}) };
+  if (SEARCH_ENGINES.test(host)) return null;
   const label = (result.site ?? "").replace(LABEL_NOISE, "").replace(/\s+/g, " ").trim();
   const name = label && label.length <= 60 ? label : siteName(result.title, host);
   return name ? subject(name, "company") : null;
