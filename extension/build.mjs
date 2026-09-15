@@ -25,12 +25,16 @@ const matches = GOOGLE.map((tld) => `*://www.google.${tld}/search*`);
    label names every site: the browser says so at install. Firefox lists
    the hosts as permissions too and, from 127, asks for them at install. */
 const EVERYWHERE = ["*://*/*"];
+const iconSizes = [16, 32, 48, 128];
+const icons = (dark = false) => Object.fromEntries(iconSizes.map((size) => [size, `icons/${dark ? "grey" : "icon"}${size}.png`]));
+const iconVariants = [{ ...icons(), color_schemes: ["light"] }, { ...icons(true), color_schemes: ["dark"] }];
 const manifest = (target) => ({
   manifest_version: 3,
   name: "Opinion Meter",
   version,
   description,
-  icons: { 16: "icons/icon16.png", 32: "icons/icon32.png", 48: "icons/icon48.png", 128: "icons/icon128.png" },
+  icons: icons(),
+  ...(target === "safari" ? { icon_variants: iconVariants } : {}),
   permissions: ["storage"],
   ...(["firefox", "safari"].includes(target) ? { host_permissions: EVERYWHERE } : {}),
   background: target === "firefox" ? { scripts: ["background.js"] } : { service_worker: "background.js" },
@@ -40,7 +44,12 @@ const manifest = (target) => ({
   ],
   /* The icon opens the menu; the same page serves as the settings page, in a tab. */
   options_ui: { page: "popup.html", open_in_tab: true },
-  action: { default_title: "Opinion Meter", default_popup: "popup.html" },
+  action: {
+    default_title: "Opinion Meter", default_popup: "popup.html", default_icon: icons(),
+    ...(target === "safari" ? { icon_variants: iconVariants } : {}),
+    /* Firefox names these for the toolbar TEXT colour, not its background. */
+    ...(target === "firefox" ? { theme_icons: iconSizes.map((size) => ({ size, light: `icons/grey${size}.png`, dark: `icons/icon${size}.png` })) } : {}),
+  },
   ...(target === "firefox" ? { browser_specific_settings: { gecko: { id: "opinion-meter@samco26.github.io", strict_min_version: "127.0" } } }
     : target === "safari" ? { browser_specific_settings: { safari: { strict_min_version: "16.4" } } }
     : { minimum_chrome_version: "111" }),

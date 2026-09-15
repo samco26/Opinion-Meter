@@ -2,6 +2,12 @@
 
 What changed in each version, in plain words, newest first. The version number lives in three places and moves together: `server/package.json`, `extension/package.json` and the health door (`server/src/app/api/health/route.ts`). **Rule:** every push that changes what a reader sees or what the server does adds an entry here in the same commit (see AGENTS.md).
 
+## 0.13.2 — 15 September 2026
+
+- The owner's smiling cream icon replaces the old icon in every browser package. Safari selects the grey icon in dark mode; Firefox uses grey on dark toolbars and cream on light ones. Browsers without native theme-icon support keep the cream icon.
+- Fixed a shared site-card memory race: when several Google readings arrived together, their saves could overwrite each other. They now save in order, and a destination waits for those saves before looking up its card.
+- Added package/icon checks and a simulated multi-site regression test to CI. No analysis or counting changes.
+
 ## 0.13.1 — 15 September 2026
 
 - Safari uses the current v0.13 source from GitHub commit `8d8c41a`, including the pill, drawer, toolbar menu and draggable card on visited sites. This supersedes the outdated v0.3 Safari package from `e983a18`.

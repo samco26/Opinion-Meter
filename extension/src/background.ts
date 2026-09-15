@@ -61,7 +61,14 @@ const session = {
 const carried = async () => (await session.get<Carried>("carried")) ?? {};
 const hiddenAt = async () => (await session.get<Record<string, number>>("hidden")) ?? {};
 
-async function carry(key: string, gauge: Gauge, url: string, context: GaugeRequest) {
+/* Session storage replaces the whole record. Serialize read/modify/write so
+   one result cannot overwrite another result arriving in the same batch. */
+let carryQueue: Promise<void> = Promise.resolve();
+function carry(key: string, gauge: Gauge, url: string, context: GaugeRequest): Promise<void> {
+  carryQueue = carryQueue.then(() => saveCarry(key, gauge, url, context));
+  return carryQueue;
+}
+async function saveCarry(key: string, gauge: Gauge, url: string, context: GaugeRequest) {
   const all = await carried();
   const now = Date.now();
   for (const [name, reading] of Object.entries(all)) if (now - reading.at > CARRY_MS) delete all[name];
@@ -86,6 +93,7 @@ function carryAll(request: GaugeRequest, results: Array<{ url: string; key: stri
   }
 }
 async function lookup(url: string): Promise<SiteReply> {
+  await carryQueue;
   const server = await serverUrl();
   if (await storage.get<boolean>("sitesOff")) return { reading: null, server };
   const all = await carried(), hidden = await hiddenAt();
