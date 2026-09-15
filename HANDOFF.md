@@ -1,6 +1,12 @@
 # Handoff — 15 September 2026
 
-Where Opinion Meter is up to, for whoever (or whatever) picks it up next. README.md is the specification; AGENTS.md the rules; this is the state.
+Where Opinion Meter is up to, for whoever (or whatever) picks it up next. README.md is the specification; AGENTS.md the rules; CHANGELOG.md the version history; this is the state.
+
+## v0.7 — 15 September 2026 (afternoon, third pass)
+
+CI run #23 green; server 0.7.0 live. See CHANGELOG.md for the list. The two findings that matter: (1) **the bar and the drawer disagreed because the bar rested on a 19-opinion quick pass** — now the bar reads the same three years, platforms and 250-entry sample as the card, the card writes its numbers back into the gauge (`rememberGaugeFromCard` in gauge.ts), and the embed posts a `gauge` message to the drawer host so the bar under it updates on the spot; live check: Reddit bar 51/0/49, card 51/0/49. (2) **X is refused because the developer console's monthly spend cap is reached** — the note now carries X's own words; the owner raises the cap in the X developer portal (Billing). The 7-day fallback is in place for tokens without archive access. Also: Shopping tiles sit in an aria-hidden block (visibility check relaxed); AI answer sources get a bare bar shrunk to fit before the dots; sites outside the table are named by the AI per host (`nameSites`); no prefetch on Videos tabs; thin bars hover-only; drawer relaid out (full-width bar, gold stars + icons left, count right, opinions list scrolls on its own, minimal loading state with rotating phrases).
+
+Still open with the owner: the unfinished "also these clickable recurring op."; whether to keep the query card on the Videos tabs (kept, no prefetch); raising X_MAX_RESULTS above 20.
 
 ## v0.6 — what changed on 15 September 2026 (afternoon, second pass)
 
@@ -16,7 +22,7 @@ Built from the owner's live tests of v0.4/v0.5 across the All, Images, Videos, N
 
 ## Not yet verified (in order of risk)
 
-1. **v0.6 on any live page** — the owner had v0.4 loaded during the last test; the run-21 package is the one to load. Every placement above was written from DOM inspections made through the owner's Chrome (All, News, Forums, Videos, Shopping, AI Overview), not seen drawn.
+1. **v0.7 on any live page** — the run-23 package is the one to load; v0.6 was seen working on the All tab (bars right of the dots). Every placement above was written from DOM inspections made through the owner's Chrome (All, News, Forums, Videos, Shopping, AI Overview), not seen drawn.
 2. **AI Mode** (`udm=50`) could not be inspected (the connector refuses scripts on its tokenised URL); the "Show all" panel logic is assumed to match the AI Overview's.
 3. **The knowledge-panel same-line placement** relies on the title column's right edge; a very long title may push the card under the subtitle (the intended fallback).
 4. **YouTube** quota status after the reset (5 pm Sydney).
@@ -24,9 +30,9 @@ Built from the owner's live tests of v0.4/v0.5 across the All, Images, Videos, N
 
 ## Immediate next actions
 
-1. **Load the run-21 package**: GitHub → Actions → the top green run ("Type the result anchors as anchors", #21) → Artifacts → `opinion-meter-chrome` → tell the assistant (it unpacks over `extension/dist/chrome`) → Reload at `chrome://extensions`.
+1. **Load the run-23 package**: GitHub → Actions → the top green run ("v0.7: one reading for bar and drawer…", #23) → Artifacts → `opinion-meter-chrome` → tell the assistant (it unpacks over `extension/dist/chrome`) → Reload at `chrome://extensions`.
 2. **Walk the tabs** for "twitter" (All, News, Forums, Videos, Images, AI Mode), "youtube logo" (Videos, Images), "arnold workout" (Shopping), "peptides" (AI Overview) and report placement.
-3. **YouTube quota increase** — still urgent.
+3. **X monthly spend cap** — raise it in the X developer portal (Billing); until then X reads nothing. **YouTube quota increase** — still urgent.
 4. Reddit stays parked.
 
 ## How the pieces talk (one paragraph)
