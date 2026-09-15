@@ -9,8 +9,9 @@
    or above the results. */
 import type { ExtensionConfig } from "./shared";
 
-/* placement "fit": a bar with no text, shrunk to the room between the label's text and the dots (fitEnd) or the entry's right edge. */
-export interface Found { url: string; title: string; site?: string; anchor: HTMLElement; target: HTMLElement; placement: "after" | "below" | "fit"; fitEnd?: HTMLElement; size: number }
+/* placement "fit": a bar with no text, shrunk to the room between the label's text and the dots (fitEnd) or the entry's right edge.
+   placement "corner": a bar with no text in the top-right corner of a card whose site name sits at the bottom, kept clear of the title's first line (fitEnd). */
+export interface Found { url: string; title: string; site?: string; anchor: HTMLElement; target: HTMLElement; placement: "after" | "below" | "fit" | "corner"; fitEnd?: HTMLElement; size: number }
 /* "kp": right-aligned on the knowledge panel's title lines, between the text and whatever else shares those lines (others: a logo, a thumbnail). */
 export type QueryPlace =
   | { mode: "kp"; title: HTMLElement; subtitle: HTMLElement | null; panel: HTMLElement; others: HTMLElement[] }
@@ -25,8 +26,8 @@ const POPUP = '[role="menu"], [role="dialog"], [role="tooltip"], [aria-modal="tr
 const SERVICE_HOST = /(^|\.)(myadcenter|adssettings|support|policies|accounts|myaccount)\.google\.[a-z.]+$/;
 /* Controls and housekeeping links dressed as results. */
 const NOT_A_TITLE = /^(show (all|more)|learn more|more|visit|website|feedback|send feedback|next|previous|cached|my ad cent(re|er)|why this ad|about this ad|ad settings|privacy|terms|settings|sign in|help)$/i;
-/* The query card's width when it stands beside a knowledge panel's title (ui.ts, data-square). */
-export const QUERY_SQUARE = 124;
+/* The query card's width when it stands beside a knowledge panel's title (ui.ts, data-square: the bar and "Mixed opinion" on one line). */
+export const QUERY_SQUARE = 160;
 const clean = (s: string | null | undefined) => (s ?? "").replace(/\s+/g, " ").trim().slice(0, 300);
 /* Google's own search pages, whose links are redirects; every other Google-owned site (Google Play, Maps) is a real destination. */
 const searchHost = (host: string) => /^(www\.)?google\.[a-z.]+$/.test(host);
@@ -54,10 +55,11 @@ export function destination(raw: string): string | null {
 const visible = (node: HTMLElement) => !node.closest('[hidden], [data-opinion-meter]') && node.getClientRects().length > 0;
 /* Actually seen: not made invisible by style, and not inside a box fixed to
    the window (a built-but-closed pop-up), which would carry a bar along as
-   the page scrolls beneath it. */
+   the page scrolls beneath it. Opacity is left alone: Google fades answers
+   in, and a scan that lands mid-fade must not skip them. */
 function seen(node: HTMLElement): boolean {
   const check = (node as unknown as { checkVisibility?: (options: Record<string, boolean>) => boolean }).checkVisibility;
-  if (typeof check === "function" && !check.call(node, { checkOpacity: true, checkVisibilityCSS: true })) return false;
+  if (typeof check === "function" && !check.call(node, { checkVisibilityCSS: true })) return false;
   for (let el: HTMLElement | null = node; el && el !== document.body; el = el.parentElement) if (getComputedStyle(el).position === "fixed") return false;
   return true;
 }
@@ -88,15 +90,19 @@ function siteLabel(anchor: HTMLElement, container: HTMLElement): HTMLElement | u
   return leaves(anchor).find((e) => fontSize(e) <= 12.5 && labelLike(clean(e.textContent)));
 }
 
+/* The AI Mode page's "quick results" cards have no heading element: the title is the first large line. */
+const cardTitle = (card: HTMLElement) => [...card.querySelectorAll<HTMLElement>("div, span")].find((e) => fontSize(e) >= 13.5 && clean(e.textContent).length >= 8 && e.getBoundingClientRect().height < 64);
+
 /* Organic results, sponsored results and video results: anything with a title of its own. */
 function organic(config: ExtensionConfig, known: WeakMap<Element, string>): Found[] {
   const found: Found[] = [];
   const roots = new Set([...document.querySelectorAll<HTMLElement>("#search, #rso, #tads, #tadsb, #bottomads"), ...document.querySelectorAll<HTMLElement>(config.google.results)]);
   const candidates = new Set<HTMLAnchorElement>();
   for (const root of roots) for (const node of root.querySelectorAll<HTMLAnchorElement>("a[href]")) candidates.add(node);
+  const aiMode = udm() === "50";
   for (const node of candidates) {
     if (!visible(node) || node.closest('nav, [role="navigation"], form, #rhs, [data-attrid], [data-mcpr], [data-aim], [data-sgrd], ' + POPUP + ", " + PRODUCT)) continue;
-    const heading = node.querySelector<HTMLElement>('h3, [role="heading"]');
+    const heading = node.querySelector<HTMLElement>('h3, [role="heading"]') ?? (aiMode ? cardTitle(node) : undefined);
     if (!heading) continue;
     const url = destination(node.href);
     const title = clean(heading.textContent);
@@ -108,6 +114,11 @@ function organic(config: ExtensionConfig, known: WeakMap<Element, string>): Foun
     const menu = [...container.querySelectorAll<HTMLElement>(MENU)].find((m) => visible(m) && m.getBoundingClientRect().top < heading.getBoundingClientRect().bottom + 40);
     const label = siteLabel(node, container);
     const cite = node.querySelector<HTMLElement>("cite") ?? container.querySelector<HTMLElement>("cite") ?? undefined;
+    /* On the AI Mode page a card carries its site name at the bottom: the bar goes to the card's top-right corner instead. */
+    if (aiMode && label && label.getBoundingClientRect().top >= heading.getBoundingClientRect().bottom - 2) {
+      found.push({ url, title, site: clean(label.textContent), anchor: node, target: container, placement: "corner", fitEnd: heading, size: 11 });
+      continue;
+    }
     /* Beside the site's name when its line is free; otherwise after the dots, which end the line. */
     const target = label && lineFree(label, container) ? label : menu ?? label ?? cite ?? heading;
     found.push({ url, title, site: label ? clean(label.textContent) : undefined, anchor: node, target, placement: "after", size: 12 });
@@ -115,26 +126,32 @@ function organic(config: ExtensionConfig, known: WeakMap<Element, string>): Foun
   return found;
 }
 
-/* Shopping tiles: the merchant line ("AbeBooks.com", "QBD Books & more")
-   names the seller; the bar goes under it. A seller without an address of
-   its own gets a stand-in one, so the server can still name it. */
+/* Shopping tiles: every tile has a price, and the seller is the small line
+   under it ("21Overlays", "evee", "QBD Books & more", "AbeBooks.com"),
+   never a delivery or returns note, a rating or another price. The bar
+   goes under that line. A seller without an address of its own gets a
+   stand-in one, so the server can still name it. */
 const slug = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+const PRICE = /^(?:[A-Z]{1,3}\s?)?\$\s?\d|^\d[\d,.]*\s?(?:AUD|USD|NZD|GBP|EUR)$/;
+const TILE_NOTE = /^(?:free|fast|express|same[- ]day)?\s*(?:delivery|shipping|returns?|pick ?up|click ?&? ?collect)|^\d+[- ]day returns?|^(?:in|out of|low) stock|^nearby|^sponsored$|^ad$|^new$|^used$|^refurbished$|^\d+(?:\.\d+)?$|^\(\d[\d,]*\)$|^\d[\d,]* (?:reviews?|ratings?)$|^\d+% off|^was |^rrp|^save /i;
+const DOMAIN = /^(?:[\w-]+\.)+[a-z]{2,}(?:\.[a-z]{2})?$/i;
 function shopping(known: WeakMap<Element, string>): Found[] {
   if (udm() !== "28" && !location.pathname.startsWith("/shopping")) return [];
   const found: Found[] = [];
-  for (const leaf of leaves(document.body)) {
-    const text = clean(leaf.textContent);
-    let merchant: HTMLElement | undefined;
-    if (/^& more$/i.test(text)) {
-      const row = leaf.parentElement;
-      merchant = row ? leaves(row).find((e) => e !== leaf && labelLike(clean(e.textContent))) : undefined;
-    } else if (/^(?:[\w-]+\.)+[a-z]{2,}(?:\.[a-z]{2})?$/i.test(text)) merchant = leaf;
-    if (!merchant || !visible(merchant) || !seen(merchant)) continue;
+  for (const price of leaves(document.body)) {
+    if (!PRICE.test(clean(price.textContent)) || !visible(price) || !seen(price)) continue;
+    const tile = price.closest<HTMLElement>("[data-hveid], [data-docid], [data-product-id]") ?? price.parentElement?.parentElement?.parentElement ?? price.parentElement;
+    if (!tile) continue;
+    const p = price.getBoundingClientRect();
+    const merchant = leaves(tile)
+      .filter((e) => e !== price && fontSize(e) <= 14.5 && e.getBoundingClientRect().top >= p.bottom - 2)
+      .sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top)
+      .find((e) => { const text = clean(e.textContent); return labelLike(text) && !TILE_NOTE.test(text) && !PRICE.test(text); });
+    if (!merchant || !visible(merchant)) continue;
     const row = merchant.parentElement?.closest<HTMLElement>("div") ?? merchant;
-    const tile = row.closest<HTMLElement>("[data-hveid], [data-docid], [data-product-id]") ?? row.parentElement ?? row;
     const label = clean(merchant.textContent).replace(/\s*&\s*more$/i, "");
     if (!label) continue;
-    const url = /^(?:[\w-]+\.)+[a-z]{2,}(?:\.[a-z]{2})?$/i.test(label) ? `https://${label.toLowerCase()}/` : `https://merchant.invalid/${slug(label)}`;
+    const url = DOMAIN.test(label) ? `https://${label.toLowerCase()}/` : `https://merchant.invalid/${slug(label)}`;
     if (known.get(tile) === url) continue;
     known.set(tile, url);
     const heading = tile.querySelector<HTMLElement>('h3, [role="heading"]') ?? leaves(tile).find((e) => fontSize(e) >= 14 && clean(e.textContent).length > 8);
@@ -171,7 +188,12 @@ function panelEntries(known: WeakMap<Element, string>): Found[] {
     known.set(item, url);
     const heading = leaves(item).find((e) => fontSize(e) >= 14 && clean(e.textContent).length > 8);
     const menu = [...item.querySelectorAll<HTMLElement>(MENU)].find(visible);
-    found.push({ url, title: clean(heading?.textContent) || clean(label.textContent), site: clean(label.textContent), anchor: item, target: label, placement: "fit", fitEnd: menu, size: 11 });
+    const box = item.getBoundingClientRect();
+    /* A card that names its site at the bottom gets the bar in its top-right corner; one that names it at the top gets it after the name. */
+    const lower = label.getBoundingClientRect().top > box.top + box.height / 2;
+    found.push(lower
+      ? { url, title: clean(heading?.textContent) || clean(label.textContent), site: clean(label.textContent), anchor: item, target: item, placement: "corner", fitEnd: heading, size: 11 }
+      : { url, title: clean(heading?.textContent) || clean(label.textContent), site: clean(label.textContent), anchor: item, target: label, placement: "fit", fitEnd: menu, size: 11 });
   }
   return found;
 }
@@ -181,7 +203,7 @@ export function readResults(config: ExtensionConfig, known: WeakMap<Element, str
 }
 
 /* The box the text itself occupies, not its full-width block. */
-function textBox(el: HTMLElement): DOMRect {
+export function textBox(el: HTMLElement): DOMRect {
   const range = document.createRange();
   range.selectNodeContents(el);
   const box = range.getBoundingClientRect();

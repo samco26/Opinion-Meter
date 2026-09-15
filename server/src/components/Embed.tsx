@@ -17,10 +17,16 @@ export function Embed({ subjectKey }: { subjectKey: string }) {
   const [view, setView] = useState<View | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [phrase, setPhrase] = useState(0);
+  const [fading, setFading] = useState(false);
+  /* Each phrase fades out, the next fades in; a slow rotation. */
   useEffect(() => {
     if (phase.name !== "loading") return;
-    const timer = window.setInterval(() => setPhrase((value) => value + 1), 1400);
-    return () => window.clearInterval(timer);
+    let swap: number | undefined;
+    const timer = window.setInterval(() => {
+      setFading(true);
+      swap = window.setTimeout(() => { setPhrase((value) => value + 1); setFading(false); }, 450);
+    }, 3200);
+    return () => { window.clearInterval(timer); window.clearTimeout(swap); };
   }, [phase.name]);
   const content = useRef<HTMLDivElement>(null);
   const viewHeading = useRef<HTMLDivElement>(null);
@@ -89,15 +95,14 @@ export function Embed({ subjectKey }: { subjectKey: string }) {
       </header>}
       <div className="embed-scroll"><div className="embed-content" ref={content}>
         {!view && <>
-          {phase.name === "loading" && <div className="loading-state"><div className="liquid-track" role="progressbar" aria-label="Reading discussion"><span /><span /></div><p>{PHRASES[phrase % PHRASES.length]}</p></div>}
+          {phase.name === "loading" && <div className="loading-state"><div className="liquid-track" role="progressbar" aria-label="Reading discussion"><span /><span /></div><p className={fading ? "fade" : undefined}>{PHRASES[phrase % PHRASES.length]}</p></div>}
           {phase.name === "error" && <div className="result-copy"><p className="overall-answer">Something interrupted the reading.</p><p className="quiet">{phase.message}</p><button className="text-action" onClick={() => setAttempt(value => value + 1)}>Try again</button></div>}
           {phase.name === "done" && phase.response.kind === "unknown" && <div className="result-copy"><p className="overall-answer">No reading available yet.</p><p className="quiet">{phase.response.message}</p></div>}
           {phase.name === "done" && phase.response.kind === "insufficient" && <Insufficient response={phase.response} />}
           {card && <>
-            <Answer card={card} onChoose={source => setView({ kind: "source", source })} />
+            <Answer card={card} onChoose={source => setView({ kind: "source", source })} onHow={() => setView({ kind: "how" })} />
             <h2 className="section-label">Recurring opinions</h2>
             <OpinionPills opinions={card.opinions} onSelect={opinion => setView({ kind: "opinion", opinion })} />
-            <button className="text-action" onClick={() => setView({ kind: "how" })}>How it works · sources and confidence</button>
           </>}
         </>}
         {view && <div className="detail-content" ref={viewHeading} tabIndex={-1}>

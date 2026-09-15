@@ -29,26 +29,26 @@ const BAR_CSS = `
 :host([data-dark]) .tag{color:#bdc1c6;border-color:#ffffff40}
 .loading .seg{position:relative;background:#20212418}.loading .seg:before{content:"";position:absolute;inset:0;width:55%;border-radius:99px;background:linear-gradient(90deg,transparent,#bdc1c6 15%,#ffffff 55%,#dadce0 80%,transparent);animation:flow 1600ms ease-in-out infinite}
 @keyframes flow{0%{transform:translateX(-110%)}100%{transform:translateX(220%)}}
-.big{display:flex;flex-direction:row;align-items:center;gap:12px;width:100%;max-width:700px;box-sizing:border-box;margin:0;padding:10px 14px;white-space:nowrap;border-radius:16px;background:#f1f3f4cc;border:1px solid #dadce0;box-shadow:0 4px 14px #20212414;transition:opacity 280ms ease,background 180ms ease}
-.big:hover{background:#f8f9fa}.big:hover .seg{box-shadow:none;transform:none}
-.big .title{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:13px;letter-spacing:-.2px}.big .title b{font-weight:700}
+.big{display:flex;flex-direction:row;align-items:center;gap:12px;width:100%;max-width:700px;min-height:46px;box-sizing:border-box;margin:0;padding:8px 15px;white-space:nowrap;border-radius:30px;background:#f3f5f6;border:0;box-shadow:none;font:14px/1.3 "Google Sans",Helvetica,"Helvetica Neue",Arial,sans-serif;color:#1f1f1f;transition:opacity 280ms ease,background 180ms ease}
+.big:hover{background:#e9ebee}.big:hover .seg{box-shadow:none;transform:none}
+.big .title{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:14px}.big .title b{font-weight:500}
 .big .seg{flex:1 1 120px;width:auto;min-width:90px;height:14px}
-.big .count{flex:0 0 auto;color:#202124}
-:host([data-dark]) .big{border:1px solid #ffffff2e;background:#ffffff0f;color:#e8eaed;box-shadow:none}
-:host([data-dark]) .big:hover{background:#ffffff1a}
+.big .count{flex:0 0 auto;font-size:14px;color:#1f1f1f}.big .count b{font-weight:500;color:inherit}
+:host([data-dark]) .big{background:#303134;color:#e8eaed}
+:host([data-dark]) .big:hover{background:#3c4043}
 :host([data-dark]) .big .tag,:host([data-dark]) .big .muted,:host([data-dark]) .big .count,:host([data-dark]) .big .count b{color:inherit}
 :host([data-panel]) .big{max-width:none}
 .empty .seg{background:transparent;outline:1px solid #8a949b88;outline-offset:-1px}
 :host([data-dark]) .empty .seg{background:transparent;outline-color:#9aa0a688}
 :host([data-narrow]) .big .title:has(.name) .lead,:host([data-narrow]) .big .title .of{display:none}
 .estimated .seg{outline:1px dashed #9aa0a6;outline-offset:2px}
-:host([data-square]){width:124px}
-:host([data-square]) .big,:host([data-square][data-dark]) .big{flex-direction:column;align-items:stretch;gap:5px;width:100%;min-width:0;max-width:none;margin:0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;font-size:12px}
+:host([data-square]){width:auto}
+:host([data-square]) .big,:host([data-square][data-dark]) .big{display:grid;grid-template-columns:auto auto;grid-template-areas:"title title" "seg count";align-items:center;column-gap:7px;row-gap:4px;width:auto;min-width:0;max-width:none;min-height:0;margin:0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;font-size:12px}
 :host([data-square]) .big:hover{background:transparent}
-:host([data-square]) .big .title{flex-basis:auto;font-size:11px;letter-spacing:0;opacity:.8;white-space:nowrap}
+:host([data-square]) .big .title{grid-area:title;flex-basis:auto;font-size:11px;letter-spacing:0;opacity:.8;white-space:nowrap}
 :host([data-square]) .big .title .name{display:none}
-:host([data-square]) .big .seg{width:auto;flex:none;min-width:0}
-:host([data-square]) .big .count{font-size:12px}
+:host([data-square]) .big .seg{grid-area:seg;width:72px;flex:none;min-width:0;height:12px}
+:host([data-square]) .big .count{grid-area:count;font-size:12px;white-space:nowrap}
 @media(prefers-reduced-motion:reduce){.loading .seg:before{animation:none;width:100%;opacity:.6}.bar,.seg,.seg span{transition:none;animation:none}}
 `;
 
@@ -61,9 +61,11 @@ const TIP_CSS = `
 
 const OVERLAY_CSS = `
 :host{all:initial}
-.back{position:fixed;inset:0;z-index:2147483646}
-.panel{position:fixed;z-index:2147483647;border-radius:24px;overflow:hidden;border:1px solid #ffffff66;box-shadow:0 24px 72px #0005;background:#f1f3f4b3;backdrop-filter:blur(22px) saturate(1.05);-webkit-backdrop-filter:blur(22px) saturate(1.05);animation:in 240ms cubic-bezier(.16,1,.3,1) both;transition:height 180ms ease}
+.back{position:fixed;inset:0;z-index:2147483646}.back.out{pointer-events:none}
+.panel{position:absolute;z-index:2147483647;border-radius:24px;overflow:hidden;border:1px solid #ffffff66;box-shadow:0 24px 72px #0005;background:#f1f3f4b3;backdrop-filter:blur(22px) saturate(1.05);-webkit-backdrop-filter:blur(22px) saturate(1.05);animation:in 240ms cubic-bezier(.16,1,.3,1) both;transition:height 180ms ease}
+.panel.out{animation:out 160ms ease both;pointer-events:none}
 @keyframes in{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes out{to{opacity:0;transform:translateY(6px) scale(.98)}}
 iframe{display:block;width:100%;height:100%;border:0;background:transparent;color-scheme:light}
 .veil{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:#f1f3f466;color:#202124;font:13px Helvetica,"Helvetica Neue",Arial,sans-serif;transition:opacity 200ms ease}
 .veil[hidden]{display:none}.veil a{color:#202124}
@@ -145,7 +147,7 @@ function segments(gauge?: Gauge): HTMLElement {
 function countText(gauge: Gauge): HTMLElement {
   const [pos, , neg] = percentages(gauge);
   const count = el("span", "count");
-  const lead = gauge.verdict === "positive" ? `${pos}% positive` : gauge.verdict === "negative" ? `${neg}% negative` : "Mixed";
+  const lead = gauge.verdict === "positive" ? `${pos}% positive` : gauge.verdict === "negative" ? `${neg}% negative` : "Mixed opinion";
   count.append(Object.assign(el("b"), { textContent: lead }));
   return count;
 }
@@ -261,19 +263,25 @@ export function openOverlay(opts: { url: string; anchor: DOMRect; title: string;
   panel.setAttribute("aria-modal", "true");
   panel.setAttribute("aria-label", `What people think of ${opts.title}`);
   const vw = window.innerWidth, vh = window.innerHeight;
-  /* Short until the card arrives: the loading state is a strip, not a box. */
+  /* Short until the card arrives: the loading state is a strip, not a box.
+     The panel is anchored to the page beside its bar, so it moves with the
+     results as the reader scrolls rather than floating over them. */
   const width = Math.min(600, vw - 24), height = Math.min(96, vh - 24);
+  const sx = window.scrollX, sy = window.scrollY;
   const below = opts.anchor.bottom + 8;
+  const topFor = (h: number) => (below + h <= vh - 12 ? below : Math.max(12, vh - h - 12)) + sy;
   panel.style.width = `${width}px`;
   panel.style.height = `${height}px`;
-  panel.style.left = `${Math.max(12, Math.min(opts.anchor.left, vw - width - 12))}px`;
-  panel.style.top = `${below + height <= vh - 12 ? below : Math.max(12, vh - height - 12)}px`;
+  panel.style.left = `${Math.max(12, Math.min(opts.anchor.left, vw - width - 12)) + sx}px`;
+  panel.style.top = `${topFor(height)}px`;
   const frame = el("iframe");
   if (!opts.message) frame.src = opts.url;
   frame.referrerPolicy = "no-referrer";
   frame.setAttribute("title", `What people think of ${opts.title}`);
+  /* Nothing is shown over the frame while it loads: the drawer's own loading strip is the loading state. The veil appears only if the drawer never says it is ready. */
   const veil = el("div", "veil");
-  veil.append(el("div", "track"), el("span", undefined, "Opening the drawer…"));
+  veil.hidden = true;
+  let ready = false;
   if (opts.message) {
     const content = el("div");
     content.style.cssText = "padding:24px;font:14px/1.5 Arial,sans-serif;color:#202124";
@@ -286,30 +294,37 @@ export function openOverlay(opts: { url: string; anchor: DOMRect; title: string;
   document.documentElement.append(host);
   if (opts.message) panel.style.height = `${Math.min(panel.firstElementChild?.scrollHeight ?? height, vh - 24)}px`;
 
+  let closing = false;
+  /* Fades out, then goes. */
   const close = () => {
+    if (closing) return;
+    closing = true;
     window.removeEventListener("message", onMessage);
     window.removeEventListener("keydown", onKey);
     clearTimeout(fallback);
-    host.remove();
+    panel.classList.add("out");
+    back.classList.add("out");
+    setTimeout(() => host.remove(), 170);
     previousFocus?.focus({ preventScroll: true });
-    activeOverlay = undefined;
+    if (activeOverlay === close) activeOverlay = undefined;
   };
   const onMessage = (event: MessageEvent) => {
     const data = event.data as { om?: boolean; type?: string; height?: number; gauge?: Gauge } | null;
     if (event.source !== frame.contentWindow || event.origin !== new URL(opts.url).origin || !data?.om) return;
-    if (data.type === "ready") veil.hidden = true;
+    if (data.type === "ready") { ready = true; veil.hidden = true; }
     if (data.type === "close") close();
     if (data.type === "gauge" && data.gauge && typeof data.gauge.key === "string" && data.gauge.split) opts.onGauge?.(data.gauge);
     if (data.type === "resize" && typeof data.height === "number" && Number.isFinite(data.height)) {
-      const height = Math.min(Math.max(72, data.height), window.innerHeight - 24, 720);
+      const height = Math.min(Math.max(72, data.height), vh - 24, 720);
       panel.style.height = `${height}px`;
-      panel.style.top = `${Math.max(12, Math.min(below, window.innerHeight - height - 12))}px`;
+      panel.style.top = `${topFor(height)}px`;
     }
   };
   const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") close(); };
   const fallback = setTimeout(() => {
-    if (veil.hidden) return;
+    if (ready) return;
     veil.replaceChildren(el("span", undefined, "The drawer is taking a while."), Object.assign(el("a"), { href: opts.url, target: "_blank", rel: "noopener", textContent: "Open it in a new tab" }));
+    veil.hidden = false;
   }, 8000);
   back.addEventListener("click", close);
   window.addEventListener("message", onMessage);

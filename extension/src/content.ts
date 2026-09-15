@@ -1,8 +1,8 @@
 import { createBar, openOverlay, type Bar } from "./ui";
-import { kpHeader, queryPlacement, readResults, type Found, type QueryPlace } from "./google";
+import { kpHeader, queryPlacement, readResults, textBox, type Found, type QueryPlace } from "./google";
 import { send, type ConfigReply, type ExtensionConfig, type Gauge, type GaugeRequest, type GaugeResponse, type SubjectStates } from "./shared";
 
-interface Placed { bar: Bar; anchor: HTMLElement; target: HTMLElement; placement: "after" | "below" | "fit"; fitEnd?: HTMLElement }
+interface Placed { bar: Bar; anchor: HTMLElement; target: HTMLElement; placement: Found["placement"]; fitEnd?: HTMLElement }
 /* Tabs where a video's reading costs YouTube quota: no card is prepared ahead there. */
 const VIDEO_TABS = new Set(["7", "39"]);
 /* The width of every bar in an AI answer's sources panel, shrunk only when the dots are closer. */
@@ -55,6 +55,12 @@ function layer(): HTMLElement {
 }
 const onPage = (r: DOMRect) => ({ left: r.left + scrollX, top: r.top + scrollY, right: r.right + scrollX, bottom: r.bottom + scrollY, width: r.width, height: r.height });
 const shown = (el: HTMLElement) => el.isConnected && el.getClientRects().length > 0;
+/* The first line of a title that may wrap. */
+function firstLine(el: HTMLElement): DOMRect {
+  const range = document.createRange();
+  range.selectNodeContents(el);
+  return range.getClientRects().item(0) ?? el.getBoundingClientRect();
+}
 
 function pinBar({ bar, anchor, target, placement, fitEnd }: Placed) {
   const host = bar.host;
@@ -64,11 +70,21 @@ function pinBar({ bar, anchor, target, placement, fitEnd }: Placed) {
   const t = onPage(target.getBoundingClientRect());
   const h = host.offsetHeight || 20;
   if (placement === "after") {
-    host.style.left = `${Math.round(t.right + 8)}px`;
-    host.style.top = `${Math.round(t.top + (t.height - h) / 2)}px`;
+    /* Right after the text itself: a site name's box can run the width of its block. */
+    const box = onPage(textBox(target));
+    host.style.left = `${Math.round(box.right + 8)}px`;
+    host.style.top = `${Math.round(box.top + (box.height - h) / 2)}px`;
   } else if (placement === "below") {
     host.style.left = `${Math.round(t.left)}px`;
     host.style.top = `${Math.round(t.bottom + 4)}px`;
+  } else if (placement === "corner") {
+    /* The card's top-right corner, on the title's first line and shrunk before it. */
+    const first = fitEnd && shown(fitEnd) ? onPage(firstLine(fitEnd)) : null;
+    const right = t.right - 12;
+    const width = Math.max(20, Math.min(FIT_WIDTH, first ? Math.floor(right - first.right - 8) : FIT_WIDTH));
+    host.style.setProperty("--om-width", `${width}px`);
+    host.style.left = `${Math.round(right - width)}px`;
+    host.style.top = `${Math.round(first ? first.top + (first.height - h) / 2 : t.top + 10)}px`;
   } else {
     /* After the label's visible text. Google clips a long label inside a
        fixed-width box and the text runs on unseen past it, so the visible
@@ -96,10 +112,10 @@ function pinQuery() {
     host.style.visibility = "";
     const header = kpHeader(queryPlace.title, queryPlace.subtitle, queryPlace.others);
     const panel = onPage(queryPlace.panel.getBoundingClientRect());
-    const w = host.offsetWidth || 124, h = host.offsetHeight || 60;
-    /* Right-aligned on the title's lines, between the text and anything else on them. */
+    const w = host.offsetWidth || 160, h = host.offsetHeight || 44;
+    /* Right after the dots, in line with the title and subtitle; pulled left only if a logo leaves no room. */
     const limit = Math.min(header.limit + scrollX, panel.right - 12);
-    host.style.left = `${Math.round(Math.max(header.right + scrollX + 16, limit - w))}px`;
+    host.style.left = `${Math.round(Math.min(header.right + scrollX + 16, Math.max(header.right + scrollX + 8, limit - w)))}px`;
     host.style.top = `${Math.round(header.top + scrollY + (header.bottom - header.top - h) / 2)}px`;
     return;
   }
@@ -183,7 +199,7 @@ async function drain() {
         if (!result.anchor.isConnected) continue;
         placements.get(result.anchor)?.bar.remove();
         const context = { query: requestQuery, results: [{ url: result.url, title: result.title, ...(result.site ? { site: result.site } : {}) }] };
-        const bar = createBar({ title: result.title, dark, size: result.size, bare: result.placement === "fit", onOpen: open(context, result.title) });
+        const bar = createBar({ title: result.title, dark, size: result.size, bare: result.placement === "fit" || result.placement === "corner", onOpen: open(context, result.title) });
         place(result, bar);
         drawn.set(result, bar);
       }

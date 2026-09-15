@@ -15,8 +15,12 @@ import { BUCKETS, CLASSIFY_RULES, counted, formatItems, prefilter, sample } from
 import { targetInstructions } from "../target";
 
 const CARD_MAX = 250;
-/* How far back "lately" reaches. */
-export const RECENT_DAYS = 60;
+/* How far back "lately" reaches: the past couple of weeks, and only for a
+   development that has clearly swung opinion (the owner's decision of
+   15 September 2026, evening). */
+export const RECENT_DAYS = 14;
+/* The event entries a "lately" line must rest on, all dated within that window. */
+const RECENT_MIN_REFS = 3;
 const Refs = z.array(z.number().int());
 const Theme = z.object({ title: z.string(), detail: z.string() });
 const Analysis = z.object({
@@ -39,7 +43,7 @@ Rules:
 - Describe the sample you were given, not everyone. A positive result is not the same as strong agreement; report agreement separately.
 - The summary is one to three sentences, written the way a person who had read all of it would tell a friend what people think. The subject is the grammatical subject and the views are stated directly, as if they were your own: "Melbourne is beautiful, has a real urban buzz and plenty to eat and see, though it is expensive." Never write about the opinions from the outside: not "Opinion leans positive", not "People praise". Do not use the words opinion, sentiment, discussion, sample, commenters, evidence, posts or comments in the summary, and do not describe your analysis or its limits there.
 - The summary is about the subject's general standing over the whole window, up to three years: what people value and what they complain about, as it holds over time. It is drawn from the positive, neutral and negative entries only; event entries never shape it. Never mention an incident, outage, launch, update, controversy or date the reader has no context for.
-- recent: today's date is given. Look only at the event entries dated within the last ${RECENT_DAYS} days. If they show a notable development about the subject itself — its service, product, policy, price, leadership, availability or reputation — that is changing how people feel, write one sentence of at most 160 characters naming it plainly with roughly when it happened ("A day-long outage in September 2026 left many questioning its reliability."). Popular content hosted on the subject, news that merely mentions it, and anything older than ${RECENT_DAYS} days do not count. List in recentRefs the numeric references of the event entries the sentence rests on (at least two, all dated within the last ${RECENT_DAYS} days). Otherwise recent is an empty string and recentRefs is empty. Never invent an event or a date.
+- recent: today's date is given. Look only at the event entries dated within the last ${RECENT_DAYS} days. Only when they show a notable development about the subject itself — its service, product, policy, price, leadership, availability or reputation — that has clearly swung how people feel, with the reactions to it leaning heavily one way and differently from the subject's general standing, write one sentence of at most 160 characters naming it plainly with roughly when it happened ("A day-long outage in September 2026 left many questioning its reliability."). Routine mentions, popular content hosted on the subject, news that merely mentions it, reactions that merely repeat the general standing, and anything older than ${RECENT_DAYS} days do not count; when in doubt, leave it out. List in recentRefs the numeric references of the event entries the sentence rests on (at least ${RECENT_MIN_REFS}, all dated within the last ${RECENT_DAYS} days). Otherwise recent is an empty string and recentRefs is empty. Never invent an event or a date.
 - Qualitative, no percentages, no lists. Where views are split, give both sides in the same voice. If almost nothing is about the subject, the summary is one plain sentence saying so.
 - Sampling limits, off-topic material, dated material and thin evidence belong in confidence only. Use the entry dates to distinguish older and newer reactions; do not combine different product generations or describe historical views as current.
 - Never introduce facts from memory. Claims in entries are what commenters believe, never established facts. Never treat a promotional description as a positive opinion.
@@ -77,7 +81,7 @@ export async function analyseCard(subject: Subject, items: SourceItem[], statuse
   /* The recent line stands only on entries actually dated within the window. */
   const cutoff = Date.now() - RECENT_DAYS * 86_400_000;
   const fresh = (out?.recentRefs ?? []).filter((ref) => { const at = Date.parse(entries[ref]?.publishedAt ?? ""); return Number.isFinite(at) && at >= cutoff; });
-  const recent = fresh.length >= 2 ? out?.recent.trim() : undefined;
+  const recent = fresh.length >= RECENT_MIN_REFS ? out?.recent.trim() : undefined;
   return {
     kind: "card",
     card: {

@@ -2,6 +2,18 @@
 
 What changed in each version, in plain words, newest first. The version number lives in three places and moves together: `server/package.json`, `extension/package.json` and the health door (`server/src/app/api/health/route.ts`). **Rule:** every push that changes what a reader sees or what the server does adds an entry here in the same commit (see AGENTS.md).
 
+## 0.9.0 — 15 September 2026
+
+- Result bars sit right after the site's name text; a name's box could run the width of its block, which pushed the bar far to the right.
+- The drawer is anchored to the page beside the bar that opened it, so it moves with the results as you scroll instead of floating over them; it fades out when closed; the brief "Opening the drawer…" cover is gone (the drawer's own loading strip is the loading state).
+- Shopping: every tile's seller line gets a bar ("21Overlays", "evee"), not only sellers written as web addresses.
+- The query card on the results pages mirrors Google's "Search … on Google" pill: 46 px tall, 30 px corners, 14 px Google Sans, no border.
+- The brain remembers answers for ten minutes: switching between the tabs of one search draws the bars from memory and asks the server nothing; a card is prepared once per subject in that time.
+- Knowledge panel: the card sits right after the dots, in line with the title and subtitle; "What people think" stays above the bar and the verdict moves to the bar's right. "Mixed" reads "Mixed opinion".
+- AI answers: a source card that names its site at the bottom gets its bar in the card's top-right corner (AI Mode "quick results", sources panels), kept clear of the title's first line. A scan that lands while Google fades an answer in no longer skips it.
+- Drawer: the "How it works · sources and confidence" link sits under the opinion count, so the recurring opinions end the card; the loading phrase is left-aligned and fades between phrases every three seconds.
+- "Lately" appears only for a development in the past two weeks that clearly swung opinion, resting on at least three dated entries; it was sixty days and two entries.
+
 ## 0.8.0 — 15 September 2026
 
 - Result bars on the All tab sit beside the site's name again (its line is free there); on the Videos and Forums tabs, where the channel or community follows the name, they stay after the dots.

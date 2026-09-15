@@ -196,4 +196,6 @@ body:has(.embed)>.ground{display:none}
 .under-bar .reading-count{margin:0;white-space:nowrap}
 .embed .opinion-list{flex:0 1 auto;min-height:120px;max-height:300px;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#5f636855 transparent;padding-right:4px;mask-image:none;-webkit-mask-image:none}
 .embed .opinion-list::-webkit-scrollbar{width:8px}.embed .opinion-list::-webkit-scrollbar-thumb{background:#5f63683d;border-radius:99px;border:2px solid transparent;background-clip:padding-box}
-.embed .loading-state{padding:6px 6px 2px;animation:none}.embed .loading-state p{margin-top:10px;text-align:center;font-size:13px}
+.embed .loading-state{padding:6px 6px 2px;animation:none}.embed .loading-state p{margin-top:10px;text-align:left;font-size:13px;transition:opacity 450ms ease}.embed .loading-state p.fade{opacity:0}
+/* v0.9: the "How it works" link sits under the count, so the recurring opinions list ends the card. */
+.how-row{display:flex;justify-content:flex-end;margin-top:2px}.how-row .text-action{min-height:26px;padding:2px 0;font-size:11px}
