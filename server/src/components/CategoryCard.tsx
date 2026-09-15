@@ -19,7 +19,7 @@ interface CardProps {
   onGeneral: () => void;
 }
 
-const KIND_LABEL: Record<SubjectKind, string> = { product: "Product", film: "Film", app: "App", place: "Place", game: "Game", book: "Book", tool: "Tool", company: "Company", article: "Article", entity: "Subject" };
+const KIND_LABEL: Record<SubjectKind, string> = { product: "Product", film: "Film", app: "App", place: "Place", game: "Game", book: "Book", tool: "Tool", company: "Company", article: "Article", entity: "Subject", person: "Person", topic: "Topic" };
 
 export function usePhone(): boolean {
   const [phone, setPhone] = useState(false);

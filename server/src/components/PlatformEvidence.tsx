@@ -22,7 +22,7 @@ export function PostList({ threads, source }: { threads: SourceThread[]; source:
       {threads.slice(0, all ? undefined : 5).map((thread, index) => {
         const url = sourceUrl(thread.url, source);
         /* A post with no replies is its own only excerpt: the pill alone, not the text twice. */
-        const solo = thread.comments?.length === 1 && thread.comments[0].text.trim() === thread.title.trim();
+        const solo = Boolean(thread.comments && thread.comments.length === 1 && thread.comments[0].text.trim() === thread.title.trim());
         const content = <>
           {!solo && <h3>{thread.title}</h3>}
           {!solo && thread.author && <p className="post-attribution">{thread.author}</p>}
