@@ -35,7 +35,9 @@ const BAR_CSS = `
 :host([data-dark]) .empty .seg{outline-color:#9aa0a688}
 .estimated .seg{outline:1px dashed #c99b6f;outline-offset:2px}
 :host([data-side]) .big{max-width:none;border-radius:22px;border:1px solid #88888866;background:#ffffff08;color:#e8eaed;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none}
-:host([data-side]) .big .tag,:host([data-side]) .big .muted,:host([data-side]) .big .count,:host([data-side]) .big .count b{color:inherit}
+:host([data-dark]) .big{border:1px solid #ffffff2e;background:#ffffff0f;color:#e8eaed;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none}
+:host([data-dark]) .big:hover{background:#ffffff1a}
+:host([data-side]) .big .tag,:host([data-side]) .big .muted,:host([data-side]) .big .count,:host([data-side]) .big .count b,:host([data-dark]) .big .tag,:host([data-dark]) .big .muted,:host([data-dark]) .big .count,:host([data-dark]) .big .count b{color:inherit}
 :host([data-side]) .big .seg{flex:1;width:100%;min-width:70px}
 :host([data-square]){display:inline-block;margin:0 0 0 auto;align-self:center}
 :host([data-square]) .big{flex-direction:column;align-items:stretch;gap:6px;width:auto;min-width:118px;max-width:150px;margin:0;padding:10px 12px;border-radius:14px;font-size:12px}
@@ -193,7 +195,7 @@ export function createBar(opts: { big?: boolean; title?: string; dark?: boolean;
       if (opts.big) {
         const title = el("span", "title", "What people think");
         title.append(Object.assign(el("span", "name"), { textContent: ` of ${opts.title ?? "this search"}` }));
-        bar.append(title, segments(), el("span", "count muted", "Not enough opinions"));
+        bar.append(title, segments(), el("span", "count muted", state.thin ? "Not enough opinions" : "No verdict yet"));
       } else bar.append(segments());
       detail = state.reason;
       bar.setAttribute("aria-label", `${opts.title ?? "This link"}: no verdict. ${state.reason}`);

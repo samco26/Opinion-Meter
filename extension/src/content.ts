@@ -93,7 +93,9 @@ async function drain() {
         }
         if (initial && queryBar) {
           if (response.query.key) attach(response.query.key, queryBar);
-          else queryBar.set({ kind: "empty", reason: "No verdict available for this search." });
+          /* The query names nothing that can be rated (a person, a how-to,
+             a question): no card at all, rather than a dead one. */
+          else { queryBar.remove(); queryBar = null; }
         }
         apply(response.subjects);
         if (initial) { prefetch(response.query.key); prefetch(response.results[0]?.key ?? null); }
