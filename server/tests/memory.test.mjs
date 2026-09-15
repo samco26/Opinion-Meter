@@ -34,7 +34,7 @@ test("limits cut in per minute and per day, and the fresh-subject budget is glob
 
 test("polling reads memory only", async () => {
   const m = memory();
-  await m.set("gauge:name:k2", { state: "ready", gauge: { key: "name:k2" } }, 60);
+  await m.set("gauge:2:name:k2", { state: "ready", gauge: { key: "name:k2" } }, 60);
   await m.set("pending:name:k3", true, 60);
   const states = await lookupGauges(["name:k2", "name:k3", "name:k4"]);
   assert.equal(states["name:k2"].state, "ready");

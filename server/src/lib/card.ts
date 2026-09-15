@@ -16,6 +16,8 @@ import type { CardResponse, GaugeRequest, Subject } from "./types";
 
 /* Excerpts are platform content: a card lives this long and no longer. */
 const CARD_TTL = 15 * 60;
+/* Bumped whenever the classifier changes, so old cards are not served. */
+const READING = 2;
 
 export async function cardFor(key: string, budgetMs: number, context?: GaugeRequest): Promise<CardResponse> {
   const m = memory();
@@ -23,7 +25,7 @@ export async function cardFor(key: string, budgetMs: number, context?: GaugeRequ
   const subject = (key ? await m.get<Subject>(`subject:${key}`) : null) ?? (context ? await recoverSubject(key, context) : null);
   if (!subject) return { kind: "unknown", key, message: context ? "This link could not be identified as a specific subject. Unrecognised links need the server's AI connection; people and utility pages are not rated." : "This reading has expired. Refresh the Google results and open the bar again." };
   key = subject.key;
-  const held = await m.get<CardResponse>(`card:${key}`);
+  const held = await m.get<CardResponse>(`card:${READING}:${key}`);
   if (held?.kind === "card") return held;
   await m.set(`subject:${key}`, subject, settings.cacheTtlSeconds());
   if (subject.scope && !configured.openai()) return { kind: "unknown", key, message: "Link and website reputation need AI analysis. Connect OPENAI_API_KEY on the server to enable these readings. No reputation score has been invented." };
@@ -46,6 +48,6 @@ export async function cardFor(key: string, budgetMs: number, context?: GaugeRequ
     if (response.kind === "card") break;
   }
   }
-  if (response.kind === "card") await m.set(`card:${key}`, response, CARD_TTL);
+  if (response.kind === "card") await m.set(`card:${READING}:${key}`, response, CARD_TTL);
   return response;
 }

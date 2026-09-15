@@ -24,6 +24,8 @@ export const sourcesFor = (subject: Subject): SourceId[] => subject.link ? [...L
 const MAX_RESULTS = 20;
 const PENDING_TTL = 120;
 const NONE_TTL = 6 * 3600;
+/* Bumped whenever the classifier changes, so old readings are not served. */
+const READING = 2;
 const SUBJECT_TTL = 86_400;
 
 export type Stored = { state: "ready"; gauge: Gauge } | { state: "none"; reason: string; thin?: boolean };
@@ -41,7 +43,7 @@ export async function computeGauge(subject: Subject): Promise<Stored> {
       const fallback = domainSubject(subject);
       for (const target of [subject, ...(fallback ? [fallback] : [])]) {
         // Different pages on the same domain reuse the domain reading.
-        const cached = target.scope === "domain" ? await m.get<Stored>(`gauge:${target.key}`) : null;
+        const cached = target.scope === "domain" ? await m.get<Stored>(`gauge:${READING}:${target.key}`) : null;
         if (cached?.state === "ready") {
           stored = { state: "ready", gauge: { ...cached.gauge, key: subject.key, targetUrl: subject.link } }; break;
         }
@@ -49,14 +51,14 @@ export async function computeGauge(subject: Subject): Promise<Stored> {
         if (items.filter(item => item.kind !== "video").length < settings.minItems()) continue;
         const gauge = await liteGauge(target, items, window, 12_000);
         if (!gauge) continue;
-        if (target.scope === "domain") await m.set(`gauge:${target.key}`, { state: "ready", gauge }, settings.cacheTtlSeconds());
+        if (target.scope === "domain") await m.set(`gauge:${READING}:${target.key}`, { state: "ready", gauge }, settings.cacheTtlSeconds());
         stored = { state: "ready", gauge: { ...gauge, key: subject.key, targetUrl: subject.link } }; break;
       }
     }
   } catch (err) {
     stored = { state: "none", reason: err instanceof Error ? err.message : "The analysis failed." };
   }
-  await m.set(`gauge:${subject.key}`, stored, stored.state === "ready" ? settings.cacheTtlSeconds() : NONE_TTL);
+  await m.set(`gauge:${READING}:${subject.key}`, stored, stored.state === "ready" ? settings.cacheTtlSeconds() : NONE_TTL);
   await m.del(`pending:${subject.key}`);
   return stored;
 }
@@ -82,7 +84,7 @@ export async function gaugeFor(req: GaugeRequest, budgetMs: number, keepAlive: (
   await Promise.all([...subjects.values()].map(async (subject) => {
     const base = { name: subject.name, kind: subject.kind, category: subject.category };
     await m.set(`subject:${subject.key}`, subject, SUBJECT_TTL);
-    const stored = await m.get<Stored>(`gauge:${subject.key}`);
+    const stored = await m.get<Stored>(`gauge:${READING}:${subject.key}`);
     const outdated = configured.openai() && (stored?.state === "ready" ? stored.gauge.simulated : stored?.state === "none" && /AI key|AI analysis/.test(stored.reason));
     if (stored && !outdated) {
       response.subjects[subject.key] = { ...base, ...stored };
@@ -106,7 +108,7 @@ export async function lookupGauges(keys: string[]): Promise<SubjectStates> {
   const m = memory();
   const states: SubjectStates = {};
   await Promise.all(keys.map(async (key) => {
-    const stored = await m.get<Stored>(`gauge:${key}`);
+    const stored = await m.get<Stored>(`gauge:${READING}:${key}`);
     if (stored) states[key] = stored;
     else if (await m.get(`pending:${key}`)) states[key] = { state: "pending" };
     else states[key] = { state: "none", reason: "The reading did not finish. Search again to retry." };
