@@ -1,4 +1,4 @@
-import { createBar, isDark, openOverlay, showOffer, type Bar } from "./ui";
+import { createBar, headerLevel, isDark, openOverlay, type Bar } from "./ui";
 import { kpHeader, queryPlacement, readResults, textBox, type Found, type QueryPlace } from "./google";
 import { send, type ConfigReply, type ExtensionConfig, type Gauge, type GaugeRequest, type GaugeResponse, type SubjectStates } from "./shared";
 
@@ -11,8 +11,6 @@ const udm = () => new URL(location.href).searchParams.get("udm") ?? "";
 
 let config: ExtensionConfig;
 let server = "", query = "", generation = 0, dark = false;
-/* The one-time note offering the card on other sites: shown once per install, after the first reading lands. */
-let offer = false;
 let queryBar: Bar | null = null;
 let queryPlace: QueryPlace | null = null;
 let seen = new WeakMap<Element, string>();
@@ -24,19 +22,10 @@ const pending = new Set<string>();
 const prefetched = new Set<string>();
 const currentQuery = () => (new URL(location.href).searchParams.get("q")?.trim() ?? "").slice(0, 200);
 
-/* One step under Google's search header in the stacking order, so a bar
-   passes beneath the header as the page scrolls, never over it. */
-function headerLevel(): number {
-  let level = NaN;
-  for (let el = document.querySelector<HTMLElement>("#searchform"); el && el !== document.body; el = el.parentElement) {
-    const style = getComputedStyle(el);
-    if (style.position !== "static" && style.zIndex !== "auto") level = parseInt(style.zIndex, 10);
-  }
-  return Number.isFinite(level) ? Math.max(1, level - 1) : 127;
-}
 /* Every bar lives on one layer above the page, pinned to its target by
    page coordinates, so Google's own layout is never touched and nothing
-   of Google's can clip a bar or its glow. */
+   of Google's can clip a bar or its glow. The layer sits one step under
+   Google's search header, so bars pass beneath it as the page scrolls. */
 function layer(): HTMLElement {
   let node = document.querySelector<HTMLElement>('[data-opinion-meter="layer"]');
   if (!node) {
@@ -45,7 +34,7 @@ function layer(): HTMLElement {
     node.style.cssText = "position:absolute;left:0;top:0;width:0;height:0;pointer-events:none";
     document.body.append(node);
   }
-  node.style.zIndex = String(headerLevel());
+  node.style.zIndex = String(headerLevel() ?? 127);
   return node;
 }
 const onPage = (r: DOMRect) => ({ left: r.left + scrollX, top: r.top + scrollY, right: r.right + scrollX, bottom: r.bottom + scrollY, width: r.width, height: r.height });
@@ -172,6 +161,8 @@ const open = (context: GaugeRequest, title: string) => (gauge: Gauge | undefined
   const fragment = encodeURIComponent(JSON.stringify(context));
   openOverlay({
     url: `${server}/embed?key=${encodeURIComponent(gauge?.key ?? "")}${dark ? "&theme=dark" : ""}#context=${fragment}`, anchor, title: gauge?.name || title, dark,
+    /* Under Google's search header, like the bars. */
+    level: headerLevel(),
     /* The drawer's card sends its numbers back; every bar for that subject takes them. */
     onGauge: (fresh) => apply({ [fresh.key]: { state: "ready", gauge: fresh } }),
   });
@@ -257,11 +248,6 @@ async function drain() {
         }
         apply(response.subjects);
         if (initial && !VIDEO_TABS.has(udm())) { prefetch(response.query.key); prefetch(response.results[0]?.key ?? null); }
-        if (offer && response.results.some((r) => r.key)) {
-          offer = false;
-          send({ type: "offer", choice: "seen" }).catch(() => { /* Shown regardless. */ });
-          showOffer({ dark, onChoice: (choice) => { send({ type: "offer", choice }).catch(() => { /* The settings can still be opened from the toolbar icon. */ }); } });
-        }
       } catch {
         if (epoch !== generation) continue;
         for (const bar of drawn.values()) bar.set({ kind: "empty", reason: "The reading could not finish." });
@@ -285,7 +271,7 @@ async function main() {
   if (window.top !== window || !currentQuery()) return;
   const reply = await send<ConfigReply>({ type: "config" }).catch(() => null);
   if (!reply?.config.enabled || !reply.config.google.enabled) return;
-  ({ server, config } = reply); offer = Boolean(reply.sites?.offer); query = currentQuery(); dark = isDark(); scan();
+  ({ server, config } = reply); query = currentQuery(); dark = isDark(); scan();
   let timer: number | undefined;
   new MutationObserver(records => {
     if (records.every(record => (record.target as Element).closest?.('[data-opinion-meter]') || (record.type === "childList" && [...record.addedNodes, ...record.removedNodes].every(node => node instanceof Element && node.hasAttribute('data-opinion-meter'))))) return;

@@ -29,5 +29,11 @@ async function main() {
   });
   document.documentElement.append(bar.host);
   bar.set({ kind: "ready", gauge: reading.gauge });
+  /* Solid at the top of the page; faint once the reader scrolls at all
+     (still there, still clickable, full again under the cursor); solid
+     again when they come back to the very top. */
+  const faint = () => bar.host.toggleAttribute("data-faint", window.scrollY > 0);
+  window.addEventListener("scroll", faint, { passive: true });
+  faint();
 }
 void main();

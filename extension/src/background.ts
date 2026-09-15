@@ -41,18 +41,15 @@ async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
 }
 
 /* ---- Take the bar with you --------------------------------------------
-   Off until the reader turns it on in the settings, which grants the
-   extension the other sites; the site script is then registered for every
-   site but Google's search pages. When a result's bar is ready on Google,
-   its reading is filed under the result's host, under the whole site when
-   the result was the site itself (www.kia.com → kia.com), and under the
-   page for a video. A page on another site asks by address and gets the
-   closest match, unless the reader hid the card on that site since the
-   reading was filed. Kept in session storage: gone when the browser
-   closes, refreshed whenever the bar is loaded on Google again. */
+   On unless the menu turns it off (the "sitesOff" flag). When a result's
+   bar is ready on Google, its reading is filed under the result's host,
+   under the whole site when the result was the site itself
+   (www.kia.com → kia.com), and under the page for a video. A page on
+   another site asks by address and gets the closest match, unless the
+   reader hid the card on that site since the reading was filed. Kept in
+   session storage: gone when the browser closes, refreshed whenever the
+   bar is loaded on Google again. */
 const CARRY_MS = 24 * 3_600_000;
-const EVERYWHERE = { origins: ["*://*/*"] };
-const SITE_SCRIPT = "opinion-meter-site";
 type Carried = Record<string, SiteReading>;
 /* Subjects still being read, with the result they were asked for. */
 const waiting = new Map<string, { url: string; context: GaugeRequest }>();
@@ -90,6 +87,7 @@ function carryAll(request: GaugeRequest, results: Array<{ url: string; key: stri
 }
 async function lookup(url: string): Promise<SiteReply> {
   const server = await serverUrl();
+  if (await storage.get<boolean>("sitesOff")) return { reading: null, server };
   const all = await carried(), hidden = await hiddenAt();
   const host = hostOf(url), site = siteOf(host);
   const reading = all[`page:${pageOf(url)}`] ?? all[`host:${host}`] ?? all[`site:${site}`] ?? null;
@@ -102,30 +100,19 @@ async function hide(url: string) {
   hidden[`site:${siteOf(hostOf(url))}`] = Date.now();
   await session.set({ hidden });
 }
-async function granted(): Promise<boolean> {
-  try { return await api.permissions.contains(EVERYWHERE); } catch { return false; }
-}
-async function registerSite(on: boolean) {
-  try { await api.scripting.unregisterContentScripts({ ids: [SITE_SCRIPT] }); } catch { /* Not registered. */ }
-  if (!on) return;
-  const google = api.runtime.getManifest().content_scripts?.[0]?.matches ?? [];
-  await api.scripting.registerContentScripts([{ id: SITE_SCRIPT, matches: ["*://*/*"], excludeMatches: google, js: ["site.js"], runAt: "document_idle", persistAcrossSessions: true }]);
-}
 
 async function config(): Promise<ConfigReply> {
   const server = await serverUrl();
-  const on = await granted();
-  const sites = { granted: on, offer: !on && !(await storage.get<boolean>("offered")) };
   const cached = await storage.get<CachedConfig>("config");
   const usable = cached && cached.server === server ? cached : undefined;
-  if (usable && Date.now() - usable.at < usable.config.ttlMinutes * 60_000) return { server, config: usable.config, sites };
+  if (usable && Date.now() - usable.at < usable.config.ttlMinutes * 60_000) return { server, config: usable.config };
   try {
     const fresh = await call<ExtensionConfig>("/api/config");
     await storage.set({ config: { server, config: fresh, at: Date.now() } satisfies CachedConfig });
-    return { server, config: fresh, sites };
+    return { server, config: fresh };
   } catch (err) {
     /* A day on a stale config beats going dark on a hiccup; longer than that, the hands stay still. */
-    if (usable && Date.now() - usable.at < 86_400_000) return { server, config: usable.config, sites };
+    if (usable && Date.now() - usable.at < 86_400_000) return { server, config: usable.config };
     throw err;
   }
 }
@@ -188,16 +175,10 @@ function handle(message: Message): Promise<unknown> {
     case "prefetch": return prefetch(message.key);
     case "site": return lookup(message.url);
     case "site-hide": return hide(message.url).then(() => ({ ok: true }));
-    case "offer": return storage.set({ offered: true }).then(() => (message.choice === "open" ? api.runtime.openOptionsPage() : undefined)).then(() => ({ ok: true }));
-    case "sites": return registerSite(message.enabled).then(() => ({ ok: true }));
   }
 }
 
-chrome.runtime.onInstalled.addListener(() => { void token(); void granted().then(registerSite); });
-api.runtime.onStartup.addListener(() => { void granted().then(registerSite); });
-api.permissions.onRemoved.addListener(() => { void registerSite(false); });
-/* The toolbar icon opens the settings, where "take the bar with you" is turned on. */
-api.action.onClicked.addListener(() => { void api.runtime.openOptionsPage(); });
+chrome.runtime.onInstalled.addListener(() => { void token(); });
 chrome.runtime.onMessage.addListener((message: Message, _sender, sendResponse) => {
   handle(message).then(sendResponse, (err: unknown) => sendResponse({ error: err instanceof Error ? err.message : String(err) }));
   return true;

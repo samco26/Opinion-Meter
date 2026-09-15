@@ -2,6 +2,14 @@
 
 What changed in each version, in plain words, newest first. The version number lives in three places and moves together: `server/package.json`, `extension/package.json` and the health door (`server/src/app/api/health/route.ts`). **Rule:** every push that changes what a reader sees or what the server does adds an entry here in the same commit (see AGENTS.md).
 
+## 0.12.0 — 15 September 2026
+
+- "Take the bar with you" is on by default. The label now names every site, so the browser says so at install; the one-time note and the permission step are gone. The menu behind the toolbar icon turns it off.
+- The toolbar icon opens a menu styled like the drawer (light and dark): the take-the-bar switch, and under Advanced the server address and the install token. The same page is the settings page, opened in a tab; the embedded settings dialog, which kept resizing itself, is gone.
+- The site's card is solid at the top of a page, faint (a fifth) once you scroll at all, solid under the cursor, and solid again when you return to the very top.
+- Drawers pass under Google's search header when scrolled, like the bars, instead of over it.
+- Dark theme: the drawer's title, summary and every other inherited text are light; they had inherited the page body's dark colour.
+
 ## 0.11.0 — 15 September 2026
 
 - **Take the bar with you.** Off until turned on. The first time a reading lands on Google, a one-time note offers it; "Turn on" opens the settings, where the browser asks for permission to run on other sites. With it on, a site whose bar was loaded on Google shows the same pill fixed at the top right of every page of that site (the name, the bar and the verdict, 224 px wide like Google's own pill buttons), with a × that hides it there until the bar is next loaded on Google. Clicking opens the drawer as on Google; the drawer stays with the card. The reading comes from the brain's memory, filed when the bar was ready on Google (by host, by site for a site's own address, by page for a video), kept until the browser closes. Nothing about the visited page is sent anywhere; the privacy page and README say so. The toolbar icon opens the settings.

@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Opinion Meter</title>
+<style>
+  :root{--bg:#f3f5f6;--ink:#1f1f1f;--muted:#5f6368;--card:#ffffff;--on:#3fae66;--off:#9aa0a6}
+  @media(prefers-color-scheme:dark){:root{--bg:#303134;--ink:#e8eaed;--muted:#9aa0a6;--card:#ffffff14;--off:#5f6368}}
+  html,body{margin:0}
+  body{width:340px;box-sizing:border-box;padding:16px 16px 14px;font:14px/1.45 "Google Sans",Helvetica,"Helvetica Neue",Arial,sans-serif;color:var(--ink);background:var(--bg)}
+  h1{font-size:18px;font-weight:500;letter-spacing:-.3px;margin:0 0 12px}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-radius:18px;background:var(--card)}
+  .row b{font-weight:500}.row p{margin:2px 0 0;font-size:12px;line-height:1.4;color:var(--muted)}
+  .switch{position:relative;flex-shrink:0;width:40px;height:22px;border-radius:99px;border:0;padding:0;background:var(--off);cursor:pointer;transition:background 180ms ease}
+  .switch:before{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform 180ms ease}
+  .switch[aria-checked="true"]{background:var(--on)}.switch[aria-checked="true"]:before{transform:translateX(18px)}
+  details{margin-top:12px}summary{cursor:pointer;font-size:12px;color:var(--muted);list-style:none;padding:2px 4px}summary::-webkit-details-marker{display:none}
+  label{display:block;font-size:12px;color:var(--muted);margin:10px 4px 4px}
+  input{width:100%;box-sizing:border-box;font:inherit;padding:8px 12px;border:0;border-radius:12px;background:var(--card);color:var(--ink)}
+  .actions{margin-top:8px}
+  button.pill{font:inherit;margin-right:6px;padding:6px 14px;border-radius:99px;border:0;background:var(--ink);color:var(--bg);cursor:pointer;transition:transform 160ms ease,opacity 160ms ease}
+  button.pill:hover{transform:scale(1.04)}button.pill.quiet{background:var(--card);color:var(--ink)}
+  #status{min-height:18px;margin:8px 4px 0;font-size:12px;color:var(--muted)}
+  .token{margin:6px 4px 0;font-size:11px;color:var(--muted)}code{font-size:11px}
+  .foot{display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding:0 4px;font-size:11px;color:var(--muted)}
+  a{color:inherit}
+</style>
+</head>
+<body>
+<h1>Opinion Meter</h1>
+<div class="row">
+  <div><b>Take the bar with you</b><p>The card at the top right of sites whose bar you saw on Google. It reads only the page's address and sends nothing.</p></div>
+  <button id="sites" class="switch" type="button" role="switch" aria-checked="true" aria-label="Take the bar with you"></button>
+</div>
+<details>
+  <summary>Advanced</summary>
+  <label for="server">Server address (empty for the default)</label>
+  <input id="server" type="url" placeholder="https://opinionmeter.vercel.app" spellcheck="false">
+  <div class="actions"><button id="save" class="pill" type="button">Save</button><button id="reset" class="pill quiet" type="button">Use the default</button></div>
+  <p id="status"></p>
+  <p class="token">Install token: <code id="token"></code></p>
+</details>
+<div class="foot"><span id="version"></span><a id="privacy" href="https://opinionmeter.vercel.app/privacy" target="_blank" rel="noopener">Privacy</a></div>
+<script src="popup.js"></script>
+</body>
+</html>

@@ -201,7 +201,7 @@ body:has(.embed)>.ground{display:none}
 /* v0.10: the drawer in Google's dark theme, when the drawer host says so
    (data-theme on the embed root): light text on the dark grey of Google's
    own pills; the green and red fills stay as they are. */
-[data-theme="dark"]{--ink:#e8eaed;--muted:#9aa0a6;--line:#ffffff26}
+[data-theme="dark"]{--ink:#e8eaed;--muted:#9aa0a6;--line:#ffffff26;color:var(--ink)}
 [data-theme="dark"] .close{background:#ffffff1f}[data-theme="dark"] .close:hover{background:#ffffff33}
 [data-theme="dark"] .ctl{background:#ffffff14;border-color:#ffffff26;box-shadow:none}
 [data-theme="dark"] .sentbar{background:#ffffff26}[data-theme="dark"] .sentiment-empty .sentbar{background:#ffffff1f}

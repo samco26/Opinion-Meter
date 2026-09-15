@@ -14,7 +14,9 @@ const BAR_CSS = `
 .bar.still{cursor:default}
 :host([data-flow]){position:static;display:block;margin:0 0 16px}
 :host([hidden]){display:none!important}
-:host([data-site]){position:fixed;top:12px;right:12px;width:224px;z-index:2147483000;pointer-events:auto}
+:host([data-site]){position:fixed;top:12px;right:12px;width:224px;z-index:2147483000;pointer-events:auto;transition:opacity 280ms ease}
+:host([data-site][data-faint]){opacity:.22}
+:host([data-site][data-faint]:hover),:host([data-site][data-faint]:focus-within){opacity:1}
 :host([data-site]) .big{width:224px;max-width:224px;min-width:0;padding:8px 12px;gap:8px;overflow:hidden}
 :host([data-site]) .big .title{flex:0 1 auto;max-width:64px}
 :host([data-site]) .big .seg{flex:1 1 48px;min-width:40px}
@@ -182,6 +184,20 @@ function titleOf(name?: string, bold = false): HTMLElement {
 
 const SWALLOW = ["mousedown", "mouseup", "pointerdown", "pointerup", "auxclick", "touchstart", "touchend"] as const;
 
+/* One step under Google's search header in the stacking order, so bars
+   and drawers pass beneath the header as the page scrolls, never over it.
+   Undefined where there is no such header (other sites). */
+export function headerLevel(): number | undefined {
+  const form = document.querySelector<HTMLElement>("#searchform");
+  if (!form) return undefined;
+  let level = NaN;
+  for (let el: HTMLElement | null = form; el && el !== document.body; el = el.parentElement) {
+    const style = getComputedStyle(el);
+    if (style.position !== "static" && style.zIndex !== "auto") level = parseInt(style.zIndex, 10);
+  }
+  return Number.isFinite(level) ? Math.max(2, level - 1) : 127;
+}
+
 /* Google's dark theme is a page background, not a media query; other sites are read the same way. */
 export function isDark(): boolean {
   const rgb = getComputedStyle(document.body).backgroundColor.match(/\d+(\.\d+)?/g)?.map(Number) ?? [];
@@ -277,43 +293,11 @@ export function createBar(opts: { big?: boolean; title?: string; dark?: boolean;
   return { host, set: render, remove: () => { hideTip(); host.remove(); } };
 }
 
-const OFFER_CSS = `
-:host{all:initial;position:fixed;top:76px;right:16px;z-index:2147483001}
-.note{display:flex;align-items:center;gap:10px;padding:9px 12px 9px 16px;border-radius:30px;background:#f3f5f6;color:#1f1f1f;font:13px/1.35 "Google Sans",Helvetica,"Helvetica Neue",Arial,sans-serif;box-shadow:0 10px 28px #20212426;max-width:min(560px,calc(100vw - 32px));animation:in 240ms cubic-bezier(.16,1,.3,1) both}
-:host([data-dark]) .note{background:#303134;color:#e8eaed;box-shadow:0 10px 28px #00000066}
-.note b{font-weight:500}
-button{font:inherit;border:0;border-radius:99px;padding:6px 12px;cursor:pointer;white-space:nowrap;background:#1f1f1f;color:#fff;transition:transform 160ms ease,opacity 160ms ease}button:hover{transform:scale(1.04)}
-button.quiet{background:transparent;color:inherit;opacity:.8}
-:host([data-dark]) button{background:#e8eaed;color:#1f1f1f}:host([data-dark]) button.quiet{background:transparent;color:inherit}
-@keyframes in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
-`;
-
-/* The one-time note on Google offering the card on other sites. "Turn on"
-   leads to the settings, where the browser asks for the permission. */
-export function showOffer(opts: { dark: boolean; onChoice: (choice: "open" | "dismiss") => void }): () => void {
-  const host = el("div");
-  host.setAttribute("data-opinion-meter", "offer");
-  if (opts.dark) host.setAttribute("data-dark", "");
-  const root = host.attachShadow({ mode: "open" });
-  const style = el("style");
-  style.textContent = OFFER_CSS;
-  const note = el("div", "note");
-  const text = el("span");
-  text.append("Take the bar with you: ", Object.assign(el("b"), { textContent: "see it on the sites you open from here." }));
-  const on = el("button", undefined, "Turn on"), no = el("button", "quiet", "Not now");
-  on.addEventListener("click", () => { host.remove(); opts.onChoice("open"); });
-  no.addEventListener("click", () => { host.remove(); opts.onChoice("dismiss"); });
-  note.append(text, on, no);
-  root.append(style, note);
-  document.documentElement.append(host);
-  return () => host.remove();
-}
-
 /* The drawer: a panel over the page, near the bar that opened it, framing
    the server's embed page. Closes on the embed's say-so, Escape, or a
    click anywhere outside. Returns the close function. */
 let activeOverlay: (() => void) | undefined;
-export function openOverlay(opts: { url: string; anchor: DOMRect; title: string; dark?: boolean; fixed?: boolean; message?: string; onGauge?: (gauge: Gauge) => void }): () => void {
+export function openOverlay(opts: { url: string; anchor: DOMRect; title: string; dark?: boolean; fixed?: boolean; level?: number; message?: string; onGauge?: (gauge: Gauge) => void }): () => void {
   activeOverlay?.();
   const previousFocus = document.activeElement as HTMLElement | null;
   const host = el("div");
@@ -324,6 +308,8 @@ export function openOverlay(opts: { url: string; anchor: DOMRect; title: string;
   const back = el("div", "back");
   /* fixed: opened from a card that is itself fixed to the window (a site's card), so the drawer stays with it. */
   const panel = el("div", `panel${opts.dark ? " dark" : ""}${opts.fixed ? " fixed" : ""}`);
+  /* level: the stacking level to sit one step under (Google's search header), so the drawer passes beneath it when scrolled. */
+  if (opts.level !== undefined) { panel.style.zIndex = String(opts.level); back.style.zIndex = String(Math.max(1, opts.level - 1)); }
   panel.setAttribute("role", "dialog");
   panel.setAttribute("aria-modal", "true");
   panel.setAttribute("aria-label", `What people think of ${opts.title}`);

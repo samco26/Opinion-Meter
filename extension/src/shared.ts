@@ -14,17 +14,12 @@ export type Message =
   | { type: "poll"; keys: string[] }
   /* Ask the server to prepare a subject's full card now, so the drawer opens at once later. */
   | { type: "prefetch"; key: string }
-  /* From a page on another site: the reading remembered for it, if any. */
+  /* From a page on another site: the reading remembered for it, if any (none while the menu has the card turned off). */
   | { type: "site"; url: string }
   /* The × on a site's card: hide it on that site until its bar is next loaded on Google. */
-  | { type: "site-hide"; url: string }
-  /* The one-time note on Google: shown, opened the settings, or declined. */
-  | { type: "offer"; choice: "seen" | "open" | "dismiss" }
-  /* The settings page turned "take the bar with you" on or off (it holds the permission itself). */
-  | { type: "sites"; enabled: boolean };
+  | { type: "site-hide"; url: string };
 
-/* sites: whether the reader has allowed the card on other sites, and whether the one-time note is still to be shown. */
-export interface ConfigReply { server: string; config: ExtensionConfig; sites: { granted: boolean; offer: boolean } }
+export interface ConfigReply { server: string; config: ExtensionConfig }
 
 /* A reading carried from Google to a site: the subject, its numbers, and
    the request that made it, so the drawer can recover the card. */

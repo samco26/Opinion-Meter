@@ -18,11 +18,10 @@ const { version, description } = JSON.parse(readFileSync("package.json", "utf8")
 const GOOGLE = ["com", "com.au", "co.uk", "ca", "co.nz", "ie", "co.in", "com.sg", "com.hk", "co.za", "de", "fr", "es", "it", "nl", "be", "ch", "at", "se", "no", "dk", "fi", "pl", "pt", "cz", "gr", "hu", "ro", "com.tr", "com.br", "com.mx", "com.ar", "cl", "co", "com.pe", "co.jp", "co.kr", "com.tw", "com.ph", "co.id", "com.my", "co.th", "com.vn", "ae", "com.sa", "co.il", "com.eg", "com.ng", "co.ke", "com.pk"];
 const matches = GOOGLE.map((tld) => `*://www.google.${tld}/search*`);
 
-/* "Take the bar with you" needs the other sites, asked for only when the
-   reader turns it on in the settings (never at install), and "scripting"
-   to register the site script once they have. Chrome lists optional hosts
-   under optional_host_permissions; Firefox under optional_permissions
-   (both are written for it, the one it does not know is a warning). */
+/* "Take the bar with you" (on unless the reader turns it off in the menu)
+   runs the site script on every site but Google's search pages, so the
+   label names every site: the browser says so at install. Firefox lists
+   the hosts as permissions too and, from 127, asks for them at install. */
 const EVERYWHERE = ["*://*/*"];
 const manifest = (target) => ({
   manifest_version: 3,
@@ -30,13 +29,17 @@ const manifest = (target) => ({
   version,
   description,
   icons: { 16: "icons/icon16.png", 32: "icons/icon32.png", 48: "icons/icon48.png", 128: "icons/icon128.png" },
-  permissions: ["storage", "scripting"],
-  ...(target === "firefox" ? { host_permissions: matches, optional_permissions: EVERYWHERE, optional_host_permissions: EVERYWHERE } : { optional_host_permissions: EVERYWHERE }),
+  permissions: ["storage"],
+  ...(target === "firefox" ? { host_permissions: EVERYWHERE } : {}),
   background: target === "firefox" ? { scripts: ["background.js"] } : { service_worker: "background.js" },
-  content_scripts: [{ matches, js: ["content.js"], run_at: "document_idle" }],
-  options_ui: { page: "options.html", open_in_tab: false },
-  action: { default_title: "Opinion Meter" },
-  ...(target === "firefox" ? { browser_specific_settings: { gecko: { id: "opinion-meter@samco26.github.io", strict_min_version: "121.0" } } } : { minimum_chrome_version: "111" }),
+  content_scripts: [
+    { matches, js: ["content.js"], run_at: "document_idle" },
+    { matches: EVERYWHERE, exclude_matches: matches, js: ["site.js"], run_at: "document_idle" },
+  ],
+  /* The icon opens the menu; the same page serves as the settings page, in a tab. */
+  options_ui: { page: "popup.html", open_in_tab: true },
+  action: { default_title: "Opinion Meter", default_popup: "popup.html" },
+  ...(target === "firefox" ? { browser_specific_settings: { gecko: { id: "opinion-meter@samco26.github.io", strict_min_version: "127.0" } } } : { minimum_chrome_version: "111" }),
 });
 
 for (const target of ["chrome", "firefox"]) {
@@ -44,10 +47,10 @@ for (const target of ["chrome", "firefox"]) {
   rmSync(out, { recursive: true, force: true });
   mkdirSync(out, { recursive: true });
   await build({
-    entryPoints: { content: "src/content.ts", background: "src/background.ts", options: "src/options.ts", site: "src/site.ts" },
-    bundle: true, format: "iife", outdir: out, target: ["chrome111", "firefox121", "safari16"], logLevel: "info",
+    entryPoints: { content: "src/content.ts", background: "src/background.ts", popup: "src/popup.ts", site: "src/site.ts" },
+    bundle: true, format: "iife", outdir: out, target: ["chrome111", "firefox127", "safari16"], logLevel: "info",
   });
-  cpSync("src/options.html", `${out}/options.html`);
+  cpSync("src/popup.html", `${out}/popup.html`);
   cpSync("icons", `${out}/icons`, { recursive: true });
   writeFileSync(`${out}/manifest.json`, `${JSON.stringify(manifest(target), null, 2)}\n`);
 }
