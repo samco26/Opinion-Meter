@@ -6,7 +6,8 @@ What changed in each version, in plain words, newest first. The version number l
 
 - The site's card can be dragged anywhere on the window; where it lands is where it appears next time, on every site, kept inside the window. The fade on scroll is unchanged. A drag does not open the drawer.
 - The site's card wears the drawer's frosted background, in light and dark, and its name and verdict are bold.
-- Four packages from one build: Chrome (also Brave, Opera, Vivaldi, Arc), Edge (the same package under its own name, for the Edge store), Firefox, and Safari (the extension folder in Safari's shape). A Mac job in CI turns the Safari folder into an unsigned Mac app on request (a manual run, or a push whose message says [safari]).
+- Four packages from one build: Chrome (also Brave, Opera, Vivaldi, Arc), Edge (the same package under its own name, for the Edge store), Firefox, and Safari (the extension folder in Safari's shape). A Mac job in CI turns the Safari folder into an unsigned Mac app on request (a manual run, or a push whose message says [safari]). SAFARI.md walks through it on a Mac.
+- The menu no longer shows the server address; it was a developer setting, and it lives on as a hidden stored key for testing.
 
 ## 0.12.0 — 15 September 2026
 
