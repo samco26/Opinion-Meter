@@ -4,7 +4,7 @@ The product and the repository (`samco26/Opinion-Meter`) are called Opinion Mete
 
 A browser extension that shows, beside anything you are about to click, what people actually think of it: a small bar, how many voices, one sentence — and the full picture on click.
 
-### Current behaviour — 16 September 2026, v0.14.0
+### Current behaviour — 16 September 2026, v0.14.1
 
 The drawer starts compact: **See recurring opinions** between the platform icons and count reveals the scrolling opinions section. Bars stay below the drawer while scrolling; hover gently brightens the bar without scaling or outline rings and fades in a tooltip-coloured background. The floating site card grows for its name and verdict, and its hover paragraph follows dragging. Icons have rounded transparent corners; Safari and Firefox show cream in dark mode and grey in light mode, with cream as the compatibility fallback. All four browser packages are always built and published together unless the owner asks otherwise.
 

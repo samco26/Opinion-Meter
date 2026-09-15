@@ -18,7 +18,9 @@ for (let i = 0; i < 8; i++) {
   layer.append(bar.host); bar.set({ kind: "ready", gauge });
 }
 const site = createBar({ site: true, big: true, dark, title: "YouTube", onOpen: (_, anchor) => openOverlay({ url: `${location.origin}/embed?theme=${dark ? "dark" : "light"}`, anchor, title: "YouTube", dark, fixed: true, onGauge: fresh => site.set({ kind: "ready", gauge: fresh }) }) });
-document.documentElement.append(site.host); site.set({ kind: "ready", gauge });
+document.documentElement.append(site.host); site.set({ kind: "ready", gauge: { ...gauge, verdict: "mixed", split: { positive: 45, neutral: 10, negative: 45 } } });
+// Reproduce a remembered drag spot: the initial mixed verdict must fit too.
+site.host.style.left = "300px"; site.host.style.top = "100px"; site.host.style.right = "auto";
 window.addEventListener("scroll", () => {
   document.getElementById("searchform")!.style.zIndex = scrollY > 0 ? "100" : "1000";
   placeLayer();

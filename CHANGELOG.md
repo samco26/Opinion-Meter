@@ -2,6 +2,10 @@
 
 What changed in each version, in plain words, newest first. The version number lives in three places and moves together: `server/package.json`, `extension/package.json` and the health door (`server/src/app/api/health/route.ts`). **Rule:** every push that changes what a reader sees or what the server does adds an entry here in the same commit (see AGENTS.md).
 
+## 0.14.1 — 16 September 2026
+
+- Fixed a remaining Safari layout case on the real YouTube page: the floating bar uses content-sized grid columns and a viewport limit instead of a circular percentage width, keeping the full name beside “Mixed opinion”. Shared by all browser packages.
+
 ## 0.14.0 — 16 September 2026
 
 - Fixed “YouTube” being squeezed after its floating card closes: the pill grows with the label and verdict and stays inside the window after an update.

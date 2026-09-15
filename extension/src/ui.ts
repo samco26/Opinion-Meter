@@ -17,7 +17,7 @@ const BAR_CSS = `
 :host([data-site]){position:fixed;top:12px;right:12px;width:max-content;max-width:calc(100vw - 24px);z-index:2147483000;pointer-events:auto;transition:opacity 280ms ease}
 :host([data-site][data-faint]){opacity:.22}
 :host([data-site][data-faint]:hover),:host([data-site][data-faint]:focus-within){opacity:1}
-:host([data-site]) .big{width:max-content;max-width:100%;min-width:min(224px,calc(100vw - 24px));padding:8px 12px;gap:8px;overflow:hidden;background:#f3f5f6d9;border:1px solid #ffffff99;backdrop-filter:blur(22px) saturate(1.05);-webkit-backdrop-filter:blur(22px) saturate(1.05);box-shadow:0 12px 32px #0003}
+:host([data-site]) .big{display:grid;grid-template-columns:minmax(0,max-content) 48px max-content;width:max-content;max-width:calc(100vw - 24px);min-width:min(224px,calc(100vw - 24px));padding:8px 12px;gap:8px;overflow:hidden;background:#f3f5f6d9;border:1px solid #ffffff99;backdrop-filter:blur(22px) saturate(1.05);-webkit-backdrop-filter:blur(22px) saturate(1.05);box-shadow:0 12px 32px #0003}
 :host([data-site][data-dark]) .big{background:#303134d9;border-color:#ffffff1f;box-shadow:0 12px 32px #0006}
 :host([data-site]) .big:hover{background:#f3f5f6}:host([data-site][data-dark]) .big:hover{background:#303134}
 :host([data-site]) .big .title b,:host([data-site]) .big .count b{font-weight:700}
