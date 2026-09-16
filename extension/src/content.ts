@@ -262,6 +262,8 @@ function positionQuery() {
   settle();
 }
 function hold(result: Found, bar: Bar) {
+  /* Unseen until its first placement, so a bar never flashes at the layer's origin. */
+  bar.host.style.visibility = "hidden";
   layer().append(bar.host);
   placements.set(result.anchor, { bar, anchor: result.anchor, target: result.target, placement: result.placement, fitEnd: result.fitEnd, line: result.line, block: result.block, icon: result.icon, heading: result.heading, site: result.site });
 }
