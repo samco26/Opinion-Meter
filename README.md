@@ -4,7 +4,9 @@ The product and the repository (`samco26/Opinion-Meter`) are called Opinion Mete
 
 A browser extension that shows, beside anything you are about to click, what people actually think of it: a small bar, how many voices, one sentence — and the full picture on click.
 
-### Current behaviour — 16 September 2026, v0.14.1
+### Current behaviour — 16 September 2026, v0.16.5
+
+The latest shared extension draws loading bars for every recognised result as soon as the config door permits it, before waiting for sentiment. The main query gauge stays above the results, including searches with a knowledge panel, and keeps an empty gauge when no verdict is available. Expanded cards keep the platform controls together where space permits and the opinion count on a separate line; long text wraps. These current rules supersede the older placement and loading descriptions below. All four browser packages share these fixes.
 
 The drawer starts compact: **See recurring opinions** between the platform icons and count reveals the scrolling opinions section. Bars stay below the drawer while scrolling; hover gently brightens the bar without scaling or outline rings and fades in a tooltip-coloured background. The floating site card grows for its name and verdict, and its hover paragraph follows dragging. Icons have rounded transparent corners; Safari and Firefox show cream in dark mode and grey in light mode, with cream as the compatibility fallback. All four browser packages are always built and published together unless the owner asks otherwise.
 
@@ -318,6 +320,7 @@ That word-count fallback applies only to main-query readings. Website/link reput
 
 | Date | Decision |
 |---|---|
+| 2026-09-16 | v0.16.5 reverses hidden loading bars and knowledge-panel placement: all recognised results show a loading sweep immediately; the query gauge stays above the results and retains an empty state. Expanded-card controls wrap and the opinion count has its own line. Cached config is used only for its declared lifetime. |
 | 2026-09-16 | v0.14: recurring opinions start collapsed behind a 23 px disclosure button; drawers have a separate, synchronized layer above bars. Soft no-scale hover, tooltip follows dragging, site pill grows to avoid clipping short names after updates. Rounded icons reverse the native theme mapping (cream/dark, grey/light). Publish all four browser packages by default. Keep existing automatic page access; explain its unavoidable browser warning instead of claiming draw-only access. |
 | 2026-09-15 | v0.13.2 uses the owner's cream smile icon across all extension packages, with native grey/dark variants for Safari and Firefox and cream as the compatibility fallback. Site-card saves are serialized so simultaneous Google results cannot overwrite one another. |
 | 2026-09-15 | Safari is packaged from the current Chrome source (v0.13.1, based on `8d8c41a`), with the same UI and site card. Declare Safari's website permissions explicitly and document temporary folder loading on recent Safari. The old v0.3 Safari branch is superseded. |

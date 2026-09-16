@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.16.5 — 16 September 2026
+
+- All recognised result bars appear with a loading sweep immediately, including later batches and results arriving during a reading.
+- The main search gauge stays above the results, including searches with a knowledge panel; an unavailable reading keeps an honest empty gauge.
+- Expanded cards wrap platform controls and put the opinion count on its own line. Long names and summaries fit narrow windows.
+- The first look respects the config door's stated memory lifetime.
+
 What changed in each version, in plain words, newest first. The version number lives in three places and moves together: `server/package.json`, `extension/package.json` and the health door (`server/src/app/api/health/route.ts`). **Rule:** every push that changes what a reader sees or what the server does adds an entry here in the same commit (see AGENTS.md).
 
 ## 0.16.4 — 17 September 2026

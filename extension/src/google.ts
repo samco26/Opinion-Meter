@@ -271,22 +271,9 @@ export function kpHeader(title: HTMLElement, subtitle: HTMLElement | null, other
 }
 
 export function queryPlacement(config: ExtensionConfig): QueryPlace | null {
-  const title = document.querySelector<HTMLElement>('#rhs [data-attrid="title"]');
-  const subtitle = document.querySelector<HTMLElement>('#rhs [data-attrid="subtitle"]');
-  const rhs = document.querySelector<HTMLElement>("#rhs");
-  if (title && rhs && visible(title)) {
-    const sub = subtitle && visible(subtitle) ? subtitle : null;
-    const near = title.getBoundingClientRect().top;
-    const apart = (el: HTMLElement, text: HTMLElement | null) => !text || (el !== text && !el.contains(text) && !text.contains(el));
-    const others = [...rhs.querySelectorAll<HTMLElement>('img, svg, video, button, [role="button"], [role="img"], g-img, a[href]')]
-      .filter((el) => apart(el, title) && apart(el, sub) && visible(el) && Math.abs(el.getBoundingClientRect().top - near) < 160);
-    const header = kpHeader(title, sub, others);
-    /* Only when the card fits on those lines; a long title sends it into the flow instead, never over the panel's image. */
-    if (Math.min(header.limit, rhs.getBoundingClientRect().right - 12) - (header.right + 16) >= QUERY_SQUARE) return { mode: "kp", title, subtitle: sub, panel: rhs, others };
-  }
-  const panel = sourcesPanel();
-  if (panel && visible(panel)) return { mode: "panel", panel, below: udm() === "50" };
-  const main = document.querySelector<HTMLElement>(config.google.results);
+  // Keep the main gauge above the recognised results, even with a knowledge panel.
+  const main = [...document.querySelectorAll<HTMLElement>(config.google.results)].find(visible);
   if (!main) return null;
-  return { mode: "flow", parent: main, before: main.firstElementChild };
+  const before = [...main.children].find(child => !child.hasAttribute("data-opinion-meter")) ?? null;
+  return { mode: "flow", parent: main, before };
 }

@@ -63,14 +63,14 @@ const CSS = `
 .head.block .seg{grid-area:bar;width:var(--om-block,100%)}
 .head.block .x{grid-area:x;justify-self:end}
 .name{font-size:13px;font-weight:500;color:var(--t1);white-space:nowrap}
-.head.line .name{font-size:11px;font-weight:400;color:var(--tl)}
+.head.line .name{min-width:0;white-space:normal;overflow-wrap:anywhere;font-size:11px;font-weight:400;color:var(--tl)}
 :host([data-site]) .head .name{font-size:12px;font-weight:500;color:var(--t1)}
 .label{font-size:11px;color:var(--tl);white-space:nowrap}
 .head.line .label{color:var(--tb)}
 :host([data-site]) .head .label{color:var(--t2)}
 :host([data-site][data-dark]) .head .label{color:var(--tb)}
 .seg{display:flex;height:var(--om-h);border-radius:var(--om-r);overflow:hidden;background:var(--track);flex:none;width:var(--om-width,34px);transition:width 340ms cubic-bezier(.16,1,.3,1)}
-.head.line .seg{flex:1 1 auto;width:auto;--om-h:3px;--om-r:2px}
+.head.line .seg{min-width:32px;flex:1 1 auto;width:auto;--om-h:3px;--om-r:2px}
 :host([data-site]) .head .seg{flex:none;width:48px;--om-h:3px;--om-r:2px}
 :host([data-site]) .card[data-state="hover"] .head .seg,:host([data-site]) .card[data-state="open"] .head .seg,:host([data-site]) .card.closing .head .seg{flex:1 1 auto;width:auto}
 .seg span{display:block;height:100%}.seg .pos{background:var(--pos)}.seg .neu{background:var(--neu)}.seg .neg{background:var(--neg);flex:1}
@@ -99,19 +99,19 @@ const CSS = `
 .card[data-state="hover"] .body,.card[data-state="open"] .body{display:flex}
 .card.closing .body{display:flex;opacity:0}
 @starting-style{.card[data-state="hover"] .body,.card[data-state="open"] .body{opacity:0}}
-.dots{display:flex;gap:16px;margin-top:9px;font-size:10px;color:var(--tl);white-space:nowrap}
+.dots{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:9px;font-size:10px;color:var(--tl);white-space:nowrap}
 .dots span{display:inline-flex;align-items:center;gap:6px}.dots i{width:5px;height:5px;border-radius:3px;flex:none}
-.summary{font-size:13px;line-height:1.6;color:var(--tb);margin:16px 0 18px;text-wrap:pretty;max-width:62ch}
+.summary{overflow-wrap:anywhere;font-size:13px;line-height:1.6;color:var(--tb);margin:16px 0 18px;text-wrap:pretty;max-width:62ch}
 :host([data-site]) .summary{font-size:12px;margin:14px 0 16px}
 :host([data-site]) .dots{gap:14px;margin-top:8px}
-.actions{display:flex;align-items:center;gap:10px}
+.actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .tiles{display:flex;gap:6px}
 .tile{width:24px;height:24px;border-radius:7px;border:0;padding:0;background:var(--tile);display:grid;place-items:center;cursor:pointer;color:var(--t2);transition:background 160ms ease}.tile:hover{background:var(--border)}
 .tile img{width:15px;height:15px;display:block}
 .tile.mark-x{color:var(--t1)}
 .chip{height:24px;padding:0 11px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:11px;font-family:inherit;display:inline-flex;align-items:center;cursor:pointer;white-space:nowrap;transition:background 160ms ease}
 .chip:hover{background:var(--tile)}.chip.on{background:var(--tile);border-color:var(--tile)}
-.meta{flex:1;text-align:right;font-size:10px;color:var(--tl);white-space:nowrap}
+.meta{flex:1 0 100%;text-align:left;font-size:10px;color:var(--tl);white-space:nowrap}
 :host([data-site]) .tiles{gap:5px}:host([data-site]) .tile{width:22px;height:22px;border-radius:6px}:host([data-site]) .tile img{width:14px;height:14px}
 :host([data-site]) .chip{height:22px;padding:0 10px;border-radius:11px;color:var(--tb)}
 :host([data-site]) .actions{gap:9px}:host([data-site]) .meta{flex:none;text-align:left;margin-top:11px;order:9;width:100%}

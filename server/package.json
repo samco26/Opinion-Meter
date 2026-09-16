@@ -1,7 +1,7 @@
 {
   "name": "opinion-meter-server",
   "private": true,
-  "version": "0.16.4",
+  "version": "0.16.5",
   "description": "Opinion Meter: the server half. Doors for the extension, the memory, the embed card.",
   "scripts": {
     "dev": "next dev",
