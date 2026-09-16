@@ -367,7 +367,7 @@ export function createBar(opts: {
       dots.append(item);
     }
     summary.textContent = current.sentence;
-    const counted = new Map((current.sources ?? []).map((s) => [s.source, s.count]));
+    const counted = new Map<string, number>((current.sources ?? []).map((s): [string, number] => [s.source, s.count]));
     const sources = PLATFORMS.filter((p) => p !== "reddit" || (counted.get("reddit") ?? 0) > 0);
     for (const source of sources) {
       const tile = el("button", `tile mark-${source}`);
