@@ -246,3 +246,8 @@ body:has(.embed)>.ground{display:none}
 @keyframes hairline-flow{0%{transform:translateX(-110%)}100%{transform:translateX(220%)}}
 .embed.list-only .loading-state p{font-size:11px;margin-top:9px;color:var(--o-count,#72777d)}
 [data-theme="dark"] .embed.list-only .liquid-track{background:#303235}
+/* A view inside a grown bar (a platform's posts, the explainer): a small way back, the page's quiet type. */
+.embed.list-only .embed-head{padding:0 0 4px}
+.embed.list-only .back-button{min-height:28px;font-size:11px;color:var(--o-count,#72777d);padding:0}
+.embed.list-only .detail-content{padding:4px 2px 2px}
+.embed.list-only .detail-content h2{font-size:14px;margin-bottom:10px}

@@ -124,12 +124,12 @@ function place(placed: Placed) {
     const name = visibleEnd(target, anchor);
     const lineBox = onPage(line.getBoundingClientRect()), blockBox = onPage(block.getBoundingClientRect());
     const address = line.nextElementSibling?.nextElementSibling instanceof HTMLElement ? visibleEnd(line.nextElementSibling.nextElementSibling, anchor) : null;
-    /* The row starts where the title does (the favicon's left edge); on Google the name-and-address column stands to the favicon's right. */
-    const heading = placed.heading && shown(placed.heading) ? onPage(placed.heading.getBoundingClientRect()) : null;
-    const left = Math.min(blockBox.left, heading?.left ?? blockBox.left);
+    /* The row starts where the name and the address do (the column to the favicon's right); the favicon's room to the left is the card's lead. */
+    const left = Math.min(name.left, address?.left ?? name.left);
     const iconBox = placed.icon ? onPage(placed.icon.getBoundingClientRect()) : null;
+    const lead = iconBox && iconBox.left < left ? left - iconBox.left : 0;
     const width = Math.min(blockBox.left + blockBox.width - left, Math.max(name.right, address?.right ?? 0) - left + 2);
-    bar.name(placed.site ?? "", name.right - name.left, { block: width, line: lineBox.height, lead: name.left - left, icon: placed.icon, iconX: iconBox ? iconBox.left - left : 0, iconY: iconBox ? iconBox.top - lineBox.top : 0, like: target });
+    bar.name(placed.site ?? "", name.right - name.left, { block: width, line: lineBox.height, lead, icon: placed.icon, iconX: iconBox ? iconBox.left - left : 0, iconY: iconBox ? iconBox.top - lineBox.top : 0, like: target });
     host.style.left = `${left}px`;
     host.style.top = `${lineBox.top}px`;
   } else if (placement === "after") {

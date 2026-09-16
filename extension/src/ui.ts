@@ -52,8 +52,8 @@ const CSS = `
 :host([data-site]) .card.closing{--px:17px;--pt:15px;--pb:13px}
 :host([data-pill]) .card{white-space:nowrap}
 .head{display:flex;align-items:center;gap:11px;min-width:0}
-.head.block{position:relative;display:grid;grid-template-columns:var(--om-lead,0px) var(--om-indent,0px) auto 1fr auto;grid-template-rows:var(--om-line,20px) auto;grid-template-areas:"lead name label . x" "bar bar bar bar bar";row-gap:1px;column-gap:0;align-items:center}
-/* A copy of Google's favicon, drawn in its very place once the card's surface hides the real one. */
+.head.block{position:relative;display:grid;grid-template-columns:var(--om-indent,0px) auto 1fr auto;grid-template-rows:var(--om-line,20px) auto;grid-template-areas:"name label . x" "bar bar bar bar";row-gap:1px;column-gap:0;align-items:center}
+/* A copy of Google's favicon, drawn in its very place (to the left of the row, in the card's lead) once the card's surface hides the real one. */
 .head.block .icon{position:absolute;left:var(--om-icon-x,0px);top:var(--om-icon-y,0px);opacity:0;transition:opacity 200ms ease;pointer-events:none}
 .card[data-state="hover"] .head.block .icon,.card[data-state="open"] .head.block .icon{opacity:1}
 :host([data-bare]) .head .label{display:none}
@@ -113,10 +113,10 @@ const CSS = `
 :host([data-site]) .actions{flex-wrap:wrap}
 .heading{display:none;font-size:10px;font-weight:500;letter-spacing:.8px;text-transform:uppercase;color:var(--tl);margin:18px 0 9px}
 .sheet{display:none;position:relative}
-.card.list .dots,.card.list .summary{display:none}.card.list .actions{margin-top:14px}.card.list .heading,.card.list .sheet{display:block}
+.card.list .heading,.card.list .sheet{display:block}
 iframe{display:block;width:100%;height:100%;border:0;background:transparent;color-scheme:light}
 .wait{position:absolute;inset:0;display:none;align-items:center;justify-content:center;gap:10px;font-size:11px;color:var(--tl)}.wait.on{display:flex}.wait a{color:inherit}
-.divider{height:1px;background:var(--divider);margin:14px calc(-1 * var(--px)) 10px}
+.divider{height:1px;background:var(--divider);margin:14px calc(-1 * var(--px)) 10px calc(-1 * var(--px) - var(--om-lead,0px))}
 :host([data-site]) .divider{margin:11px calc(-1 * var(--px)) 9px}
 .foot{font-size:10px;color:var(--tl);background:none;border:0;padding:0;font-family:inherit;cursor:pointer;text-align:left}.foot:hover{color:var(--t2)}
 .bar{display:contents}
@@ -319,12 +319,14 @@ export function createBar(opts: {
   let iconSource: HTMLElement | undefined, icon: HTMLElement | undefined;
   let likeSource: HTMLElement | undefined, look = "";
   /* The row's measures, kept so the bar can be refitted after the label changes. */
-  let rowLead = 0, rowIndent = 0, rowBlock = 0;
+  let rowIndent = 0, rowBlock = 0;
+  /* The favicon's room to the left of the row; the grown card reaches across it. */
+  const leadNow = () => (site ? 0 : parseFloat(host.style.getPropertyValue("--om-lead")) || 0);
   /* The bar under a result's row: the column's width, or the name-and-verdict row's if that is longer, so the bar never stops short of its own label. */
   const fitBar = () => {
     if (opts.shape !== "block") return;
     const label = head.querySelector<HTMLElement>(".label");
-    const row = rowLead + rowIndent + 3 + (label ? label.getBoundingClientRect().width : 0);
+    const row = rowIndent + 3 + (label ? label.getBoundingClientRect().width : 0);
     host.style.setProperty("--om-block", `${Math.max(34, Math.round(Math.max(rowBlock, row)))}px`);
   };
   let state: CardState = "rest";
@@ -343,14 +345,14 @@ export function createBar(opts: {
   let restSize: { w: number; h: number } | undefined;
   let relaxTimer: number | undefined;
 
-  /* The server's page for this reading, opened in a new tab at a platform's posts or the explainer. */
-  const tabTo = (view: string) => {
-    const url = opts.drawer(current);
-    if (!url) return;
-    const u = new URL(url);
-    u.searchParams.delete("morph");
-    u.searchParams.set("view", view);
-    window.open(u.toString(), "_blank", "noopener");
+  /* A platform's posts or the explainer, drawn by the server's page inside the card: the card is pinned and the list opened first if need be, then the page is told which view to show (at once, or when it says it is ready). */
+  let wantedView: string | null = null;
+  const tellView = () => { if (frame && ready && wantedView) frame.contentWindow?.postMessage({ om: true, type: "view", view: wantedView }, frameOrigin); };
+  const openView = (view: string) => {
+    if (state !== "open") pin();
+    if (!listOpen) showList(true);
+    wantedView = view;
+    tellView();
   };
 
   /* ---- content ---- */
@@ -373,17 +375,17 @@ export function createBar(opts: {
       const tile = el("button", `tile mark-${source}`);
       tile.type = "button";
       tile.title = PLATFORM_NAMES[source] ?? source;
-      tile.setAttribute("aria-label", `${PLATFORM_NAMES[source] ?? source} posts, in a new tab`);
+      tile.setAttribute("aria-label", `${PLATFORM_NAMES[source] ?? source} posts`);
       const img = el("img");
       img.src = MARKS[source] ?? MARKS.hn;
       img.alt = "";
       tile.append(img);
-      tile.addEventListener("click", (event) => { event.stopPropagation(); tabTo(source); });
+      tile.addEventListener("click", (event) => { event.stopPropagation(); openView(source); });
       tiles.append(tile);
     }
     meta.textContent = listOpen ? `${current.count} opinions` : `${current.count} opinions · ${current.confidence} confidence`;
   };
-  foot.addEventListener("click", (event) => { event.stopPropagation(); tabTo("how"); });
+  foot.addEventListener("click", (event) => { event.stopPropagation(); openView("how"); });
 
   /* ---- sizing: the card grows from the header, which never moves ----
      from: the size (and, for the badge, padding) the card has as the change
@@ -400,17 +402,19 @@ export function createBar(opts: {
     let fromW = from?.w ?? card.offsetWidth, fromH = from?.h ?? card.offsetHeight;
     const fromPadding = from?.padding ?? getComputedStyle(card).padding;
     const grown = state !== "rest";
+    /* The favicon's room: the card reaches that far left of the row, and its contents start past it, level with the name. */
+    const lead = Math.round(leadNow());
     /* Only the surface transitions run while the target is measured; the size (and the badge's padding) is set by hand below. */
     card.style.transition = SURFACE;
     let toW: number, toH: number, shift = 0;
     if (grown) {
       card.style.width = ""; card.style.height = "auto";
-      body.style.width = ""; head.style.width = ""; head.style.marginLeft = "";
+      body.style.width = ""; body.style.marginLeft = ""; head.style.width = ""; head.style.marginLeft = "";
       if (site) card.style.padding = "";
       /* The card's width: its own, or wider when the bar itself (a long address's column, the query's line) needs
          more to fit inside the padding; never wider than the window allows. */
       const restW = site ? 0 : host.offsetWidth || restSize?.w || fromW;
-      const width = Math.min(vw - 2 * EDGE, Math.max(site ? SITE_CARD_WIDTH : CARD_WIDTH, restW + 2 * pad.x + 2));
+      const width = Math.min(vw - 2 * EDGE, Math.max((site ? SITE_CARD_WIDTH : CARD_WIDTH) + lead, restW + 2 * pad.x + 2 + lead));
       card.style.width = `${width}px`;
       const hostLeft = host.getBoundingClientRect().left;
       const rise = riseNow();
@@ -421,10 +425,12 @@ export function createBar(opts: {
       } else {
         /* Sideways: never past the window's right edge; the header is pushed right by the same amount, so it stays put.
            Upwards: a story's name line appears above the bar, and the card rises by exactly that, so the bar stays put. */
-        shift = Math.max(0, Math.min(hostLeft - EDGE, hostLeft - pad.x - 1 + width - (vw - EDGE)));
-        card.style.left = `calc(-1 * var(--px) - ${Math.round(shift) + 1}px)`;
+        const cardLeft = hostLeft - pad.x - lead - 1;
+        shift = Math.max(0, Math.min(cardLeft - EDGE, cardLeft + width - (vw - EDGE)));
+        card.style.left = `calc(-1 * var(--px) - ${Math.round(shift) + lead + 1}px)`;
         card.style.top = `calc(-1 * var(--pt) - ${Math.round(rise) + 1}px)`;
-        head.style.marginLeft = `${Math.round(shift)}px`;
+        head.style.marginLeft = `${Math.round(shift) + lead}px`;
+        body.style.marginLeft = `${lead}px`;
       }
       if (state === "open" && listOpen) {
         const rowBox = head.getBoundingClientRect();
@@ -435,10 +441,10 @@ export function createBar(opts: {
       toW = card.offsetWidth; toH = card.offsetHeight;
       /* The contents are laid out at their final width from the first frame, so nothing re-wraps or slides while the box grows. */
       const inner = toW - 2 * pad.x - 2;
-      body.style.width = `${inner}px`;
-      if (!site) head.style.width = `${inner - Math.round(shift)}px`;
+      body.style.width = `${inner - lead}px`;
+      if (!site) head.style.width = `${inner - Math.round(shift) - lead}px`;
       /* Leaving rest: the box starts as the bar wrapped in padding (transparent still), never smaller, so the bar is whole from the first frame. */
-      if (from?.rest && !site && restSize) ({ w: fromW, h: fromH } = wrapped(restSize, Math.round(shift), Math.round(rise)));
+      if (from?.rest && !site && restSize) ({ w: fromW, h: fromH } = wrapped(restSize, Math.round(shift) + lead, Math.round(rise)));
     } else {
       /* Back to the bar: its box wrapped in the padding (and the shift and rise it had), which drops away once the surface has faded. */
       const rest = restSize ?? { w: fromW, h: fromH };
@@ -460,7 +466,7 @@ export function createBar(opts: {
     closing = false;
     card.classList.remove("closing");
     card.style.width = ""; card.style.height = ""; card.style.left = ""; card.style.top = ""; card.style.padding = "";
-    head.style.marginLeft = ""; head.style.width = ""; body.style.width = "";
+    head.style.marginLeft = ""; head.style.width = ""; body.style.width = ""; body.style.marginLeft = "";
     host.style.zIndex = "";
     if (restore) { const back = restore; restore = undefined; back(); }
   };
@@ -488,11 +494,11 @@ export function createBar(opts: {
   const onMessage = (event: MessageEvent) => {
     const data = event.data as { om?: boolean; type?: string; height?: number; gauge?: Gauge } | null;
     if (!frame || event.source !== frame.contentWindow || event.origin !== frameOrigin || !data?.om) return;
-    if (data.type === "ready") { ready = true; wait.classList.remove("on"); }
+    if (data.type === "ready") { ready = true; wait.classList.remove("on"); tellView(); }
     if (data.type === "close") close();
     if (data.type === "gauge" && data.gauge && typeof data.gauge.key === "string" && data.gauge.split) opts.onGauge?.(data.gauge);
     if (data.type === "resize" && typeof data.height === "number" && Number.isFinite(data.height)) {
-      sheetHeight = Math.min(Math.max(72, Math.ceil(data.height)), 640);
+      sheetHeight = Math.min(Math.max(40, Math.ceil(data.height)), 640);
       sheet.style.height = `${sheetHeight}px`;
       if (state === "open" && listOpen) grow();
     }
@@ -532,6 +538,7 @@ export function createBar(opts: {
     wait.classList.remove("on");
     wait.replaceChildren();
     frame = null;
+    wantedView = null;
     sheet.replaceChildren(wait);
     listOpen = false;
     card.classList.remove("list");
@@ -676,7 +683,7 @@ export function createBar(opts: {
       rowIndent = Math.max(0, Math.ceil(indent) + 3);
       host.style.setProperty("--om-indent", `${rowIndent}px`);
       if (more.line !== undefined) host.style.setProperty("--om-line", `${Math.max(12, more.line)}px`);
-      if (more.lead !== undefined) { rowLead = Math.max(0, more.lead); host.style.setProperty("--om-lead", `${rowLead}px`); }
+      if (more.lead !== undefined) host.style.setProperty("--om-lead", `${Math.max(0, more.lead)}px`);
       if (more.icon && more.icon !== iconSource) {
         iconSource = more.icon;
         icon = lookalike(more.icon);

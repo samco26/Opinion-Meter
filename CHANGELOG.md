@@ -2,6 +2,14 @@
 
 What changed in each version, in plain words, newest first. The version number lives in three places and moves together: `server/package.json`, `extension/package.json` and the health door (`server/src/app/api/health/route.ts`). **Rule:** every push that changes what a reader sees or what the server does adds an entry here in the same commit (see AGENTS.md).
 
+## 0.16.2 — 17 September 2026
+
+- A result's bar starts where its name and address start (the column to the favicon's right), the place the owner marked, and no longer under the favicon. The grown card still shows the favicon: it reaches left across the favicon's room, and its figures, summary, tiles and list start level with the name, clear of the favicon.
+- The hands start at DOMContentLoaded instead of after the page's load event, so the bars (sweeping) appear as the results do rather than a second or two later.
+- Opening the recurring opinions keeps the figures and the summary above the list; the list's loading strip takes only the room it needs.
+- A platform tile, or "How it works", opens that platform's posts or the explainer inside the card (the list opens first if it was closed; "← Back" returns to the list) instead of a new tab.
+- The badge on a site fades on scroll even when the site scrolls a box of its own rather than the window, and closes its open card then, as on any other page.
+
 ## 0.16.1 — 17 September 2026
 
 - Bars appear the moment a search loads, sweeping green then red while the reading is made, instead of arriving fully formed a few seconds later; a result with no reading then disappears.

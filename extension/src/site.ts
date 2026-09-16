@@ -58,12 +58,15 @@ async function main() {
   /* Solid at the top of the page; faint once the reader scrolls at all
      (still there, still clickable, full again under the cursor); solid
      again when they come back to the very top. Scrolling closes an open
-     card. */
-  const faint = () => {
-    if (window.scrollY > 0 && bar.state() === "open") bar.close();
-    bar.host.toggleAttribute("data-faint", window.scrollY > 0);
+     card. Many sites scroll a box of their own rather than the window, so
+     every scroll is heard (captured) and judged by what scrolled. */
+  const faint = (event?: Event) => {
+    const box = event && event.target !== document && event.target !== window ? event.target : document.scrollingElement;
+    const scrolled = window.scrollY > 0 || (box instanceof Element && box.scrollTop > 0);
+    if (scrolled && bar.state() === "open") bar.close();
+    bar.host.toggleAttribute("data-faint", scrolled);
   };
-  window.addEventListener("scroll", faint, { passive: true });
+  document.addEventListener("scroll", faint, { capture: true, passive: true });
   faint();
 }
 void main();

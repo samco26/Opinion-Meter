@@ -11,6 +11,9 @@ type View = { kind: "source"; source: SourceId } | { kind: "opinion"; opinion: R
 const tell = (message: Record<string, unknown>) => { if (window.parent !== window) window.parent.postMessage({ om: true, ...message }, "*"); };
 /* What the drawer says while the reading is made. */
 const PHRASES = ["Scanning the web…", "Reading the room…", "Calculating sentiment…", "Weighing the opinions…", "Listening in…"];
+/* The views a bar can ask for by name: a platform's posts, or the explainer. */
+const VIEWS = ["youtube", "x", "hn", "bluesky", "reddit"];
+const viewNamed = (name: string | null | undefined): View | null => name === "how" ? { kind: "how" } : name && VIEWS.includes(name) ? { kind: "source", source: name as SourceId } : null;
 
 /* dark: the host is on a dark theme, so the card is drawn dark too.
    morph: the card is drawn inside the bar that grew to hold it, which
@@ -21,7 +24,7 @@ const PHRASES = ["Scanning the web…", "Reading the room…", "Calculating sent
    platform's posts or the explainer, when opened in a tab of its own. */
 export function Embed({ subjectKey, dark = false, morph = false, part, start }: { subjectKey: string; dark?: boolean; morph?: boolean; part?: "opinions"; start?: string }) {
   const [phase, setPhase] = useState<Phase>({ name: "loading" });
-  const [view, setView] = useState<View | null>(start === "how" ? { kind: "how" } : start && ["youtube", "x", "hn", "bluesky", "reddit"].includes(start) ? { kind: "source", source: start as SourceId } : null);
+  const [view, setView] = useState<View | null>(viewNamed(start));
   const [recurringOpen, setRecurringOpen] = useState(part === "opinions");
   const listOnly = part === "opinions";
   const [attempt, setAttempt] = useState(0);
@@ -37,6 +40,16 @@ export function Embed({ subjectKey, dark = false, morph = false, part, start }: 
     }, 3200);
     return () => { window.clearInterval(timer); window.clearTimeout(swap); };
   }, [phase.name]);
+  /* The bar that frames this page asks for a view by name (a platform tile, "How it works"); only the framing page is heard. */
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      const data = event.data as { om?: boolean; type?: string; view?: string | null } | null;
+      if (!data?.om || data.type !== "view" || event.source !== window.parent) return;
+      setView(viewNamed(data.view));
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
   const content = useRef<HTMLDivElement>(null);
   const viewHeading = useRef<HTMLDivElement>(null);
   const card = phase.name === "done" && phase.response.kind === "card" ? phase.response.card : null;
