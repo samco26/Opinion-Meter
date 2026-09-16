@@ -1,6 +1,6 @@
 import { createBar, isDark, resultLevel, type Bar, type BarState, type Shape } from "./ui";
 import { kpHeader, queryPlacement, readResults, textBox, type Found, type QueryPlace } from "./google";
-import { send, type ConfigReply, type ExtensionConfig, type Gauge, type GaugeRequest, type GaugeResponse, type SubjectStates } from "./shared";
+import { send, serverUrl, storage, type ConfigReply, type ExtensionConfig, type Gauge, type GaugeRequest, type GaugeResponse, type SubjectStates } from "./shared";
 
 /* restHeight: the bar's height while nothing has grown; a grown card is pinned by that, never by its own. */
 interface Placed { bar: Bar; anchor: HTMLElement; target: HTMLElement; placement: Found["placement"]; fitEnd?: HTMLElement; line?: HTMLElement; block?: HTMLElement; icon?: HTMLElement; heading?: HTMLElement; site?: string; restHeight?: number }
@@ -18,6 +18,8 @@ let queryBar: Bar | null = null;
 let queryPlace: QueryPlace | null = null;
 /* The query bar's latest state, for a remade query bar. */
 let queryState: BarState | null = null;
+/* The brain said the meter is off (after a first look from the cached config). */
+let off = false;
 let seen = new WeakMap<Element, string>();
 let queue: Found[] = [];
 let busy = false, first = true;
@@ -219,10 +221,10 @@ function liftQuery(): (() => void) | undefined {
   blank.style.cssText = `height:${box.height}px;margin:14px 0 20px`;
   host.before(blank);
   host.removeAttribute("data-flow");
-  host.style.cssText = `left:${box.left}px;top:${box.top}px;width:${box.width}px`;
+  host.style.left = `${box.left}px`; host.style.top = `${box.top}px`; host.style.width = `${box.width}px`;
   layer().append(host);
   return () => {
-    host.style.cssText = "";
+    host.style.left = ""; host.style.top = ""; host.style.width = "";
     host.setAttribute("data-flow", "");
     if (blank.isConnected) blank.replaceWith(host);
     else queryPlace?.mode === "flow" && queryPlace.parent.insertBefore(host, queryPlace.before);
@@ -258,7 +260,8 @@ function positionQuery() {
   host.toggleAttribute("data-panel", queryPlace.mode === "panel");
   host.toggleAttribute("data-flow", queryPlace.mode === "flow");
   if (queryPlace.mode === "flow") {
-    host.style.cssText = "";
+    /* In the flow the page places it; only the layer's coordinates go (its height, mirrored from the card, and the page's font stay). */
+    host.style.left = ""; host.style.top = ""; host.style.width = ""; host.style.visibility = "";
     const inPlace = host.parentElement === queryPlace.parent && (queryPlace.before ? host.nextElementSibling === queryPlace.before : queryPlace.parent.lastElementChild === host);
     if (!inPlace) queryPlace.parent.insertBefore(host, queryPlace.before);
   } else {
@@ -335,6 +338,7 @@ async function drain() {
   } finally { busy = false; }
 }
 function scan() {
+  if (off) return;
   const now = currentQuery();
   if (now !== query) {
     generation++; query = now; first = true; queue = []; seen = new WeakMap();
@@ -353,9 +357,22 @@ function scan() {
 }
 async function main() {
   if (window.top !== window || !currentQuery()) return;
-  const reply = await send<ConfigReply>({ type: "config" }).catch(() => null);
+  /* The brain's cached config, read straight from storage so the first look at the page does not wait for the brain to wake; the brain's own answer follows and takes over (or takes the bars away if the meter was switched off). */
+  const asked = send<ConfigReply>({ type: "config" }).catch(() => null);
+  const quick = await (async (): Promise<ConfigReply | null> => {
+    try {
+      const cached = await storage.get<{ server: string; config: ExtensionConfig; at: number }>("config");
+      return cached && cached.server === (await serverUrl()) && Date.now() - cached.at < 86_400_000 ? { server: cached.server, config: cached.config } : null;
+    } catch { return null; }
+  })();
+  const reply = quick ?? await asked;
   if (!reply?.config.enabled || !reply.config.google.enabled) return;
   ({ server, config } = reply); query = currentQuery();
+  if (quick) void asked.then((fresh) => {
+    if (!fresh) return;
+    if (fresh.config.enabled && fresh.config.google.enabled) ({ server, config } = fresh);
+    else { off = true; for (const placed of placements.values()) placed.bar.remove(); placements.clear(); bars.clear(); queryBar?.remove(); queryBar = null; }
+  });
   /* The hands start as the page begins (document_start): the body may not be there yet. */
   if (!document.body) await new Promise<void>((resolve) => { const watch = new MutationObserver(() => { if (document.body) { watch.disconnect(); resolve(); } }); watch.observe(document.documentElement, { childList: true }); });
   dark = isDark(); scan();

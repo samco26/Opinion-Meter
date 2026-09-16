@@ -273,6 +273,8 @@ export function createBar(opts: {
   if (site) host.setAttribute("data-site", "");
   if (opts.shape === "line" || opts.shape === "square" || site) host.setAttribute("data-pill", "");
   host.style.setProperty("--om-font", pageFont());
+  /* When the bar was made, in page time: a reading for anyone auditing how early the bars come. */
+  host.dataset.omAt = String(Math.round(performance.now()));
   const root = host.attachShadow({ mode: "open" });
   const style = el("style");
   style.textContent = CSS;

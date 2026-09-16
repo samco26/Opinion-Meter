@@ -2,6 +2,11 @@
 
 What changed in each version, in plain words, newest first. The version number lives in three places and moves together: `server/package.json`, `extension/package.json` and the health door (`server/src/app/api/health/route.ts`). **Rule:** every push that changes what a reader sees or what the server does adds an entry here in the same commit (see AGENTS.md).
 
+## 0.16.4 — 17 September 2026
+
+- The query line's summary no longer runs over the first result: every fresh look at the page was wiping the line's mirrored height (and the page's font) along with its layer coordinates; now only the coordinates go.
+- The first look at the page no longer waits for the brain to wake: the hands start from the config the brain cached last time, read straight from storage, and the brain's answer follows (taking the bars away if the meter was switched off meanwhile). Each bar carries the page time it was made at (`data-om-at`), for anyone checking how early the bars come.
+
 ## 0.16.3 — 17 September 2026
 
 - The bars are there from the first moment: the hands now start as the page begins to load and read the results as they stream in, so every result gets its sweeping bar as it appears, well before any reading is back. The query line changes into its small square if the knowledge panel arrives later in the page.
