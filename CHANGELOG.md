@@ -2,6 +2,16 @@
 
 What changed in each version, in plain words, newest first. The version number lives in three places and moves together: `server/package.json`, `extension/package.json` and the health door (`server/src/app/api/health/route.ts`). **Rule:** every push that changes what a reader sees or what the server does adds an entry here in the same commit (see AGENTS.md).
 
+## 0.16.1 — 17 September 2026
+
+- Bars appear the moment a search loads, sweeping green then red while the reading is made, instead of arriving fully formed a few seconds later; a result with no reading then disappears.
+- The ends of a result's bar are whole: the resting card is a square, transparent box (its rounded corners were clipping the bar's first and last pixels). The bar also runs at least to the end of its own verdict, and, on Google, from the favicon's left edge (the title's), not the name's.
+- The grown card names the site in Google's own type (size, weight, colour copied from the page), so the name no longer shrinks as the card opens; the favicon copy sits exactly where Google draws it.
+- Every platform gets its tile (YouTube, X, Hacker News, Bluesky; Reddit once it has posts), so X is there even when it returned nothing.
+- With the recurring opinions open, the tiles row stands 14 px under the bar (the handoff's spacing) instead of touching it.
+- The list's loading strip inside a card is the same 3 px hairline sweep as every other bar.
+- The badge's card on a site stays above the site's own header (it had been dropping to stacking level 1 when it grew).
+
 ## 0.16.0 — 16 September 2026
 
 - The look from the design handoff of 16 September, to the letter: hairline bars (2 px beside results and in panels, 3 px on the query line, in cards and on the badge) in the page's own greys and font, colour only inside a bar or a 5 px dot, labels in the page's muted grey. Beside a result the bar runs under the whole row, from the result's left edge (level with the title and the favicon) to the end of the name-and-address column, with the verdict 6 px after the site's name on the name's exact line; a 5 px gap opens under the name for it (the owner's tweak of 17 September to the handoff's column-wide bar). The query line reads "What people think of Kia" with the bar filling to the verdict. A knowledge panel keeps its small square; a sources panel's line sits above the panel. Stories in a panel get a fixed 34 px bar with the verdict.

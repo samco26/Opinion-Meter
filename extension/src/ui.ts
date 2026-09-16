@@ -20,6 +20,8 @@ const MARKS: Record<string, string> = {
   reddit: "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#ff4500"/><ellipse cx="12" cy="13.5" rx="6" ry="4" fill="#fff"/><circle cx="9.7" cy="13" r="1" fill="#ff4500"/><circle cx="14.3" cy="13" r="1" fill="#ff4500"/></svg>'),
 };
 const PLATFORM_NAMES: Record<string, string> = { youtube: "YouTube", x: "X", hn: "Hacker News", bluesky: "Bluesky", reddit: "Reddit" };
+/* The tiles, in the handoff's order. */
+const PLATFORMS = ["youtube", "x", "hn", "bluesky", "reddit"];
 
 const CSS = `
 :host{all:initial;position:absolute;display:block;pointer-events:auto;font-family:var(--om-font,Helvetica,Arial,sans-serif);--om-h:2px;--om-r:1px;
@@ -37,7 +39,9 @@ const CSS = `
 :host([data-site][data-faint]:hover),:host([data-site][data-faint]:focus-within),:host([data-site][data-faint][data-state="open"]){opacity:1}
 /* The card: one box that grows. At rest it is the header alone, without
    surface; grown, it is the source card, offset so the header stays put. */
-.card{position:absolute;left:calc(-1 * var(--px) - 1px);top:calc(-1 * var(--pt) - 1px);box-sizing:border-box;display:flex;flex-direction:column;padding:var(--pt) var(--px) var(--pb);border-radius:12px;border:1px solid transparent;background:transparent;overflow:hidden;white-space:nowrap;--px:0px;--pt:0px;--pb:0px;--ease:cubic-bezier(.16,1,.3,1);transition:width 340ms var(--ease),height 340ms var(--ease),background 200ms ease,box-shadow 200ms ease,border-color 200ms ease,border-radius 200ms ease}
+.card{position:absolute;left:calc(-1 * var(--px) - 1px);top:calc(-1 * var(--pt) - 1px);box-sizing:border-box;display:flex;flex-direction:column;padding:var(--pt) var(--px) var(--pb);border-radius:0;border:1px solid transparent;background:transparent;overflow:hidden;white-space:nowrap;--px:0px;--pt:0px;--pb:0px;--ease:cubic-bezier(.16,1,.3,1);transition:width 340ms var(--ease),height 340ms var(--ease),background 200ms ease,box-shadow 200ms ease,border-color 200ms ease}
+/* At rest the box is transparent and square, so its corners never clip the bar's ends; the corners come with the surface. */
+.card[data-state="hover"],.card[data-state="open"],.card.closing{border-radius:12px}
 .card[data-state="hover"],.card[data-state="open"]{--px:18px;--pt:16px;--pb:14px;background:var(--card);border-color:var(--border);box-shadow:var(--shadow);z-index:1}
 /* Closing: the padding stays while the box shrinks and the surface fades out, so nothing inside jumps or is clipped. */
 .card.closing{--px:18px;--pt:16px;--pb:14px}
@@ -48,9 +52,9 @@ const CSS = `
 :host([data-site]) .card.closing{--px:17px;--pt:15px;--pb:13px}
 :host([data-pill]) .card{white-space:nowrap}
 .head{display:flex;align-items:center;gap:11px;min-width:0}
-.head.block{display:grid;grid-template-columns:var(--om-lead,0px) var(--om-indent,0px) auto 1fr auto;grid-template-rows:var(--om-line,20px) auto;grid-template-areas:"lead name label . x" "bar bar bar bar bar";row-gap:1px;column-gap:0;align-items:center}
+.head.block{position:relative;display:grid;grid-template-columns:var(--om-lead,0px) var(--om-indent,0px) auto 1fr auto;grid-template-rows:var(--om-line,20px) auto;grid-template-areas:"lead name label . x" "bar bar bar bar bar";row-gap:1px;column-gap:0;align-items:center}
 /* A copy of Google's favicon, drawn in its very place once the card's surface hides the real one. */
-.head.block .icon{grid-area:lead;justify-self:start;opacity:0;transition:opacity 200ms ease}
+.head.block .icon{position:absolute;left:var(--om-icon-x,0px);top:var(--om-icon-y,0px);opacity:0;transition:opacity 200ms ease;pointer-events:none}
 .card[data-state="hover"] .head.block .icon,.card[data-state="open"] .head.block .icon{opacity:1}
 :host([data-bare]) .head .label{display:none}
 .head.block .name{grid-area:name;overflow:hidden;text-overflow:clip;white-space:nowrap;font-size:12px;font-weight:400;color:var(--t2);opacity:0;transition:opacity 200ms ease}
@@ -109,7 +113,7 @@ const CSS = `
 :host([data-site]) .actions{flex-wrap:wrap}
 .heading{display:none;font-size:10px;font-weight:500;letter-spacing:.8px;text-transform:uppercase;color:var(--tl);margin:18px 0 9px}
 .sheet{display:none;position:relative}
-.card.list .dots,.card.list .summary{display:none}.card.list .heading,.card.list .sheet{display:block}
+.card.list .dots,.card.list .summary{display:none}.card.list .actions{margin-top:14px}.card.list .heading,.card.list .sheet{display:block}
 iframe{display:block;width:100%;height:100%;border:0;background:transparent;color-scheme:light}
 .wait{position:absolute;inset:0;display:none;align-items:center;justify-content:center;gap:10px;font-size:11px;color:var(--tl)}.wait.on{display:flex}.wait a{color:inherit}
 .divider{height:1px;background:var(--divider);margin:14px calc(-1 * var(--px)) 10px}
@@ -132,15 +136,20 @@ export type CardState = "rest" | "hover" | "open";
    site: the badge on another site. */
 export type Shape = "line" | "block" | "story" | "square" | "site";
 
+export interface NameMore { block?: number; line?: number; lead?: number; icon?: HTMLElement; iconX?: number; iconY?: number; like?: HTMLElement }
+
 export interface Bar {
   host: HTMLElement;
   set(state: BarState): void;
-  /* The name Google prints beside the bar, the room it takes (indent), the
-     column's width (block), the name line's height (line), how far the name
-     stands from the row's left edge (lead: the favicon's room) and the
-     favicon itself (icon), so the bar sits exactly under the row and the
-     grown card can show the favicon and the name in their very places. */
-  name(text: string, indent: number, block?: number, line?: number, lead?: number, icon?: HTMLElement): void;
+  /* The name Google prints beside the bar and the room it takes (indent);
+     for a result's row also the column's width (block), the name line's
+     height (line), how far the name stands from the row's left edge (lead:
+     the favicon's room), the favicon itself and where it sits (icon, iconX,
+     iconY, from the row's top-left) and the page's own name element (like:
+     its font is copied), so the bar sits exactly under the row and the
+     grown card shows the favicon and the name in their very places, in
+     the page's own type. */
+  name(text: string, indent: number, more?: NameMore): void;
   remove(): void;
   state(): CardState;
   close(): void;
@@ -306,8 +315,18 @@ export function createBar(opts: {
   let current: Gauge | undefined;
   let still = false;
   let nameText = opts.title ?? "";
-  /* The page's favicon and its copy for the grown card. */
+  /* The page's favicon and its copy for the grown card; the page's name element and its type, copied onto the name. */
   let iconSource: HTMLElement | undefined, icon: HTMLElement | undefined;
+  let likeSource: HTMLElement | undefined, look = "";
+  /* The row's measures, kept so the bar can be refitted after the label changes. */
+  let rowLead = 0, rowIndent = 0, rowBlock = 0;
+  /* The bar under a result's row: the column's width, or the name-and-verdict row's if that is longer, so the bar never stops short of its own label. */
+  const fitBar = () => {
+    if (opts.shape !== "block") return;
+    const label = head.querySelector<HTMLElement>(".label");
+    const row = rowLead + rowIndent + 3 + (label ? label.getBoundingClientRect().width : 0);
+    host.style.setProperty("--om-block", `${Math.max(34, Math.round(Math.max(rowBlock, row)))}px`);
+  };
   let state: CardState = "rest";
   let listOpen = false;
   let frame: HTMLIFrameElement | null = null;
@@ -348,7 +367,8 @@ export function createBar(opts: {
       dots.append(item);
     }
     summary.textContent = current.sentence;
-    const sources = (current.sources ?? []).filter((s) => s.count > 0).map((s) => s.source);
+    const counted = new Map((current.sources ?? []).map((s) => [s.source, s.count]));
+    const sources = PLATFORMS.filter((p) => p !== "reddit" || (counted.get("reddit") ?? 0) > 0);
     for (const source of sources) {
       const tile = el("button", `tile mark-${source}`);
       tile.type = "button";
@@ -459,7 +479,7 @@ export function createBar(opts: {
     state = next;
     card.dataset.state = next;
     host.setAttribute("data-state", next);
-    if (next !== "rest") { host.style.zIndex = "1"; fillCard(); }
+    if (next !== "rest") { if (!site) host.style.zIndex = "1"; fillCard(); }
     grow(from);
     if (next === "rest") relaxTimer = window.setTimeout(relax, 400);
   };
@@ -615,7 +635,9 @@ export function createBar(opts: {
     if (s.kind === "loading") seg.classList.add("wait");
     const label = el("span", "label", gauge ? verdict(gauge) : "");
     if (opts.shape === "block") {
-      head.append(icon ?? el("span", "icon"), el("span", "name", nameText), label, seg, x());
+      const name = el("span", "name", nameText);
+      name.style.cssText = look;
+      head.append(icon ?? el("span", "icon"), name, label, seg, x());
     } else if (opts.shape === "square") {
       head.append(el("span", "lead", "What people think"), seg, label, x());
     } else if (opts.shape === "story") {
@@ -635,32 +657,42 @@ export function createBar(opts: {
     if (s.kind === "ready") { current = s.gauge; if (opts.shape !== "block" && opts.shape !== "story") nameText = s.gauge.name; }
     else current = undefined;
     if (opts.shape === "block" || opts.shape === "story") {
-      /* A result with no reading at all stays invisible; too few opinions is a plain grey track. */
-      const show = s.kind === "ready" || (s.kind === "empty" && Boolean(s.thin));
+      /* The bar shows from the first moment, sweeping while the reading is made; a result with no reading at all disappears; too few opinions is a plain grey track. */
+      const show = s.kind !== "empty" || Boolean(s.thin);
       host.hidden = !show;
       if (!show && state !== "rest") close();
     } else host.hidden = false;
     renderHead(s);
+    fitBar();
     if (state !== "rest") { fillCard(); grow(); }
   };
   render({ kind: "loading" });
   return {
     host,
     set: render,
-    name: (text, indent, block, line, lead, source) => {
+    name: (text, indent, more = {}) => {
       nameText = text;
       /* A little slack, so the name drawn over Google's never ends in an ellipsis. */
-      host.style.setProperty("--om-indent", `${Math.max(0, Math.ceil(indent) + 3)}px`);
-      if (block !== undefined) host.style.setProperty("--om-block", `${Math.max(34, Math.round(block))}px`);
-      if (line !== undefined) host.style.setProperty("--om-line", `${Math.max(12, line)}px`);
-      if (lead !== undefined) host.style.setProperty("--om-lead", `${Math.max(0, lead)}px`);
-      if (source && source !== iconSource) {
-        iconSource = source;
-        icon = lookalike(source);
+      rowIndent = Math.max(0, Math.ceil(indent) + 3);
+      host.style.setProperty("--om-indent", `${rowIndent}px`);
+      if (more.line !== undefined) host.style.setProperty("--om-line", `${Math.max(12, more.line)}px`);
+      if (more.lead !== undefined) { rowLead = Math.max(0, more.lead); host.style.setProperty("--om-lead", `${rowLead}px`); }
+      if (more.icon && more.icon !== iconSource) {
+        iconSource = more.icon;
+        icon = lookalike(more.icon);
         head.querySelector(".icon")?.replaceWith(icon);
       }
-      const name = head.querySelector(".name");
-      if (name && (opts.shape === "block" || opts.shape === "story")) name.textContent = text;
+      if (more.iconX !== undefined) host.style.setProperty("--om-icon-x", `${more.iconX}px`);
+      if (more.iconY !== undefined) host.style.setProperty("--om-icon-y", `${more.iconY}px`);
+      if (more.like && more.like !== likeSource) {
+        /* The page's own type for the name, so the grown card's name is the page's name to the pixel. */
+        likeSource = more.like;
+        const seen = getComputedStyle(more.like);
+        look = ["font-family", "font-size", "font-weight", "font-style", "letter-spacing", "line-height", "color"].map((p) => `${p}:${seen.getPropertyValue(p)}`).join(";");
+      }
+      const name = head.querySelector<HTMLElement>(".name");
+      if (name && (opts.shape === "block" || opts.shape === "story")) { name.textContent = text; if (opts.shape === "block") name.style.cssText = look; }
+      if (more.block !== undefined) { rowBlock = more.block; fitBar(); }
     },
     state: () => state,
     close,

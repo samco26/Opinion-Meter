@@ -239,3 +239,10 @@ body:has(.embed)>.ground{display:none}
 .embed.list-only .opinion-list{min-height:0;max-height:none;overflow:visible;padding:0 0 2px}
 .embed.list-only .embed-scroll{overflow:auto}
 .embed.list-only .detail-content{padding:6px 2px}
+/* Loading inside a grown bar: the same 3 px hairline and green-then-red sweep as every other bar, the phrase in the card's small grey. */
+.embed.list-only .loading-state{padding:5px 0 0}
+.embed.list-only .liquid-track{height:3px;border-radius:2px;background:var(--o-track,#e6e8ea);box-shadow:none}
+.embed.list-only .liquid-track span{width:45%;border-radius:2px;background:linear-gradient(90deg,var(--o-pos,#7ec98f) 50%,var(--o-neg,#e0705f) 50%);animation:hairline-flow 1600ms ease-in-out infinite}
+@keyframes hairline-flow{0%{transform:translateX(-110%)}100%{transform:translateX(220%)}}
+.embed.list-only .loading-state p{font-size:11px;margin-top:9px;color:var(--o-count,#72777d)}
+[data-theme="dark"] .embed.list-only .liquid-track{background:#303235}

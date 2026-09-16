@@ -13,7 +13,7 @@ import type { ExtensionConfig } from "./shared";
    placement "after": a fixed 34 px bar with the verdict right after the target's text.
    placement "fit": the same, shrunk to the room between the label's text and the dots (fitEnd) or the entry's right edge.
    placement "corner": the same in the top-right corner of a card whose site name sits at the bottom, kept clear of the title's first line (fitEnd). */
-export interface Found { url: string; title: string; site?: string; anchor: HTMLElement; target: HTMLElement; placement: "block" | "after" | "below" | "fit" | "corner"; fitEnd?: HTMLElement; line?: HTMLElement; block?: HTMLElement; icon?: HTMLElement; size: number }
+export interface Found { url: string; title: string; site?: string; anchor: HTMLElement; target: HTMLElement; placement: "block" | "after" | "below" | "fit" | "corner"; fitEnd?: HTMLElement; line?: HTMLElement; block?: HTMLElement; icon?: HTMLElement; heading?: HTMLElement; size: number }
 /* "kp": right-aligned on the knowledge panel's title lines, between the text and whatever else shares those lines (others: a logo, a thumbnail). */
 export type QueryPlace =
   | { mode: "kp"; title: HTMLElement; subtitle: HTMLElement | null; panel: HTMLElement; others: HTMLElement[] }
@@ -84,13 +84,29 @@ function lineFree(label: HTMLElement, container: HTMLElement): boolean {
 /* The small site name Google prints above an organic title, or at the top
    of a news card; with it, when the name and the address stack in one
    column, that column (block) and the name's line (line). */
+/* The favicon before a site's name: the image on the name's line to its left, taken with the box it sits in (Google draws it in a circle);
+   failing an image, whatever stands before the name on its line. */
+function favicon(scope: HTMLElement, line: HTMLElement, span: HTMLElement): HTMLElement | undefined {
+  const name = span.getBoundingClientRect();
+  for (const img of scope.querySelectorAll<HTMLElement>("img")) {
+    const box = img.getBoundingClientRect();
+    if (box.width < 8 || box.right > name.left || box.bottom < name.top || box.top > name.bottom) continue;
+    let pick: HTMLElement = img;
+    for (let node = img.parentElement; node && node !== scope && !node.contains(span); node = node.parentElement) {
+      const b = node.getBoundingClientRect();
+      if (b.width >= box.width - 1 && b.height >= box.height - 1) pick = node;
+    }
+    return pick;
+  }
+  return [...line.children].find((child): child is HTMLElement => child instanceof HTMLElement && !child.contains(span));
+}
+
 function siteLabel(anchor: HTMLElement, container: HTMLElement): { label: HTMLElement; line?: HTMLElement; block?: HTMLElement; icon?: HTMLElement } | undefined {
   const cite = anchor.querySelector<HTMLElement>("cite") ?? container.querySelector<HTMLElement>("cite");
   if (cite) {
     const row = cite.parentElement, block = row?.parentElement, first = block?.firstElementChild;
     const span = row && first && first !== row ? first.querySelector<HTMLElement>("span") : null;
-    /* The favicon: whatever stands before the name on its line. */
-    const icon = span && first ? [...first.children].find((child): child is HTMLElement => child instanceof HTMLElement && !child.contains(span)) : undefined;
+    const icon = span && first ? favicon(block?.parentElement ?? first, first as HTMLElement, span) : undefined;
     if (span && labelLike(clean(span.textContent))) return { label: span, line: first as HTMLElement, block: block as HTMLElement, icon };
   }
   const label = leaves(anchor).find((e) => fontSize(e) <= 12.5 && labelLike(clean(e.textContent)));
@@ -131,7 +147,7 @@ function organic(config: ExtensionConfig, known: WeakMap<Element, string>): Foun
     }
     /* The stack under the site's name when the name and the address form a column and the name's line is free; otherwise a small bar after the dots, which end the line. */
     if (label && named?.line && named.block && lineFree(label, container)) {
-      found.push({ url, title, site: clean(label.textContent), anchor: node, target: label, placement: "block", line: named.line, block: named.block, icon: named.icon, size: 2 });
+      found.push({ url, title, site: clean(label.textContent), anchor: node, target: label, placement: "block", line: named.line, block: named.block, icon: named.icon, heading, size: 2 });
       continue;
     }
     const target = label && lineFree(label, container) ? label : menu ?? label ?? cite ?? heading;

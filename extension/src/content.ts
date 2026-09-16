@@ -3,7 +3,7 @@ import { kpHeader, queryPlacement, readResults, textBox, type Found, type QueryP
 import { send, type ConfigReply, type ExtensionConfig, type Gauge, type GaugeRequest, type GaugeResponse, type SubjectStates } from "./shared";
 
 /* restHeight: the bar's height while nothing has grown; a grown card is pinned by that, never by its own. */
-interface Placed { bar: Bar; anchor: HTMLElement; target: HTMLElement; placement: Found["placement"]; fitEnd?: HTMLElement; line?: HTMLElement; block?: HTMLElement; icon?: HTMLElement; site?: string; restHeight?: number }
+interface Placed { bar: Bar; anchor: HTMLElement; target: HTMLElement; placement: Found["placement"]; fitEnd?: HTMLElement; line?: HTMLElement; block?: HTMLElement; icon?: HTMLElement; heading?: HTMLElement; site?: string; restHeight?: number }
 /* Tabs where a video's reading costs YouTube quota: no card is prepared ahead there. */
 const VIDEO_TABS = new Set(["7", "39"]);
 /* A story's bar is a fixed 34 px; its verdict needs about this much beside it. */
@@ -124,9 +124,13 @@ function place(placed: Placed) {
     const name = visibleEnd(target, anchor);
     const lineBox = onPage(line.getBoundingClientRect()), blockBox = onPage(block.getBoundingClientRect());
     const address = line.nextElementSibling?.nextElementSibling instanceof HTMLElement ? visibleEnd(line.nextElementSibling.nextElementSibling, anchor) : null;
-    const width = Math.min(blockBox.width, Math.max(name.right, address?.right ?? 0) - blockBox.left + 2);
-    bar.name(placed.site ?? "", name.right - name.left, width, lineBox.height, name.left - blockBox.left, placed.icon);
-    host.style.left = `${blockBox.left}px`;
+    /* The row starts where the title does (the favicon's left edge); on Google the name-and-address column stands to the favicon's right. */
+    const heading = placed.heading && shown(placed.heading) ? onPage(placed.heading.getBoundingClientRect()) : null;
+    const left = Math.min(blockBox.left, heading?.left ?? blockBox.left);
+    const iconBox = placed.icon ? onPage(placed.icon.getBoundingClientRect()) : null;
+    const width = Math.min(blockBox.left + blockBox.width - left, Math.max(name.right, address?.right ?? 0) - left + 2);
+    bar.name(placed.site ?? "", name.right - name.left, { block: width, line: lineBox.height, lead: name.left - left, icon: placed.icon, iconX: iconBox ? iconBox.left - left : 0, iconY: iconBox ? iconBox.top - lineBox.top : 0, like: target });
+    host.style.left = `${left}px`;
     host.style.top = `${lineBox.top}px`;
   } else if (placement === "after") {
     /* A small bar with its verdict right after the text itself. */
@@ -259,7 +263,7 @@ function positionQuery() {
 }
 function hold(result: Found, bar: Bar) {
   layer().append(bar.host);
-  placements.set(result.anchor, { bar, anchor: result.anchor, target: result.target, placement: result.placement, fitEnd: result.fitEnd, line: result.line, block: result.block, icon: result.icon, site: result.site });
+  placements.set(result.anchor, { bar, anchor: result.anchor, target: result.target, placement: result.placement, fitEnd: result.fitEnd, line: result.line, block: result.block, icon: result.icon, heading: result.heading, site: result.site });
 }
 async function drain() {
   if (busy) return;
