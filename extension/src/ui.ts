@@ -43,16 +43,19 @@ const CSS = `
 .card.closing{--px:18px;--pt:16px;--pb:14px}
 /* The query's line spans its host (the results column); the others are as wide as their header. */
 :host([data-shape="line"]) .card{width:calc(100% + 2px)}
-:host([data-site]) .card{--px:15px;--pt:8px;--pb:8px;left:0;top:0;position:relative;background:var(--card);border-color:var(--border);border-radius:19px;box-shadow:var(--badge-shadow);transition:width 340ms var(--ease),height 340ms var(--ease),padding 340ms var(--ease),background 200ms ease,box-shadow 200ms ease,border-color 200ms ease,border-radius 200ms ease}
+:host([data-site]) .card{--px:15px;--pt:8px;--pb:8px;left:0;top:0;position:relative;background:var(--card);border-color:var(--border);border-radius:19px;box-shadow:var(--badge-shadow);transition:width 340ms var(--ease),height 340ms var(--ease),padding 340ms var(--ease),left 340ms var(--ease),background 200ms ease,box-shadow 200ms ease,border-color 200ms ease,border-radius 200ms ease}
 :host([data-site]) .card[data-state="hover"],:host([data-site]) .card[data-state="open"]{--px:17px;--pt:15px;--pb:13px;border-radius:12px}
 :host([data-site]) .card.closing{--px:17px;--pt:15px;--pb:13px}
 :host([data-pill]) .card{white-space:nowrap}
 .head{display:flex;align-items:center;gap:11px;min-width:0}
-.head.block{display:grid;grid-template-columns:var(--om-indent,0px) auto 1fr auto;grid-template-rows:var(--om-line,20px) auto;grid-template-areas:"name label . x" "bar bar bar bar";row-gap:1px;column-gap:0;align-items:center}
+.head.block{display:grid;grid-template-columns:var(--om-lead,0px) var(--om-indent,0px) auto 1fr auto;grid-template-rows:var(--om-line,20px) auto;grid-template-areas:"lead name label . x" "bar bar bar bar bar";row-gap:1px;column-gap:0;align-items:center}
+/* A copy of Google's favicon, drawn in its very place once the card's surface hides the real one. */
+.head.block .icon{grid-area:lead;justify-self:start;opacity:0;transition:opacity 200ms ease}
+.card[data-state="hover"] .head.block .icon,.card[data-state="open"] .head.block .icon{opacity:1}
 :host([data-bare]) .head .label{display:none}
 .head.block .name{grid-area:name;overflow:hidden;text-overflow:clip;white-space:nowrap;font-size:12px;font-weight:400;color:var(--t2);opacity:0;transition:opacity 200ms ease}
 .card[data-state="hover"] .head.block .name,.card[data-state="open"] .head.block .name{opacity:1}
-.head.block .label{grid-area:label;margin-left:9px}
+.head.block .label{grid-area:label;margin-left:3px}
 .head.block .seg{grid-area:bar;width:var(--om-block,100%)}
 .head.block .x{grid-area:x;justify-self:end}
 .name{font-size:13px;font-weight:500;color:var(--t1);white-space:nowrap}
@@ -133,10 +136,11 @@ export interface Bar {
   host: HTMLElement;
   set(state: BarState): void;
   /* The name Google prints beside the bar, the room it takes (indent), the
-     column's width (block) and the name line's height (line), so the bar
-     sits exactly under the name and the grown card can show the name in
-     the very same place. */
-  name(text: string, indent: number, block?: number, line?: number): void;
+     column's width (block), the name line's height (line), how far the name
+     stands from the row's left edge (lead: the favicon's room) and the
+     favicon itself (icon), so the bar sits exactly under the row and the
+     grown card can show the favicon and the name in their very places. */
+  name(text: string, indent: number, block?: number, line?: number, lead?: number, icon?: HTMLElement): void;
   remove(): void;
   state(): CardState;
   close(): void;
@@ -180,6 +184,27 @@ function segments(gauge: Gauge | undefined, parts: 2 | 3): HTMLElement {
 }
 
 const SWALLOW = ["mousedown", "mouseup", "pointerdown", "pointerup", "auxclick", "touchstart", "touchend"] as const;
+
+/* A look-alike of a small piece of the page (a favicon in its circle): the
+   node copied with the computed values of the properties that give it its
+   look written inline, since the page's own stylesheet does not reach into
+   the card. */
+const LOOK = ["display", "box-sizing", "width", "height", "min-width", "min-height", "max-width", "max-height", "padding", "margin", "border", "border-radius", "background-color", "background-image", "background-size", "background-position", "color", "font-family", "font-size", "font-weight", "font-style", "line-height", "letter-spacing", "text-align", "vertical-align", "align-items", "justify-content", "place-items", "flex", "object-fit", "overflow", "opacity"];
+function lookalike(node: HTMLElement): HTMLElement {
+  const copy = node.cloneNode(true) as HTMLElement;
+  const dress = (from: Element, to: Element) => {
+    if (!(from instanceof HTMLElement) || !(to instanceof HTMLElement)) return;
+    const seen = getComputedStyle(from);
+    to.removeAttribute("class"); to.removeAttribute("id"); to.removeAttribute("style");
+    for (const property of LOOK) to.style.setProperty(property, seen.getPropertyValue(property));
+    if (from instanceof HTMLImageElement && to instanceof HTMLImageElement) { to.src = from.currentSrc || from.src; to.loading = "eager"; }
+    for (let i = 0; i < from.children.length; i++) dress(from.children[i], to.children[i]);
+  };
+  dress(node, copy);
+  copy.classList.add("icon");
+  copy.setAttribute("aria-hidden", "true");
+  return copy;
+}
 
 /* One step under Google's search header in the stacking order, so bars
    and their open cards pass beneath the header as the page scrolls, never
@@ -281,6 +306,8 @@ export function createBar(opts: {
   let current: Gauge | undefined;
   let still = false;
   let nameText = opts.title ?? "";
+  /* The page's favicon and its copy for the grown card. */
+  let iconSource: HTMLElement | undefined, icon: HTMLElement | undefined;
   let state: CardState = "rest";
   let listOpen = false;
   let frame: HTMLIFrameElement | null = null;
@@ -343,9 +370,14 @@ export function createBar(opts: {
      begins, measured before the state changed. Without it, the card is
      already in its new state (a resize, the list opening). */
   const pad = site ? SITE_PAD : PAD;
-  const grow = (from?: { w: number; h: number; padding: string }) => {
-    const vw = document.documentElement.clientWidth || window.innerWidth, vh = window.innerHeight;
-    const fromW = from?.w ?? card.offsetWidth, fromH = from?.h ?? card.offsetHeight;
+  /* A story's name line stands above the bar while the card is grown or closing; the card rises by that much. */
+  const riseNow = () => opts.shape === "story" && (state !== "rest" || closing) ? who.getBoundingClientRect().height + (parseFloat(getComputedStyle(who).marginBottom) || 0) : 0;
+  /* The bar's own box wrapped in the card's padding (and pushed by the sideways shift): the smallest card that still
+     holds the whole bar. Growing starts from it and shrinking ends at it, so the bar is never clipped by the card's edge. */
+  const wrapped = (rest: { w: number; h: number }, shift: number, rise: number) => ({ w: rest.w + 2 * pad.x + shift, h: rest.h + pad.t + pad.b + rise });
+  const grow = (from?: { w: number; h: number; padding: string; rest?: boolean }) => {
+    const vw = document.documentElement.clientWidth || window.innerWidth || 1024, vh = window.innerHeight || 768;
+    let fromW = from?.w ?? card.offsetWidth, fromH = from?.h ?? card.offsetHeight;
     const fromPadding = from?.padding ?? getComputedStyle(card).padding;
     const grown = state !== "rest";
     /* Only the surface transitions run while the target is measured; the size (and the badge's padding) is set by hand below. */
@@ -360,15 +392,15 @@ export function createBar(opts: {
       const width = wide ? restW + 2 * pad.x + 2 : Math.min(site ? SITE_CARD_WIDTH : CARD_WIDTH, vw - 2 * EDGE);
       card.style.width = `${width}px`;
       const hostLeft = host.getBoundingClientRect().left;
+      const rise = riseNow();
       if (site) {
         /* A badge at the window's right grows leftwards from there; one dragged elsewhere slides left only as far as the window needs. */
         if (host.style.right === "auto") shift = Math.max(0, Math.min(hostLeft - EDGE, hostLeft + width - (vw - EDGE)));
-        card.style.left = shift ? `${-Math.round(shift)}px` : "";
+        card.style.left = `${-Math.round(shift)}px`;
       } else {
         /* Sideways: never past the window's right edge; the header is pushed right by the same amount, so it stays put.
            Upwards: a story's name line appears above the bar, and the card rises by exactly that, so the bar stays put. */
         shift = Math.max(0, Math.min(hostLeft - EDGE, hostLeft - pad.x - 1 + width - (vw - EDGE)));
-        const rise = opts.shape === "story" ? who.getBoundingClientRect().height + (parseFloat(getComputedStyle(who).marginBottom) || 0) : 0;
         card.style.left = `calc(-1 * var(--px) - ${Math.round(shift) + 1}px)`;
         card.style.top = `calc(-1 * var(--pt) - ${Math.round(rise) + 1}px)`;
         head.style.marginLeft = `${Math.round(shift)}px`;
@@ -384,11 +416,13 @@ export function createBar(opts: {
       const inner = toW - 2 * pad.x - 2;
       body.style.width = `${inner}px`;
       if (!site) head.style.width = `${inner - Math.round(shift)}px`;
+      /* Leaving rest: the box starts as the bar wrapped in padding (transparent still), never smaller, so the bar is whole from the first frame. */
+      if (from?.rest && !site && restSize) ({ w: fromW, h: fromH } = wrapped(restSize, Math.round(shift), Math.round(rise)));
     } else {
-      /* Back to the bar: its own box plus the card's padding, which drops away once the surface has faded (the badge's padding shrinks with it). */
+      /* Back to the bar: its box wrapped in the padding (and the shift and rise it had), which drops away once the surface has faded. */
       const rest = restSize ?? { w: fromW, h: fromH };
-      toW = site ? rest.w : rest.w + 2 * pad.x;
-      toH = site ? rest.h : rest.h + pad.t + pad.b;
+      if (site) { toW = rest.w; toH = rest.h; card.style.left = "0px"; }
+      else ({ w: toW, h: toH } = wrapped(rest, parseFloat(head.style.marginLeft) || 0, Math.round(riseNow())));
     }
     /* From the size it had to the size it needs, with the transitions on. */
     card.style.width = `${fromW}px`; card.style.height = `${fromH}px`;
@@ -413,8 +447,8 @@ export function createBar(opts: {
   const setState = (next: CardState) => {
     if (state === next) return;
     /* Where the animation starts: the size the card has before anything changes. Leaving rest, that is the bar's own box. */
-    const from = { w: card.offsetWidth, h: card.offsetHeight, padding: getComputedStyle(card).padding };
-    if (state === "rest" && !closing) {
+    const from = { w: card.offsetWidth, h: card.offsetHeight, padding: getComputedStyle(card).padding, rest: state === "rest" && !closing };
+    if (from.rest) {
       restSize = { w: from.w, h: from.h };
       if (!restore) restore = opts.relocate?.();
     }
@@ -580,7 +614,7 @@ export function createBar(opts: {
     if (s.kind === "loading") seg.classList.add("wait");
     const label = el("span", "label", gauge ? verdict(gauge) : "");
     if (opts.shape === "block") {
-      head.append(el("span", "name", nameText), label, seg, x());
+      head.append(icon ?? el("span", "icon"), el("span", "name", nameText), label, seg, x());
     } else if (opts.shape === "square") {
       head.append(el("span", "lead", "What people think"), seg, label, x());
     } else if (opts.shape === "story") {
@@ -612,12 +646,18 @@ export function createBar(opts: {
   return {
     host,
     set: render,
-    name: (text, indent, block, line) => {
+    name: (text, indent, block, line, lead, source) => {
       nameText = text;
       /* A little slack, so the name drawn over Google's never ends in an ellipsis. */
       host.style.setProperty("--om-indent", `${Math.max(0, Math.ceil(indent) + 3)}px`);
       if (block !== undefined) host.style.setProperty("--om-block", `${Math.max(34, Math.round(block))}px`);
-      if (line !== undefined) host.style.setProperty("--om-line", `${Math.max(12, Math.round(line))}px`);
+      if (line !== undefined) host.style.setProperty("--om-line", `${Math.max(12, line)}px`);
+      if (lead !== undefined) host.style.setProperty("--om-lead", `${Math.max(0, lead)}px`);
+      if (source && source !== iconSource) {
+        iconSource = source;
+        icon = lookalike(source);
+        head.querySelector(".icon")?.replaceWith(icon);
+      }
       const name = head.querySelector(".name");
       if (name && (opts.shape === "block" || opts.shape === "story")) name.textContent = text;
     },

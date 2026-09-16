@@ -3,7 +3,7 @@ import { kpHeader, queryPlacement, readResults, textBox, type Found, type QueryP
 import { send, type ConfigReply, type ExtensionConfig, type Gauge, type GaugeRequest, type GaugeResponse, type SubjectStates } from "./shared";
 
 /* restHeight: the bar's height while nothing has grown; a grown card is pinned by that, never by its own. */
-interface Placed { bar: Bar; anchor: HTMLElement; target: HTMLElement; placement: Found["placement"]; fitEnd?: HTMLElement; line?: HTMLElement; block?: HTMLElement; site?: string; restHeight?: number }
+interface Placed { bar: Bar; anchor: HTMLElement; target: HTMLElement; placement: Found["placement"]; fitEnd?: HTMLElement; line?: HTMLElement; block?: HTMLElement; icon?: HTMLElement; site?: string; restHeight?: number }
 /* Tabs where a video's reading costs YouTube quota: no card is prepared ahead there. */
 const VIDEO_TABS = new Set(["7", "39"]);
 /* A story's bar is a fixed 34 px; its verdict needs about this much beside it. */
@@ -108,9 +108,12 @@ function place(placed: Placed) {
   if (bar.state() === "rest") placed.restHeight = host.offsetHeight || placed.restHeight;
   const h = placed.restHeight || host.offsetHeight || 20;
   if (placement === "block" && placed.line && placed.block) {
-    /* The stack: the verdict beside the site's name, the hairline under the
-       name across the name-and-address column, inside a gap opened under
-       the name's line so nothing of Google's moves but the address, by 5 px. */
+    /* The stack: the verdict right after the site's name, the hairline under
+       the whole row from the result's left edge (level with the title) to the
+       end of the name-and-address column, inside a gap opened under the name's
+       line so nothing of Google's moves but the address, by 5 px. The host
+       sits at the row's exact fractional position, so the verdict shares the
+       name's pixel row on every zoom level. */
     const line = placed.line, block = placed.block;
     if (!(line.nextElementSibling instanceof HTMLElement && line.nextElementSibling.getAttribute("data-opinion-meter") === "gap")) {
       const gap = document.createElement("div");
@@ -122,9 +125,9 @@ function place(placed: Placed) {
     const lineBox = onPage(line.getBoundingClientRect()), blockBox = onPage(block.getBoundingClientRect());
     const address = line.nextElementSibling?.nextElementSibling instanceof HTMLElement ? visibleEnd(line.nextElementSibling.nextElementSibling, anchor) : null;
     const width = Math.min(blockBox.width, Math.max(name.right, address?.right ?? 0) - blockBox.left + 2);
-    bar.name(placed.site ?? "", name.right - name.left, width, lineBox.height);
-    host.style.left = `${Math.round(name.left)}px`;
-    host.style.top = `${Math.round(lineBox.top)}px`;
+    bar.name(placed.site ?? "", name.right - name.left, width, lineBox.height, name.left - blockBox.left, placed.icon);
+    host.style.left = `${blockBox.left}px`;
+    host.style.top = `${lineBox.top}px`;
   } else if (placement === "after") {
     /* A small bar with its verdict right after the text itself. */
     const box = visibleEnd(target, anchor);
@@ -256,7 +259,7 @@ function positionQuery() {
 }
 function hold(result: Found, bar: Bar) {
   layer().append(bar.host);
-  placements.set(result.anchor, { bar, anchor: result.anchor, target: result.target, placement: result.placement, fitEnd: result.fitEnd, line: result.line, block: result.block, site: result.site });
+  placements.set(result.anchor, { bar, anchor: result.anchor, target: result.target, placement: result.placement, fitEnd: result.fitEnd, line: result.line, block: result.block, icon: result.icon, site: result.site });
 }
 async function drain() {
   if (busy) return;
