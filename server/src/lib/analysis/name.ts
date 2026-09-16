@@ -41,6 +41,18 @@ type Stored = { subject: Subject | null };
 const resultKey = (r: RawResult) => `name:r:${hashKey(`${r.url}|${r.title}`)}`;
 const queryKey = (query: string) => `name:q2:${hashKey(query.toLowerCase().trim())}`;
 
+/* What the memory already knows, without asking the model: a subject, null
+   (named before: nothing ratable), or undefined (never named). */
+export async function cachedQueryName(query: string): Promise<Subject | null | undefined> {
+  const stored = await memory().get<Stored>(queryKey(query));
+  return stored ? stored.subject : undefined;
+}
+export async function cachedSiteNames(hosts: string[]): Promise<Map<string, Subject | null | undefined>> {
+  const m = memory();
+  const stored = await Promise.all(hosts.map((host) => m.get<Stored>(`name:site:${host}`)));
+  return new Map(hosts.map((host, index) => [host, stored[index] ? stored[index]!.subject : undefined]));
+}
+
 function toSubject(kind: string, name: string, url?: string, forQuery = false): Subject | null {
   const clean = name.replace(/\s+/g, " ").trim();
   if (!(forQuery ? NAMEABLE_QUERY : NAMEABLE_RESULT).has(kind) || !clean) return null;

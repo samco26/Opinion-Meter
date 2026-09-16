@@ -154,8 +154,9 @@ async function gauge(request: GaugeRequest): Promise<GaugeResponse> {
     return answer;
   }
   const response = await call<GaugeResponse>("/api/gauge", { method: "POST", body: JSON.stringify(request) });
-  keep(queryKeys, request.query, response.query.key);
-  for (const r of response.results) keep(resultKeys, r.url, r.key);
+  /* A name still being made on the server is not remembered: the hands ask again shortly and the answer then is the one to keep. */
+  if (!response.query.later) keep(queryKeys, request.query, response.query.key);
+  for (const r of response.results) if (!r.later) keep(resultKeys, r.url, r.key);
   settle(response.subjects);
   carryAll(request, response.results, response.subjects);
   return response;

@@ -11,8 +11,8 @@ export const DEFAULT_CONFIG: ExtensionConfig = {
   enabled: true,
   minExtensionVersion: "0.2.0",
   ttlMinutes: 60,
-  pollMs: 8000,
-  polls: 4,
+  pollMs: 3000,
+  polls: 10,
   google: {
     enabled: true,
     queryBar: true,

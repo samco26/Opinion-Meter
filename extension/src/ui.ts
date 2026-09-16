@@ -94,16 +94,19 @@ const CSS = `
 .tagline{display:none;font-size:12px;line-height:1.5;color:var(--tb);margin-top:7px;white-space:normal;text-wrap:pretty}
 :host([data-shape="line"]) .tagline:not(:empty){display:block}
 :host([data-shape="line"]) .body .summary{display:none}
-:host([data-shape="line"]) .dots{margin-top:14px}
+:host([data-shape="line"]) .body{padding-top:18px}
 .body{display:none;flex-direction:column;white-space:normal;opacity:1;transition:opacity 150ms ease}
 .card[data-state="hover"] .body,.card[data-state="open"] .body{display:flex}
 .card.closing .body{display:flex;opacity:0}
 @starting-style{.card[data-state="hover"] .body,.card[data-state="open"] .body{opacity:0}}
-.dots{display:flex;gap:16px;margin-top:9px;font-size:10px;color:var(--tl);white-space:nowrap}
+/* The figures, right under the bar on every card (as on the badge), sliding open with the card and folding away as it closes. */
+.dots{display:flex;gap:16px;margin-top:0;max-height:0;width:0;overflow:hidden;opacity:0;font-size:10px;line-height:14px;color:var(--tl);white-space:nowrap;transition:max-height 340ms var(--ease),margin-top 340ms var(--ease),opacity 150ms ease}
+.card[data-state="hover"] .dots,.card[data-state="open"] .dots{width:auto;max-height:16px;margin-top:9px;opacity:1}
+.card.closing .dots{width:auto;max-height:0;margin-top:0;opacity:0}
 .dots span{display:inline-flex;align-items:center;gap:6px}.dots i{width:5px;height:5px;border-radius:3px;flex:none}
 .summary{font-size:13px;line-height:1.6;color:var(--tb);margin:16px 0 18px;text-wrap:pretty;max-width:62ch}
 :host([data-site]) .summary{font-size:12px;margin:14px 0 16px}
-:host([data-site]) .dots{gap:14px;margin-top:8px}
+:host([data-site]) .dots{gap:14px}:host([data-site]) .card[data-state="hover"] .dots,:host([data-site]) .card[data-state="open"] .dots{margin-top:8px}
 .actions{display:flex;align-items:center;gap:10px}
 .tiles{display:flex;gap:6px}
 .tile{width:24px;height:24px;border-radius:7px;border:0;padding:0;background:var(--tile);display:grid;place-items:center;cursor:pointer;color:var(--t2);transition:background 160ms ease}.tile:hover{background:var(--border)}
@@ -302,8 +305,8 @@ export function createBar(opts: {
   const divider = el("div", "divider");
   const foot = el("button", "foot", "How it works · sources and confidence");
   foot.type = "button";
-  body.append(dots, summary, actions, heading, sheet, divider, foot);
-  card.append(who, head, tagline, body);
+  body.append(summary, actions, heading, sheet, divider, foot);
+  card.append(who, head, dots, tagline, body);
   root.append(style, card);
   /* The host's own box is the header's, so the pins measure the bar and never the grown card. */
   if (!site) {

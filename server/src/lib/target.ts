@@ -7,7 +7,8 @@
    told apart. The query names the thing the reader typed, by the batched
    AI call, with the other names discussion uses for it. A page about
    nothing in particular gets no bar. */
-import { nameSites, nameSubjects } from "./analysis/name";
+import { cachedQueryName, cachedSiteNames, nameSites, nameSubjects } from "./analysis/name";
+import { configured } from "./env";
 import { hashKey, knownSite, normaliseUrl, resolveByRule, siteSubject, subject, type RawResult } from "./subject";
 import type { Subject } from "./types";
 
@@ -24,7 +25,8 @@ export function domainSubject(target: Subject): Subject | null {
   return { ...subject(target.domain, "company", `domain:${hashKey(target.domain)}`), scope: "domain", domain: target.domain };
 }
 
-export interface ResultSubjects { query: Subject | null; results: Map<number, Subject | null> }
+/* later: results (by index) and queryLater: the query, whose names are still being made in the background; the hands ask again shortly. */
+export interface ResultSubjects { query: Subject | null; results: Map<number, Subject | null>; later: Set<number>; queryLater: boolean }
 
 /* The site behind a result, or the video, without any AI. */
 export function resultSubject(result: RawResult): Subject | null {
@@ -35,8 +37,12 @@ export function resultSubject(result: RawResult): Subject | null {
 
 const hostOf = (url: string) => { try { return new URL(url).hostname.toLowerCase().replace(/^(www|m)\./, ""); } catch { return null; } };
 
-export async function resultSubjects(query: string, results: Array<RawResult & { i: number }>, timeoutMs: number): Promise<ResultSubjects> {
+/* background: given, a name the model has yet to make is started in the background and reported as "later" rather than
+   waited for, so results that are already known (and their readings) are not held up by the ones that are not. */
+export async function resultSubjects(query: string, results: Array<RawResult & { i: number }>, timeoutMs: number, background?: (work: Promise<unknown>) => void): Promise<ResultSubjects> {
   const byIndex = new Map<number, Subject | null>();
+  const later = new Set<number>();
+  let queryLater = false;
   const unknown = new Map<string, { host: string; label?: string; title: string; indexes: number[] }>();
   for (const result of results) {
     const found = resultSubject(result);
@@ -47,16 +53,31 @@ export async function resultSubjects(query: string, results: Array<RawResult & {
     entry.indexes.push(result.i);
     unknown.set(host, entry);
   }
-  const [named, sites] = await Promise.all([
-    nameSubjects(query, [], timeoutMs),
-    unknown.size ? nameSites([...unknown.values()].map(({ host, label, title }) => ({ host, label, title })), timeoutMs) : Promise.resolve(new Map<string, Subject | null>()),
-  ]);
+  let named: { query: Subject | null };
+  let sites: Map<string, Subject | null | undefined>;
+  if (background && configured.openai()) {
+    /* Only what the memory knows now; the rest is made in the background and asked for again. */
+    const [storedQuery, storedSites] = await Promise.all([cachedQueryName(query), cachedSiteNames([...unknown.keys()])]);
+    if (storedQuery === undefined) { queryLater = true; background(nameSubjects(query, [], timeoutMs)); }
+    named = { query: storedQuery ?? null };
+    sites = storedSites;
+    const unnamed = [...unknown.values()].filter((entry) => sites.get(entry.host) === undefined);
+    if (unnamed.length) {
+      for (const entry of unnamed) for (const index of entry.indexes) later.add(index);
+      background(nameSites(unnamed.map(({ host, label, title }) => ({ host, label, title })), timeoutMs));
+    }
+  } else {
+    [named, sites] = await Promise.all([
+      nameSubjects(query, [], timeoutMs),
+      unknown.size ? nameSites([...unknown.values()].map(({ host, label, title }) => ({ host, label, title })), timeoutMs) : Promise.resolve(new Map<string, Subject | null>()),
+    ]);
+  }
   for (const entry of unknown.values()) {
     const site = sites.get(entry.host);
     /* The model's name wins; when it has nothing, Google's label stands. */
     if (site) for (const index of entry.indexes) byIndex.set(index, site);
   }
-  return { query: named.query, results: byIndex };
+  return { query: named.query, results: byIndex, later, queryLater };
 }
 
 export function targetInstructions(target: Subject): string {

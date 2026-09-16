@@ -18,6 +18,10 @@ let queryBar: Bar | null = null;
 let queryPlace: QueryPlace | null = null;
 /* The query bar's latest state, for a remade query bar. */
 let queryState: BarState | null = null;
+/* Results whose names the server is still making, to be asked about again; and whether the query is. */
+const retrying = new Set<Found>();
+let queryAgain = false;
+const RETRY_MS = 1500;
 /* The brain said the meter is off (after a first look from the cached config). */
 let off = false;
 let seen = new WeakMap<Element, string>();
@@ -290,7 +294,7 @@ async function drain() {
   if (busy) return;
   busy = true;
   try {
-    while (queue.length || first) {
+    while (queue.length || first || queryAgain) {
       const epoch = generation, initial = first;
       first = false;
       const results = queue.splice(0, Math.min(20, Math.max(1, config.google.maxResults)));
@@ -298,6 +302,10 @@ async function drain() {
       const drawn = new Map<Found, Bar>();
       for (const result of results) {
         if (!result.anchor.isConnected) continue;
+        /* A result asked about again keeps the bar it has, still sweeping. */
+        const kept = retrying.has(result) ? placements.get(result.anchor)?.bar : undefined;
+        retrying.delete(result);
+        if (kept) { drawn.set(result, kept); continue; }
         placements.get(result.anchor)?.bar.remove();
         const context = { query: requestQuery, results: [{ url: result.url, title: result.title, ...(result.site ? { site: result.site } : {}) }] };
         const bar = createBar({ shape: result.placement === "block" ? "block" : "story", title: result.site ?? result.title, dark, drawer: drawerFor(context), onGauge: take });
@@ -312,23 +320,33 @@ async function drain() {
       }
       try {
         const unique = [...new Map(results.map(r => [r.url, { url: r.url, title: r.title, ...(r.site ? { site: r.site } : {}) }])).values()];
-        if (!initial && !unique.length) continue;
+        const askingQuery = queryAgain;
+        queryAgain = false;
+        if (!initial && !unique.length && !askingQuery) continue;
         const response = await send<GaugeResponse>({ type: "gauge", request: { query: requestQuery, results: unique } });
         if (epoch !== generation) continue;
-        const keys = new Map(response.results.map(r => [r.url, r.key]));
+        const answers = new Map(response.results.map(r => [r.url, r]));
+        /* A name the server is still making comes as "later": the bar keeps sweeping and the result is asked about again shortly. */
+        const again: Found[] = [];
         for (const [result, bar] of drawn) {
-          const key = keys.get(result.url);
-          if (key) attach(key, bar);
+          const answer = answers.get(result.url);
+          if (answer?.key) attach(answer.key, bar);
+          else if (answer?.later) again.push(result);
           else bar.set({ kind: "empty", reason: "No reading available for this link." });
         }
-        if (initial && queryBar) {
+        if ((initial || askingQuery) && queryBar) {
           if (response.query.key) attach(response.query.key, queryBar);
+          else if (response.query.later) queryAgain = true;
           /* The query names nothing that can be rated (a login page, a
              search for nothing in particular): no card, rather than a dead one. */
           else { queryBar.remove(); queryBar = null; }
         }
         apply(response.subjects);
-        if (initial && !VIDEO_TABS.has(udm())) { prefetch(response.query.key); prefetch(response.results[0]?.key ?? null); }
+        if ((initial || askingQuery) && !VIDEO_TABS.has(udm())) { prefetch(response.query.key); prefetch(response.results[0]?.key ?? null); }
+        if (again.length || queryAgain) {
+          for (const result of again) retrying.add(result);
+          window.setTimeout(() => { if (epoch !== generation) return; queue.push(...again); void drain(); }, RETRY_MS);
+        }
       } catch {
         if (epoch !== generation) continue;
         for (const bar of drawn.values()) bar.set({ kind: "empty", reason: "The reading could not finish." });
@@ -343,7 +361,7 @@ function scan() {
   if (now !== query) {
     generation++; query = now; first = true; queue = []; seen = new WeakMap();
     for (const placed of placements.values()) placed.bar.remove();
-    placements.clear(); bars.clear(); pending.clear(); prefetched.clear(); queryBar?.remove(); queryBar = null; queryPlace = null; queryState = null;
+    placements.clear(); bars.clear(); pending.clear(); prefetched.clear(); retrying.clear(); queryAgain = false; queryBar?.remove(); queryBar = null; queryPlace = null; queryState = null;
   }
   if (!query) return;
   const theme = isDark();

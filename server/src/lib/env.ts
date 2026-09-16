@@ -39,6 +39,6 @@ export const settings = {
   minItems: () => envInt("MIN_ITEMS", 8, 1, 100),
   cacheTtlSeconds: () => envInt("CACHE_TTL_HOURS", 24, 1, 24) * 3600,
   freshPerDay: () => envInt("FRESH_SUBJECTS_PER_DAY", 5000, 1, 1_000_000),
-  perMinute: () => envInt("RATE_PER_TOKEN_MINUTE", 20, 1, 10_000),
+  perMinute: () => envInt("RATE_PER_TOKEN_MINUTE", 60, 1, 10_000),
   perDay: () => envInt("RATE_PER_TOKEN_DAY", 500, 1, 1_000_000),
 };

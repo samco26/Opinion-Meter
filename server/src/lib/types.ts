@@ -160,9 +160,10 @@ export interface GaugeRequest {
 export type SubjectStates = Record<string, GaugeState & { name?: string; kind?: SubjectKind; category?: Category }>;
 
 export interface GaugeResponse {
-  /* The search query as a subject, when it names a thing. */
-  query: { key: string | null };
-  results: Array<{ url: string; key: string | null }>;
+  /* The search query as a subject, when it names a thing; later: its name is still being made, ask again shortly. */
+  query: { key: string | null; later?: boolean };
+  /* later: the site's name is still being made (key null for now), ask again shortly. */
+  results: Array<{ url: string; key: string | null; later?: boolean }>;
   subjects: SubjectStates;
 }
 

@@ -68,10 +68,14 @@ export async function computeGauge(subject: Subject): Promise<Stored> {
   return stored;
 }
 
+/* How long the first answer waits for a fresh reading before leaving it to the poll. */
+const QUICK_MS = 2500;
+
 export async function gaugeFor(req: GaugeRequest, budgetMs: number, keepAlive: (work: Promise<unknown>) => void): Promise<GaugeResponse> {
   const started = Date.now();
   const results = req.results.slice(0, MAX_RESULTS).map((r, i) => ({ ...r, i }));
-  const naming = await resultSubjects(req.query, results, Math.min(8000, budgetMs / 3));
+  /* Names the memory has now; the model's naming of anything new runs on in the background and the hands ask again shortly. */
+  const naming = await resultSubjects(req.query, results, Math.min(8000, budgetMs / 3), keepAlive);
 
   const subjects = new Map<string, Subject>();
   const add = (s: Subject | null) => {
@@ -79,8 +83,8 @@ export async function gaugeFor(req: GaugeRequest, budgetMs: number, keepAlive: (
     return s?.key ?? null;
   };
   const response: GaugeResponse = {
-    query: { key: add(naming.query) },
-    results: results.map((r) => ({ url: r.url, key: add(naming.results.get(r.i) ?? null) })),
+    query: { key: add(naming.query), ...(naming.queryLater ? { later: true } : {}) },
+    results: results.map((r) => (naming.later.has(r.i) ? { url: r.url, key: null, later: true } : { url: r.url, key: add(naming.results.get(r.i) ?? null) })),
     subjects: {},
   };
 
@@ -102,7 +106,8 @@ export async function gaugeFor(req: GaugeRequest, budgetMs: number, keepAlive: (
     await m.set(`pending:${subject.key}`, true, PENDING_TTL);
     const work = computeGauge(subject);
     keepAlive(work);
-    const outcome = await Promise.race([work, new Promise<null>((resolve) => setTimeout(resolve, remaining()))]);
+    /* A short wait for a quick reading; a slow one is reported pending and polled for, so the cached and the quick are never held up by the slow. */
+    const outcome = await Promise.race([work, new Promise<null>((resolve) => setTimeout(resolve, Math.min(remaining(), QUICK_MS)))]);
     response.subjects[subject.key] = outcome ? { ...base, ...outcome } : { ...base, state: "pending" };
   }));
   return response;
