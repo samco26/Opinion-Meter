@@ -206,10 +206,10 @@ function liftQuery(): (() => void) | undefined {
   const box = onPage(host.getBoundingClientRect());
   const blank = document.createElement("div");
   blank.setAttribute("data-opinion-meter", "blank");
-  blank.style.cssText = `height:${Math.round(box.height)}px;margin:16px 0 22px`;
+  blank.style.cssText = `height:${box.height}px;margin:14px 0 20px`;
   host.before(blank);
   host.removeAttribute("data-flow");
-  host.style.cssText = `left:${Math.round(box.left)}px;top:${Math.round(box.top)}px;width:${Math.round(box.width)}px`;
+  host.style.cssText = `left:${box.left}px;top:${box.top}px;width:${box.width}px`;
   layer().append(host);
   return () => {
     host.style.cssText = "";

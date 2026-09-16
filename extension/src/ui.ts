@@ -31,7 +31,7 @@ const CSS = `
   --t1:#e8eaed;--t2:#dadce0;--tb:#c4c8cb;--tm:#969ba1;--tl:#8e9398;
   --shadow:0 12px 32px rgba(0,0,0,.45);--badge-shadow:0 2px 10px rgba(0,0,0,.4)}
 :host([hidden]){display:none!important}
-:host([data-flow]){position:relative;display:block;height:14px;margin:16px 0 22px}
+:host([data-flow]){position:relative;display:block;height:18px;margin:14px 0 20px}
 :host([data-site]){position:fixed;top:12px;right:12px;z-index:2147483000;transition:opacity 280ms ease}
 :host([data-site][data-faint]){opacity:.22}
 :host([data-site][data-faint]:hover),:host([data-site][data-faint]:focus-within),:host([data-site][data-faint][data-state="open"]){opacity:1}
@@ -72,9 +72,11 @@ const CSS = `
 .x{display:none;opacity:0;transition:opacity 200ms ease;width:18px;height:18px;border-radius:9px;border:0;padding:0;background:var(--tile);color:var(--tm);font:11px/18px inherit;font-family:inherit;text-align:center;cursor:pointer;flex:none}
 .card[data-state="hover"] .x,.card[data-state="open"] .x{display:block;opacity:1}
 .card.closing .x{display:block}
-:host([data-site]) .card.closing .x{display:none}
-/* The line keeps the ×'s room at rest, so its bar never shifts. */
-.head.line .x{display:block;visibility:hidden}
+/* The badge's × grows in from nothing, so the verdict slides rather than jumps as the card opens, and back as it closes. */
+:host([data-site]) .x{display:block;width:0;height:0;margin-left:-11px;overflow:hidden;transition:width 340ms var(--ease),height 340ms var(--ease),margin-left 340ms var(--ease),opacity 200ms ease}
+:host([data-site]) .card[data-state="hover"] .x,:host([data-site]) .card[data-state="open"] .x{width:18px;height:18px;margin-left:0}
+/* The query's line keeps the ×'s room at rest, so its bar never shifts (the badge, a line too, has no × at rest). */
+:host(:not([data-site])) .head.line .x{display:block;visibility:hidden}
 .card[data-state="hover"] .head.line .x,.card[data-state="open"] .head.line .x{visibility:visible}
 .head.story{gap:8px}.head.story .label{font-size:10px}
 .who{display:none;font-size:13px;font-weight:500;color:var(--t1);white-space:nowrap;margin:0 0 8px}
@@ -381,7 +383,7 @@ export function createBar(opts: {
       /* The contents are laid out at their final width from the first frame, so nothing re-wraps or slides while the box grows. */
       const inner = toW - 2 * pad.x - 2;
       body.style.width = `${inner}px`;
-      if (opts.shape === "block") head.style.width = `${inner - Math.round(shift)}px`;
+      if (!site) head.style.width = `${inner - Math.round(shift)}px`;
     } else {
       /* Back to the bar: its own box plus the card's padding, which drops away once the surface has faded (the badge's padding shrinks with it). */
       const rest = restSize ?? { w: fromW, h: fromH };
