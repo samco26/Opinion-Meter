@@ -7,7 +7,7 @@
    not at all. */
 
 import { createBar, isDark } from "./ui";
-import { send, storage, type SiteReply } from "./shared";
+import { send, type SiteReply } from "./shared";
 
 interface Spot { left: number; top: number }
 
@@ -24,11 +24,10 @@ async function main() {
     onGauge: (fresh) => bar.set({ kind: "ready", gauge: fresh }),
     /* The × hides the card on this site until its bar is next loaded on Google. */
     onDismiss: () => { bar.remove(); send({ type: "site-hide", url: location.href }).catch(() => { /* Hidden on this page either way. */ }); },
-    /* Where it is dragged to is where it appears next time, on every site. */
-    onMove: (spot) => { storage.set({ sitePos: spot }).catch(() => { /* Stays put on this page regardless. */ }); },
   });
   document.documentElement.append(bar.host);
   bar.set({ kind: "ready", gauge: reading.gauge });
+  /* Every page starts with the card in the top right corner; a drag moves it for that page only. */
   const place = (spot: Spot) => {
     if (bar.state() !== "rest") return;
     const w = bar.host.offsetWidth || 224, h = bar.host.offsetHeight || 46;
@@ -36,8 +35,6 @@ async function main() {
     bar.host.style.top = `${Math.round(Math.max(4, Math.min(window.innerHeight - h - 4, spot.top)))}px`;
     bar.host.style.right = "auto";
   };
-  const saved = await storage.get<Spot>("sitePos").catch(() => undefined);
-  if (saved && Number.isFinite(saved.left) && Number.isFinite(saved.top)) place(saved);
   const keepInside = () => {
     if (bar.host.style.right !== "auto" || bar.state() !== "rest") return;
     const box = bar.host.getBoundingClientRect();

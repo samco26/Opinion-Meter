@@ -250,6 +250,7 @@ export function createBar(opts: {
   let ready = false;
   let restore: (() => void) | undefined;
   let fallback: number | undefined;
+  /* Declared ahead of relax(), which the state change below relies on. */
 
   /* The three figures, sitting exactly under the row's bar. */
   const figures = () => {
@@ -281,10 +282,10 @@ export function createBar(opts: {
     const hostLeft = host.getBoundingClientRect().left;
     const shift = state === "rest" ? 0 : Math.max(0, Math.min(hostLeft - EDGE, hostLeft + toW - (vw - EDGE)));
     bar.style.marginLeft = `${Math.round(shift)}px`;
-    /* Up or down: the sheet is capped to what fits on that side of the row. */
+    /* Down, always, on a page that scrolls; a card fixed to the window (a site's) grows up only when the window's bottom is right there. */
     const extra = card.offsetHeight - bar.offsetHeight;
     const below = vh - rowBox.bottom - EDGE, above = rowBox.top - EDGE;
-    const up = state !== "rest" && extra > below && above > below;
+    const up = Boolean(opts.site) && state !== "rest" && extra > below && above > below;
     card.classList.toggle("up", up);
     if (state === "open") {
       const room = (up ? above : below) - (card.offsetHeight - sheet.offsetHeight - bar.offsetHeight);
@@ -301,12 +302,19 @@ export function createBar(opts: {
     card.style.transform = `translate(${-Math.round(shift)}px, ${up ? -Math.round(toH - bar.offsetHeight - (state === "rest" ? 0 : figs.offsetHeight)) : 0}px)`;
     alignFigs();
   };
-  /* Back at rest, the card follows its content again (after the shrink has played, or at once without motion). */
-  const relax = () => { if (state !== "rest") return; card.style.width = ""; card.style.height = ""; card.style.transform = ""; bar.style.marginLeft = ""; };
+  /* Back at rest, the card follows its content again (after the shrink has
+     played, or at once without motion), and a lifted bar returns to the flow. */
+  const relax = () => {
+    if (state !== "rest") return;
+    card.style.width = ""; card.style.height = ""; card.style.transform = ""; bar.style.marginLeft = "";
+    if (restore) { const back = restore; restore = undefined; back(); }
+  };
   card.addEventListener("transitionend", (event) => { if (event.target === card && event.propertyName === "height") relax(); });
 
   const setState = (next: CardState) => {
     if (state === next) return;
+    /* Leaving rest: a bar living in the page's flow is lifted onto the layer first; back at rest it returns. */
+    if (state === "rest" && !restore) restore = opts.relocate?.();
     state = next;
     card.dataset.state = next;
     host.setAttribute("data-state", next);
@@ -335,7 +343,6 @@ export function createBar(opts: {
   const open = () => {
     const url = opts.drawer(current);
     if (!url || state === "open") return;
-    restore = opts.relocate?.();
     frame = el("iframe");
     frame.src = url;
     frame.referrerPolicy = "no-referrer";
@@ -366,8 +373,6 @@ export function createBar(opts: {
     frame = null;
     sheet.replaceChildren(wait);
     setState("rest");
-    restore?.();
-    restore = undefined;
   };
 
   /* A bar must never act as the link it sits beside. */
@@ -377,9 +382,11 @@ export function createBar(opts: {
     event.stopPropagation();
     if (suppress) { suppress = false; return; }
     if (still) return;
-    open();
+    /* An open card shrinks back from a click anywhere on it that is not a control; the frame inside says so for its own area. */
+    if (state === "open") close(); else open();
   });
   closer.addEventListener("click", (event) => { event.preventDefault(); event.stopPropagation(); close(); });
+  for (const part of [figs, peek]) part.addEventListener("click", (event) => { event.stopPropagation(); if (state === "open") close(); });
   host.addEventListener("mouseenter", () => { if (state === "rest" && detail && !host.hasAttribute("data-dragging")) { peek.textContent = detail; setState("hover"); } });
   host.addEventListener("mouseleave", () => { if (state === "hover") setState("rest"); });
   bar.addEventListener("focus", () => { if (state === "rest" && detail) { peek.textContent = detail; setState("hover"); } });

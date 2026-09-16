@@ -2,6 +2,13 @@
 
 What changed in each version, in plain words, newest first. The version number lives in three places and moves together: `server/package.json`, `extension/package.json` and the health door (`server/src/app/api/health/route.ts`). **Rule:** every push that changes what a reader sees or what the server does adds an entry here in the same commit (see AGENTS.md).
 
+## 0.15.1 — 16 September 2026
+
+- A growing card no longer jumps upward: the pin that keeps a bar on its line was measuring the grown card and re-centring on it every half second. It measures the bar at rest now. Cards on Google always grow downward; only a site's card, fixed to the window, grows upward when the window's bottom is right there.
+- The query pill is lifted onto the bar layer for a hover as well as a click, so its card sits above the bars beneath it.
+- A click anywhere on an open card that is not a control shrinks it back, inside the card as well as on its header.
+- The card on a site starts in the top right corner of every page; a drag moves it for that page only.
+
 ## 0.15.0 — 16 September 2026
 
 - One card that grows. Hover a bar and its own background stretches down to show the sentence, with the three figures sitting under the bar; click and it keeps growing into the full card, which loads inside it. Nothing separate opens on top any more: the drawer and the hover card are gone. Same on Google, beside a result, and on a site. Escape, the × in the row or a click elsewhere shrink it back; on a site, scrolling closes it too. It grows leftwards or upwards when the window's edge is near, and never taller than the window (the card scrolls inside).

@@ -2,7 +2,8 @@ import { createBar, isDark, resultLevel, type Bar } from "./ui";
 import { kpHeader, queryPlacement, readResults, textBox, type Found, type QueryPlace } from "./google";
 import { send, type ConfigReply, type ExtensionConfig, type Gauge, type GaugeRequest, type GaugeResponse, type SubjectStates } from "./shared";
 
-interface Placed { bar: Bar; anchor: HTMLElement; target: HTMLElement; placement: Found["placement"]; fitEnd?: HTMLElement }
+/* restHeight: the bar's height while nothing has grown; a grown card is pinned by that, never by its own. */
+interface Placed { bar: Bar; anchor: HTMLElement; target: HTMLElement; placement: Found["placement"]; fitEnd?: HTMLElement; restHeight?: number }
 /* Tabs where a video's reading costs YouTube quota: no card is prepared ahead there. */
 const VIDEO_TABS = new Set(["7", "39"]);
 /* The width of every bar in an AI answer's sources panel, shrunk only when the dots are closer. */
@@ -81,13 +82,15 @@ function pinBar(placed: Placed) {
   if (placed.bar.state() === "rest") clipTo(placed.bar.host, placed.target);
   else placed.bar.host.style.clipPath = "";
 }
-function place({ bar, anchor, target, placement, fitEnd }: Placed) {
+function place(placed: Placed) {
+  const { bar, anchor, target, placement, fitEnd } = placed;
   const host = bar.host;
   if (host.hidden) return;
   if (!shown(target)) { host.style.visibility = "hidden"; return; }
   host.style.visibility = "";
   const t = onPage(target.getBoundingClientRect());
-  const h = host.offsetHeight || 20;
+  if (bar.state() === "rest") placed.restHeight = host.offsetHeight || placed.restHeight;
+  const h = placed.restHeight || host.offsetHeight || 20;
   if (placement === "after") {
     /* Right after the text itself: a site name's box can run the width of its block. */
     const box = onPage(textBox(target));
@@ -124,7 +127,7 @@ function place({ bar, anchor, target, placement, fitEnd }: Placed) {
   }
 }
 function pinQuery() {
-  if (!queryBar || !queryPlace || queryPlace.mode === "flow" || queryBar.state() === "open") return;
+  if (!queryBar || !queryPlace || queryPlace.mode === "flow" || queryBar.state() !== "rest") return;
   const host = queryBar.host;
   if (queryPlace.mode === "kp") {
     if (!shown(queryPlace.title)) { host.style.visibility = "hidden"; return; }
@@ -167,9 +170,9 @@ const drawerFor = (context: GaugeRequest) => (gauge: Gauge | undefined) =>
 /* The card's numbers come back; every bar for that subject takes them. */
 const take = (fresh: Gauge) => apply({ [fresh.key]: { state: "ready", gauge: fresh } });
 /* The query's card in the results flow cannot grow there without pushing
-   the results down: before it grows it is lifted onto the layer at the
-   very same spot, a blank of its size holding its place, and put back
-   after. */
+   the results down, and there it would sit under the bar layer: before it
+   grows (hover or click) it is lifted onto the layer at the very same
+   spot, a blank of its size holding its place, and put back after. */
 function liftQuery(): (() => void) | undefined {
   if (!queryBar || queryPlace?.mode !== "flow") return undefined;
   const host = queryBar.host;
@@ -207,7 +210,7 @@ function prefetch(key: string | null) {
 /* Where the query's card goes: beside the knowledge panel's title, above
    or below an AI answer's sources panel, or in the flow above the results. */
 function positionQuery() {
-  if (!queryBar || !config.google.queryBar || queryBar.state() === "open") return;
+  if (!queryBar || !config.google.queryBar || queryBar.state() !== "rest") return;
   queryPlace = queryPlacement(config);
   if (!queryPlace) return;
   const host = queryBar.host;

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { sourceName, type CardResponse, type RecurringOpinion, type SourceId } from "@/lib/types";
 import { Answer, Insufficient } from "./Answer";
 import { OpinionPills } from "./OpinionPills";
@@ -93,7 +93,14 @@ export function Embed({ subjectKey, dark = false, morph = false }: { subjectKey:
   useEffect(() => { if (view) viewHeading.current?.focus({ preventScroll: true }); }, [view]);
   const source = view?.kind === "source" ? card?.bySource.find(reading => reading.source === view.source) : undefined;
 
-  return <div className="embed" data-theme={dark ? "dark" : undefined}>
+  /* Inside a pill that grew around this card, a click on anything that is not a control shrinks it back. */
+  const plainClick = (event: ReactMouseEvent) => {
+    if (!morph) return;
+    const target = event.target as HTMLElement;
+    if (target.closest("button, a, input, select, textarea, [role='button'], .opinion-pill, .post-section")) return;
+    tell({ type: "close" });
+  };
+  return <div className="embed" data-theme={dark ? "dark" : undefined} onClick={plainClick}>
     <section className="embed-card" aria-label="What people think">
       {phase.name !== "loading" && (!morph || view) && <header className="embed-head">
         {view ? <button className="back-button" onClick={() => setView(null)}>← Back</button> : <h1 className="embed-title">{name}</h1>}
