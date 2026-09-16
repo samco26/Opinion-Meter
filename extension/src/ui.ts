@@ -45,7 +45,7 @@ const CSS = `
 .head{display:flex;align-items:center;gap:11px;min-width:0}
 .head.block{display:grid;grid-template-columns:var(--om-indent,0px) auto 1fr auto;grid-template-rows:var(--om-line,20px) auto;grid-template-areas:"name label . x" "bar bar bar bar";row-gap:1px;column-gap:0;align-items:center}
 :host([data-bare]) .head .label{display:none}
-.head.block .name{grid-area:name;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--t2);opacity:0}
+.head.block .name{grid-area:name;overflow:hidden;text-overflow:clip;white-space:nowrap;font-size:12px;font-weight:400;color:var(--t2);opacity:0}
 .card[data-state="hover"] .head.block .name,.card[data-state="open"] .head.block .name{opacity:1}
 .head.block .label{grid-area:label;margin-left:9px}
 .head.block .seg{grid-area:bar;width:var(--om-block,100%)}
@@ -305,6 +305,7 @@ export function createBar(opts: {
       img.alt = "";
       tile.append(img);
       tile.addEventListener("click", (event) => { event.stopPropagation(); tabTo(source); });
+      tiles.append(tile);
     }
     meta.textContent = listOpen ? `${current.count} opinions` : `${current.count} opinions · ${current.confidence} confidence`;
   };
@@ -547,7 +548,8 @@ export function createBar(opts: {
     set: render,
     name: (text, indent, block, line) => {
       nameText = text;
-      host.style.setProperty("--om-indent", `${Math.max(0, Math.round(indent))}px`);
+      /* A little slack, so the name drawn over Google's never ends in an ellipsis. */
+      host.style.setProperty("--om-indent", `${Math.max(0, Math.ceil(indent) + 3)}px`);
       if (block !== undefined) host.style.setProperty("--om-block", `${Math.max(34, Math.round(block))}px`);
       if (line !== undefined) host.style.setProperty("--om-line", `${Math.max(12, Math.round(line))}px`);
       const name = head.querySelector(".name");
