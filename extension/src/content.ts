@@ -96,7 +96,8 @@ function visibleEnd(target: HTMLElement, anchor: HTMLElement) {
   for (let el: HTMLElement | null = target, depth = 0; el && el !== anchor.parentElement && depth < 12; el = el.parentElement, depth++) {
     if (getComputedStyle(el).overflowX !== "visible") clip = Math.min(clip, onPage(el.getBoundingClientRect()).right);
   }
-  return { left: Math.min(text.left || t.left, t.left), right: Math.min(text.right || t.right, t.right, clip), top: text.height ? text.top : t.top, height: text.height || t.height };
+  /* textLeft: where the words themselves begin (a block-level row may start further left than its text). */
+  return { left: Math.min(text.left || t.left, t.left), textLeft: text.width ? text.left : t.left, right: Math.min(text.right || t.right, t.right, clip), top: text.height ? text.top : t.top, height: text.height || t.height };
 }
 function place(placed: Placed) {
   const { bar, anchor, target, placement, fitEnd } = placed;
@@ -125,7 +126,7 @@ function place(placed: Placed) {
     const lineBox = onPage(line.getBoundingClientRect()), blockBox = onPage(block.getBoundingClientRect());
     const address = line.nextElementSibling?.nextElementSibling instanceof HTMLElement ? visibleEnd(line.nextElementSibling.nextElementSibling, anchor) : null;
     /* The row starts where the name and the address do (the column to the favicon's right); the favicon's room to the left is the card's lead. */
-    const left = Math.min(name.left, address?.left ?? name.left);
+    const left = Math.min(name.textLeft, address?.textLeft ?? name.textLeft);
     const iconBox = placed.icon ? onPage(placed.icon.getBoundingClientRect()) : null;
     const lead = iconBox && iconBox.left < left ? left - iconBox.left : 0;
     const width = Math.min(blockBox.left + blockBox.width - left, Math.max(name.right, address?.right ?? 0) - left + 2);
