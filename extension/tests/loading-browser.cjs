@@ -15,11 +15,21 @@ await page.evaluate(()=>{
 await page.addScriptTag({content:fs.readFileSync(require('path').join(__dirname,'../dist/chrome/content.js'),'utf8')});
 await page.waitForTimeout(700);
 assert.equal(await page.locator('[data-opinion-meter="result"]').count(),25);
-assert.equal(await page.locator('.seg.wait').count(),26);
+assert.equal(await page.locator('.seg.loading').count(),26);
+for (const bar of await page.locator('.seg.loading').all()) {
+ assert(await bar.isVisible(), 'loading bar must actually be visible, not merely present');
+ const box = await bar.boundingBox(); assert(box.width > 0 && box.height > 0);
+ assert.equal(await bar.evaluate(el => getComputedStyle(el, '::before').animationName), 'flow');
+}
 assert.equal(await page.locator('[data-opinion-meter="query"]').evaluate(el=>el.parentElement.id),'search');
 await page.locator('#rso').evaluate((el,html)=>el.insertAdjacentHTML('beforeend',html),result(26));
 await page.waitForTimeout(700);assert.equal(await page.locator('[data-opinion-meter="result"]').count(),26);
 assert.equal(await page.evaluate(()=>requests.length),1);
+assert(await page.locator('[data-opinion-meter="result"]').last().locator('.seg.loading').isVisible(), 'streamed result has a visible loading bar');
+await page.emulateMedia({ reducedMotion: 'reduce' });
+assert.equal(await page.locator('.seg.loading').first().evaluate(el => getComputedStyle(el, '::before').animationName), 'none');
+assert(await page.locator('.seg.loading').first().isVisible());
+await page.emulateMedia({ reducedMotion: 'no-preference' });
 await page.evaluate(()=>{const {m,cb}=requests.shift();const gauge={key:'test',name:'YouTube',count:66,split:{positive:36,neutral:1,negative:63},verdict:'negative',sentence:'SYNTHETIC SUMMARY — A long explanation that should wrap naturally and never crowd the platform controls or the opinion count. '.repeat(3),confidence:'medium',sources:[]};cb({query:{key:'test'},results:m.request.results.map(r=>({...r,key:'test'})),subjects:{test:{state:'ready',gauge}}});});
 await page.waitForTimeout(700);
 await page.locator('[data-opinion-meter="result"]').first().locator('.head').hover();await page.waitForTimeout(500);

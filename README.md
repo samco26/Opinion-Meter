@@ -4,7 +4,9 @@ The product and the repository (`samco26/Opinion-Meter`) are called Opinion Mete
 
 A browser extension that shows, beside anything you are about to click, what people actually think of it: a small bar, how many voices, one sentence — and the full picture on click.
 
-### Current behaviour — 16 September 2026, v0.16.5
+### Current behaviour — 16 September 2026, v0.16.6
+
+v0.16.6 fixes a shared style that accidentally hid the loading sweep until sentiment arrived. The browser check now verifies that loading bars are visible and have size, not only that they exist.
 
 The latest shared extension draws loading bars for every recognised result as soon as the config door permits it, before waiting for sentiment. The main query gauge stays above the results, including searches with a knowledge panel, and keeps an empty gauge when no verdict is available. Expanded cards keep the platform controls together where space permits and the opinion count on a separate line; long text wraps. These current rules supersede the older placement and loading descriptions below. All four browser packages share these fixes.
 

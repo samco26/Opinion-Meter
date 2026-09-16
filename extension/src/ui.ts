@@ -74,7 +74,7 @@ const CSS = `
 :host([data-site]) .head .seg{flex:none;width:48px;--om-h:3px;--om-r:2px}
 :host([data-site]) .card[data-state="hover"] .head .seg,:host([data-site]) .card[data-state="open"] .head .seg,:host([data-site]) .card.closing .head .seg{flex:1 1 auto;width:auto}
 .seg span{display:block;height:100%}.seg .pos{background:var(--pos)}.seg .neu{background:var(--neu)}.seg .neg{background:var(--neg);flex:1}
-.seg.wait{position:relative}.seg.wait:before{content:"";position:absolute;inset:0;width:45%;border-radius:inherit;background:linear-gradient(90deg,var(--pos) 50%,var(--neg) 50%);animation:flow 1600ms ease-in-out infinite}
+.seg.loading{position:relative}.seg.loading:before{content:"";position:absolute;inset:0;width:45%;border-radius:inherit;background:linear-gradient(90deg,var(--pos) 50%,var(--neg) 50%);animation:flow 1600ms ease-in-out infinite}
 @keyframes flow{0%{transform:translateX(-110%)}100%{transform:translateX(220%)}}
 .x{display:none;opacity:0;transition:opacity 200ms ease;width:18px;height:18px;border-radius:9px;border:0;padding:0;background:var(--tile);color:var(--tm);font:11px/18px inherit;font-family:inherit;text-align:center;cursor:pointer;flex:none}
 .card[data-state="hover"] .x,.card[data-state="open"] .x{display:block;opacity:1}
@@ -129,7 +129,7 @@ iframe{display:block;width:100%;height:100%;border:0;background:transparent;colo
 :host(:hover) .dismiss,.dismiss:focus-visible{opacity:1}
 :host([data-dragging]) .card{cursor:grabbing}
 .head[tabindex]:focus-visible{outline:2px solid var(--tm);outline-offset:4px;border-radius:4px}
-@media(prefers-reduced-motion:reduce){.card,.seg{transition:none}.seg.wait:before{animation:none;width:100%;opacity:.6}}
+@media(prefers-reduced-motion:reduce){.card,.seg{transition:none}.seg.loading:before{animation:none;width:100%;opacity:.6}}
 `;
 
 export type BarState = { kind: "loading" } | { kind: "ready"; gauge: Gauge } | { kind: "empty"; reason: string; thin?: boolean };
@@ -651,7 +651,7 @@ export function createBar(opts: {
     const gauge = s.kind === "ready" ? s.gauge : undefined;
     const parts: 2 | 3 = opts.shape === "block" || opts.shape === "story" || (site && state === "rest") ? 2 : 3;
     const seg = segments(gauge, parts);
-    if (s.kind === "loading") seg.classList.add("wait");
+    if (s.kind === "loading") seg.classList.add("loading");
     const label = el("span", "label", gauge ? verdict(gauge) : "");
     if (opts.shape === "block") {
       const name = el("span", "name", nameText);

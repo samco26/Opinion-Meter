@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.16.6 — 16 September 2026
+
+- Fixed the loading bars being hidden by a style meant for the drawer's waiting message. Bars now visibly animate before sentiment arrives.
+- The browser check now verifies visible bar dimensions and animation, including streamed results and reduced-motion settings, instead of merely counting elements.
+
 ## 0.16.5 — 16 September 2026
 
 - All recognised result bars appear with a loading sweep immediately, including later batches and results arriving during a reading.
