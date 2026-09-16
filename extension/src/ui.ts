@@ -63,18 +63,18 @@ const CSS = `
 .head.block .seg{grid-area:bar;width:var(--om-block,100%)}
 .head.block .x{grid-area:x;justify-self:end}
 .name{font-size:13px;font-weight:500;color:var(--t1);white-space:nowrap}
-.head.line .name{font-size:11px;font-weight:400;color:var(--tl)}
+.head.line .name{min-width:0;white-space:normal;overflow-wrap:anywhere;font-size:11px;font-weight:400;color:var(--tl)}
 :host([data-site]) .head .name{font-size:12px;font-weight:500;color:var(--t1)}
 .label{font-size:11px;color:var(--tl);white-space:nowrap}
 .head.line .label{color:var(--tb)}
 :host([data-site]) .head .label{color:var(--t2)}
 :host([data-site][data-dark]) .head .label{color:var(--tb)}
 .seg{display:flex;height:var(--om-h);border-radius:var(--om-r);overflow:hidden;background:var(--track);flex:none;width:var(--om-width,34px);transition:width 340ms cubic-bezier(.16,1,.3,1)}
-.head.line .seg{flex:1 1 auto;width:auto;--om-h:3px;--om-r:2px}
+.head.line .seg{min-width:32px;flex:1 1 auto;width:auto;--om-h:3px;--om-r:2px}
 :host([data-site]) .head .seg{flex:none;width:48px;--om-h:3px;--om-r:2px}
 :host([data-site]) .card[data-state="hover"] .head .seg,:host([data-site]) .card[data-state="open"] .head .seg,:host([data-site]) .card.closing .head .seg{flex:1 1 auto;width:auto}
 .seg span{display:block;height:100%}.seg .pos{background:var(--pos)}.seg .neu{background:var(--neu)}.seg .neg{background:var(--neg);flex:1}
-.seg.wait{position:relative}.seg.wait:before{content:"";position:absolute;inset:0;width:45%;border-radius:inherit;background:linear-gradient(90deg,var(--pos) 50%,var(--neg) 50%);animation:flow 1600ms ease-in-out infinite}
+.seg.loading{position:relative}.seg.loading:before{content:"";position:absolute;inset:0;width:45%;border-radius:inherit;background:linear-gradient(90deg,var(--pos) 50%,var(--neg) 50%);animation:flow 1600ms ease-in-out infinite}
 @keyframes flow{0%{transform:translateX(-110%)}100%{transform:translateX(220%)}}
 .x{display:none;opacity:0;transition:opacity 200ms ease;width:18px;height:18px;border-radius:9px;border:0;padding:0;background:var(--tile);color:var(--tm);font:11px/18px inherit;font-family:inherit;text-align:center;cursor:pointer;flex:none}
 .card[data-state="hover"] .x,.card[data-state="open"] .x{display:block;opacity:1}
@@ -100,21 +100,21 @@ const CSS = `
 .card.closing .body{display:flex;opacity:0}
 @starting-style{.card[data-state="hover"] .body,.card[data-state="open"] .body{opacity:0}}
 /* The figures, right under the bar on every card (as on the badge), sliding open with the card and folding away as it closes. */
-.dots{display:flex;gap:16px;margin-top:0;max-height:0;width:0;overflow:hidden;opacity:0;font-size:10px;line-height:14px;color:var(--tl);white-space:nowrap;transition:max-height 340ms var(--ease),margin-top 340ms var(--ease),opacity 150ms ease}
-.card[data-state="hover"] .dots,.card[data-state="open"] .dots{width:auto;max-height:16px;margin-top:9px;opacity:1}
+.dots{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:0;max-height:0;width:0;overflow:hidden;opacity:0;font-size:10px;line-height:14px;color:var(--tl);white-space:nowrap;transition:max-height 340ms var(--ease),margin-top 340ms var(--ease),opacity 150ms ease}
+.card[data-state="hover"] .dots,.card[data-state="open"] .dots{width:auto;max-height:36px;margin-top:9px;opacity:1}
 .card.closing .dots{width:auto;max-height:0;margin-top:0;opacity:0}
 .dots span{display:inline-flex;align-items:center;gap:6px}.dots i{width:5px;height:5px;border-radius:3px;flex:none}
-.summary{font-size:13px;line-height:1.6;color:var(--tb);margin:16px 0 18px;text-wrap:pretty;max-width:62ch}
+.summary{overflow-wrap:anywhere;font-size:13px;line-height:1.6;color:var(--tb);margin:16px 0 18px;text-wrap:pretty;max-width:62ch}
 :host([data-site]) .summary{font-size:12px;margin:14px 0 16px}
 :host([data-site]) .dots{gap:14px}:host([data-site]) .card[data-state="hover"] .dots,:host([data-site]) .card[data-state="open"] .dots{margin-top:8px}
-.actions{display:flex;align-items:center;gap:10px}
+.actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .tiles{display:flex;gap:6px}
 .tile{width:24px;height:24px;border-radius:7px;border:0;padding:0;background:var(--tile);display:grid;place-items:center;cursor:pointer;color:var(--t2);transition:background 160ms ease}.tile:hover{background:var(--border)}
 .tile img{width:15px;height:15px;display:block}
 .tile.mark-x{color:var(--t1)}
 .chip{height:24px;padding:0 11px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:11px;font-family:inherit;display:inline-flex;align-items:center;cursor:pointer;white-space:nowrap;transition:background 160ms ease}
 .chip:hover{background:var(--tile)}.chip.on{background:var(--tile);border-color:var(--tile)}
-.meta{flex:1;text-align:right;font-size:10px;color:var(--tl);white-space:nowrap}
+.meta{flex:1 0 100%;text-align:left;font-size:10px;color:var(--tl);white-space:nowrap}
 :host([data-site]) .tiles{gap:5px}:host([data-site]) .tile{width:22px;height:22px;border-radius:6px}:host([data-site]) .tile img{width:14px;height:14px}
 :host([data-site]) .chip{height:22px;padding:0 10px;border-radius:11px;color:var(--tb)}
 :host([data-site]) .actions{gap:9px}:host([data-site]) .meta{flex:none;text-align:left;margin-top:11px;order:9;width:100%}
@@ -132,7 +132,7 @@ iframe{display:block;width:100%;height:100%;border:0;background:transparent;colo
 :host(:hover) .dismiss,.dismiss:focus-visible{opacity:1}
 :host([data-dragging]) .card{cursor:grabbing}
 .head[tabindex]:focus-visible{outline:2px solid var(--tm);outline-offset:4px;border-radius:4px}
-@media(prefers-reduced-motion:reduce){.card,.seg{transition:none}.seg.wait:before{animation:none;width:100%;opacity:.6}}
+@media(prefers-reduced-motion:reduce){.card,.seg{transition:none}.seg.loading:before{animation:none;width:100%;opacity:.6}}
 `;
 
 export type BarState = { kind: "loading" } | { kind: "ready"; gauge: Gauge } | { kind: "empty"; reason: string; thin?: boolean };
@@ -654,7 +654,7 @@ export function createBar(opts: {
     const gauge = s.kind === "ready" ? s.gauge : undefined;
     const parts: 2 | 3 = opts.shape === "block" || opts.shape === "story" || (site && state === "rest") ? 2 : 3;
     const seg = segments(gauge, parts);
-    if (s.kind === "loading") seg.classList.add("wait");
+    if (s.kind === "loading") seg.classList.add("loading");
     const label = el("span", "label", gauge ? verdict(gauge) : "");
     if (opts.shape === "block") {
       const name = el("span", "name", nameText);

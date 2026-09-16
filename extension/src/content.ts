@@ -18,8 +18,7 @@ let queryBar: Bar | null = null;
 let queryPlace: QueryPlace | null = null;
 /* The query bar's latest state, for a remade query bar. */
 let queryState: BarState | null = null;
-/* Results whose names the server is still making, to be asked about again; and whether the query is. */
-const retrying = new Set<Found>();
+/* Whether the query's name is still being made on the server (asked about again shortly). */
 let queryAgain = false;
 const RETRY_MS = 1500;
 /* The brain said the meter is off (after a first look from the cached config). */
@@ -301,22 +300,9 @@ async function drain() {
       const requestQuery = query;
       const drawn = new Map<Found, Bar>();
       for (const result of results) {
-        if (!result.anchor.isConnected) continue;
-        /* A result asked about again keeps the bar it has, still sweeping. */
-        const kept = retrying.has(result) ? placements.get(result.anchor)?.bar : undefined;
-        retrying.delete(result);
-        if (kept) { drawn.set(result, kept); continue; }
-        placements.get(result.anchor)?.bar.remove();
-        const context = { query: requestQuery, results: [{ url: result.url, title: result.title, ...(result.site ? { site: result.site } : {}) }] };
-        const bar = createBar({ shape: result.placement === "block" ? "block" : "story", title: result.site ?? result.title, dark, drawer: drawerFor(context), onGauge: take });
-        hold(result, bar);
-        drawn.set(result, bar);
-      }
-      if (initial && config.google.queryBar) {
-        /* Beside a knowledge panel's title the card is the small square; everywhere else the line. */
-        queryPlace = queryPlacement(config);
-        queryBar = createBar({ shape: queryPlace?.mode === "kp" ? "square" : "line", title: requestQuery, dark, drawer: drawerFor({ query: requestQuery, results: [] }), onGauge: take, relocate: liftQuery });
-        positionQuery();
+        /* The bar was drawn at the scan (sweeping); a result asked about again keeps it. */
+        const bar = placements.get(result.anchor)?.bar;
+        if (bar && result.anchor.isConnected) drawn.set(result, bar);
       }
       try {
         const unique = [...new Map(results.map(r => [r.url, { url: r.url, title: r.title, ...(r.site ? { site: r.site } : {}) }])).values()];
@@ -337,14 +323,12 @@ async function drain() {
         if ((initial || askingQuery) && queryBar) {
           if (response.query.key) attach(response.query.key, queryBar);
           else if (response.query.later) queryAgain = true;
-          /* The query names nothing that can be rated (a login page, a
-             search for nothing in particular): no card, rather than a dead one. */
-          else { queryBar.remove(); queryBar = null; }
+          /* Keep the main gauge in place, without inventing a verdict. */
+          else { queryState = { kind: "empty", reason: "No reading available for this search." }; queryBar.set(queryState); }
         }
         apply(response.subjects);
         if ((initial || askingQuery) && !VIDEO_TABS.has(udm())) { prefetch(response.query.key); prefetch(response.results[0]?.key ?? null); }
         if (again.length || queryAgain) {
-          for (const result of again) retrying.add(result);
           window.setTimeout(() => { if (epoch !== generation) return; queue.push(...again); void drain(); }, RETRY_MS);
         }
       } catch {
@@ -361,9 +345,9 @@ function scan() {
   if (now !== query) {
     generation++; query = now; first = true; queue = []; seen = new WeakMap();
     for (const placed of placements.values()) placed.bar.remove();
-    placements.clear(); bars.clear(); pending.clear(); prefetched.clear(); retrying.clear(); queryAgain = false; queryBar?.remove(); queryBar = null; queryPlace = null; queryState = null;
+    placements.clear(); bars.clear(); pending.clear(); prefetched.clear(); queryAgain = false; queryBar?.remove(); queryBar = null; queryPlace = null; queryState = null;
   }
-  if (!query) return;
+  if (!query || !queryPlacement(config)) return;
   const theme = isDark();
   if (theme !== dark) {
     dark = theme;
@@ -371,7 +355,17 @@ function scan() {
     queryBar?.host.toggleAttribute("data-dark", dark);
   }
   for (const [anchor, placed] of placements) if (!anchor.isConnected) { placed.bar.remove(); placements.delete(anchor); }
-  queue.push(...readResults(config, seen)); positionQuery(); void drain(); settle();
+  // Draw every recognised result immediately; server batches only fill the bars.
+  const found = readResults(config, seen);
+  for (const result of found) {
+    placements.get(result.anchor)?.bar.remove();
+    const context = { query, results: [{ url: result.url, title: result.title, ...(result.site ? { site: result.site } : {}) }] };
+    hold(result, createBar({ shape: result.placement === "block" ? "block" : "story", title: result.site ?? result.title, dark, drawer: drawerFor(context), onGauge: take }));
+  }
+  if (!queryBar && config.google.queryBar && queryPlacement(config)) {
+    queryBar = createBar({ shape: "line", title: query, dark, drawer: drawerFor({ query, results: [] }), onGauge: take, relocate: liftQuery });
+  }
+  queue.push(...found); positionQuery(); void drain(); settle();
 }
 async function main() {
   if (window.top !== window || !currentQuery()) return;
@@ -380,7 +374,7 @@ async function main() {
   const quick = await (async (): Promise<ConfigReply | null> => {
     try {
       const cached = await storage.get<{ server: string; config: ExtensionConfig; at: number }>("config");
-      return cached && cached.server === (await serverUrl()) && Date.now() - cached.at < 86_400_000 ? { server: cached.server, config: cached.config } : null;
+      return cached && cached.server === (await serverUrl()) && Date.now() - cached.at < cached.config.ttlMinutes * 60_000 ? { server: cached.server, config: cached.config } : null;
     } catch { return null; }
   })();
   const reply = quick ?? await asked;

@@ -4,7 +4,11 @@ The product and the repository (`samco26/Opinion-Meter`) are called Opinion Mete
 
 A browser extension that shows, beside anything you are about to click, what people actually think of it: a small bar, how many voices, one sentence — and the full picture on click.
 
-### Current behaviour — 16 September 2026, v0.14.1
+### Current behaviour — 16 September 2026, v0.16.6
+
+v0.16.6 fixes a shared style that accidentally hid the loading sweep until sentiment arrived. The browser check now verifies that loading bars are visible and have size, not only that they exist.
+
+The latest shared extension draws loading bars for every recognised result as soon as the config door permits it, before waiting for sentiment. The main query gauge stays above the results, including searches with a knowledge panel, and keeps an empty gauge when no verdict is available. Expanded cards keep the platform controls together where space permits and the opinion count on a separate line; long text wraps. These current rules supersede the older placement and loading descriptions below. All four browser packages share these fixes.
 
 The drawer starts compact: **See recurring opinions** between the platform icons and count reveals the scrolling opinions section. Bars stay below the drawer while scrolling; hover gently brightens the bar without scaling or outline rings and fades in a tooltip-coloured background. The floating site card grows for its name and verdict, and its hover paragraph follows dragging. Icons have rounded transparent corners; Safari and Firefox show cream in dark mode and grey in light mode, with cream as the compatibility fallback. All four browser packages are always built and published together unless the owner asks otherwise.
 
@@ -318,6 +322,7 @@ That word-count fallback applies only to main-query readings. Website/link reput
 
 | Date | Decision |
 |---|---|
+| 2026-09-16 | v0.16.5 reverses hidden loading bars and knowledge-panel placement: all recognised results show a loading sweep immediately; the query gauge stays above the results and retains an empty state. Expanded-card controls wrap and the opinion count has its own line. Cached config is used only for its declared lifetime. |
 | 2026-09-16 | v0.14: recurring opinions start collapsed behind a 23 px disclosure button; drawers have a separate, synchronized layer above bars. Soft no-scale hover, tooltip follows dragging, site pill grows to avoid clipping short names after updates. Rounded icons reverse the native theme mapping (cream/dark, grey/light). Publish all four browser packages by default. Keep existing automatic page access; explain its unavoidable browser warning instead of claiming draw-only access. |
 | 2026-09-15 | v0.13.2 uses the owner's cream smile icon across all extension packages, with native grey/dark variants for Safari and Firefox and cream as the compatibility fallback. Site-card saves are serialized so simultaneous Google results cannot overwrite one another. |
 | 2026-09-15 | Safari is packaged from the current Chrome source (v0.13.1, based on `8d8c41a`), with the same UI and site card. Declare Safari's website permissions explicitly and document temporary folder loading on recent Safari. The old v0.3 Safari branch is superseded. |
@@ -369,7 +374,7 @@ That word-count fallback applies only to main-query readings. Website/link reput
 | 2026-09-17 | v0.16.1 from the owner's first test of the shipped build: bars show at once with the loading sweep; the resting card is square so the corners never clip a bar's ends; on Google the bar starts at the favicon's left edge (the title's) and runs at least to the end of its verdict; the grown card's name is in Google's own type (no shrinking) with the favicon copy placed exactly; all four platform tiles always; the tiles row 14 px under the bar in list mode; the list's loading strip is a hairline sweep; the badge's card keeps its stacking level above a site's header. |
 | 2026-09-17 | v0.16.2, the owner's second test: the bar starts at the name-and-address column's left (the red line), the grown card reaches left over the favicon and its contents start level with the name; the hands start at DOMContentLoaded so bars sweep as results appear; the list keeps the figures and summary above it; platform tiles and "How it works" open inside the card; the badge fades on a site's own scroll box. |
 | 2026-09-17 | v0.16.3: the hands start with the page and read results as they stream in, so bars sweep from the first moment; sponsored results are treated like organic ones; the query line carries the one-sentence summary under its bar. |
-| 2026-09-17 | v0.16.5: the server answers a batch as soon as it can (2.5 s for a fresh reading, the rest polled; names still being made are "later" and asked for again), so cached bars never wait for slow ones; the figures row sits under the bar on every card, as on the badge. |
+| 2026-09-17 | v0.16.7: the server answers a batch as soon as it can (2.5 s for a fresh reading, the rest polled; names still being made are "later" and asked for again), so cached bars never wait for slow ones; the figures row sits under the bar on every card, as on the badge. |
 
 ## 17. Trying it
 
