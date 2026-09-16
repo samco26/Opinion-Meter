@@ -387,9 +387,10 @@ export function createBar(opts: {
       card.style.width = ""; card.style.height = "auto";
       body.style.width = ""; head.style.width = ""; head.style.marginLeft = "";
       if (site) card.style.padding = "";
-      const restW = host.offsetWidth || restSize?.w || fromW;
-      const wide = opts.shape === "line" && restW >= 380;
-      const width = wide ? restW + 2 * pad.x + 2 : Math.min(site ? SITE_CARD_WIDTH : CARD_WIDTH, vw - 2 * EDGE);
+      /* The card's width: its own, or wider when the bar itself (a long address's column, the query's line) needs
+         more to fit inside the padding; never wider than the window allows. */
+      const restW = site ? 0 : host.offsetWidth || restSize?.w || fromW;
+      const width = Math.min(vw - 2 * EDGE, Math.max(site ? SITE_CARD_WIDTH : CARD_WIDTH, restW + 2 * pad.x + 2));
       card.style.width = `${width}px`;
       const hostLeft = host.getBoundingClientRect().left;
       const rise = riseNow();
