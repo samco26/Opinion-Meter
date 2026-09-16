@@ -34,6 +34,14 @@ jobs:
       - run: npm run typecheck
       - run: npm run build
       - run: npm test
+      # The bundles a standalone test page needs (real hands, badge and card list with synthetic readings); never part of a package.
+      - run: npm install --no-audit --no-fund
+        working-directory: server
+      - run: node tests/bundle-preview.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: opinion-meter-preview
+          path: extension/dist/preview
       - uses: actions/upload-artifact@v4
         with:
           name: opinion-meter-chrome

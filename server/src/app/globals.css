@@ -220,3 +220,22 @@ body:has(.embed)>.ground{display:none}
 [data-theme="dark"] .evidence-screen{background:#303134ea}
 [data-theme="dark"] .embed-scroll{scrollbar-color:#ffffff40 transparent}[data-theme="dark"] .embed-scroll::-webkit-scrollbar-thumb,[data-theme="dark"] .embed .opinion-list::-webkit-scrollbar-thumb{background:#ffffff40;background-clip:padding-box}
 [data-theme="dark"] .dev-input,[data-theme="dark"] .dev-output{background:#ffffff14;border-color:#ffffff26}
+
+/* v0.16, the design handoff of 16 September 2026: recurring opinions are
+   quiet rows with a 2 px stance tick, colour in the tick alone; the list
+   drawn on its own inside a grown bar (.list-only) sits flush. Light and
+   dark token sets from the handoff. */
+.embed{--o-row:#f6f7f8;--o-hover:#eef0f2;--o-text:#3b4045;--o-count:#72777d;--o-pos:#7ec98f;--o-neu:#7a7f84;--o-neg:#e0705f;--o-font:Helvetica,Arial,sans-serif}
+.embed[data-theme="dark"]{--o-row:#2b2d30;--o-hover:#303235;--o-text:#c4c8cb;--o-count:#8e9398}
+.embed .opinion-list{gap:6px;padding:0}
+.embed .opinion-pill,.embed .opinion-pill.opinion-positive,.embed .opinion-pill.opinion-neutral,.embed .opinion-pill.opinion-negative,.embed .opinion-pill.opinion-unclassified{display:flex;align-items:stretch;justify-content:flex-start;gap:11px;padding:10px 12px;border:0;border-radius:7px;background:var(--o-row);color:var(--o-text);font:400 12px/1.5 var(--o-font);box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;animation:none;transition:background 160ms ease}
+.embed .opinion-pill:hover{background:var(--o-hover);box-shadow:none;transform:none}
+.embed .opinion-pill .tick{display:block;width:2px;border-radius:1px;flex:none;background:var(--o-neu)}
+.embed .opinion-positive .tick{background:var(--o-pos)}.embed .opinion-negative .tick{background:var(--o-neg)}
+.embed .opinion-pill span{flex:1;text-wrap:pretty}
+.embed .opinion-pill small{align-self:center;flex:none;font-size:11px;color:var(--o-count);opacity:1}
+.embed.list-only,.embed.list-only .embed-card{padding:0;background:transparent}
+.embed.list-only .embed-content{display:block}
+.embed.list-only .opinion-list{min-height:0;max-height:none;overflow:visible;padding:0 0 2px}
+.embed.list-only .embed-scroll{overflow:auto}
+.embed.list-only .detail-content{padding:6px 2px}

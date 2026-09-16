@@ -3,11 +3,13 @@ import { kpHeader, queryPlacement, readResults, textBox, type Found, type QueryP
 import { send, type ConfigReply, type ExtensionConfig, type Gauge, type GaugeRequest, type GaugeResponse, type SubjectStates } from "./shared";
 
 /* restHeight: the bar's height while nothing has grown; a grown card is pinned by that, never by its own. */
-interface Placed { bar: Bar; anchor: HTMLElement; target: HTMLElement; placement: Found["placement"]; fitEnd?: HTMLElement; restHeight?: number }
+interface Placed { bar: Bar; anchor: HTMLElement; target: HTMLElement; placement: Found["placement"]; fitEnd?: HTMLElement; line?: HTMLElement; block?: HTMLElement; site?: string; restHeight?: number }
 /* Tabs where a video's reading costs YouTube quota: no card is prepared ahead there. */
 const VIDEO_TABS = new Set(["7", "39"]);
-/* The width of every bar in an AI answer's sources panel, shrunk only when the dots are closer. */
-const FIT_WIDTH = 60;
+/* A story's bar is a fixed 34 px; its verdict needs about this much beside it. */
+const STORY_BAR = 34, STORY_ROOM = 90;
+/* The gap opened under a result's site name for the hairline. */
+const GAP = 5;
 const udm = () => new URL(location.href).searchParams.get("udm") ?? "";
 
 let config: ExtensionConfig;
@@ -82,6 +84,20 @@ function pinBar(placed: Placed) {
   if (placed.bar.state() === "rest") clipTo(placed.bar.host, placed.target);
   else placed.bar.host.style.clipPath = "";
 }
+/* The visible end of a label's text: Google clips a long label inside a
+   fixed-width box and the text runs on unseen past it, so the end is the
+   nearest clipping box's edge, never the text's own. */
+function visibleEnd(target: HTMLElement, anchor: HTMLElement) {
+  const t = onPage(target.getBoundingClientRect());
+  const range = document.createRange();
+  range.selectNodeContents(target);
+  const text = onPage(range.getBoundingClientRect());
+  let clip = Infinity;
+  for (let el: HTMLElement | null = target, depth = 0; el && el !== anchor.parentElement && depth < 12; el = el.parentElement, depth++) {
+    if (getComputedStyle(el).overflowX !== "visible") clip = Math.min(clip, onPage(el.getBoundingClientRect()).right);
+  }
+  return { left: Math.min(text.left || t.left, t.left), right: Math.min(text.right || t.right, t.right, clip), top: text.height ? text.top : t.top, height: text.height || t.height };
+}
 function place(placed: Placed) {
   const { bar, anchor, target, placement, fitEnd } = placed;
   const host = bar.host;
@@ -91,39 +107,52 @@ function place(placed: Placed) {
   const t = onPage(target.getBoundingClientRect());
   if (bar.state() === "rest") placed.restHeight = host.offsetHeight || placed.restHeight;
   const h = placed.restHeight || host.offsetHeight || 20;
-  if (placement === "after") {
-    /* Right after the text itself: a site name's box can run the width of its block. */
-    const box = onPage(textBox(target));
+  if (placement === "block" && placed.line && placed.block) {
+    /* The stack: the verdict beside the site's name, the hairline under the
+       name across the name-and-address column, inside a gap opened under
+       the name's line so nothing of Google's moves but the address, by 5 px. */
+    const line = placed.line, block = placed.block;
+    if (!(line.nextElementSibling instanceof HTMLElement && line.nextElementSibling.getAttribute("data-opinion-meter") === "gap")) {
+      const gap = document.createElement("div");
+      gap.setAttribute("data-opinion-meter", "gap");
+      gap.style.cssText = `height:${GAP}px;flex:none`;
+      line.after(gap);
+    }
+    const name = visibleEnd(target, anchor);
+    const lineBox = onPage(line.getBoundingClientRect()), blockBox = onPage(block.getBoundingClientRect());
+    const address = line.nextElementSibling?.nextElementSibling instanceof HTMLElement ? visibleEnd(line.nextElementSibling.nextElementSibling, anchor) : null;
+    const width = Math.min(blockBox.width, Math.max(name.right, address?.right ?? 0) - blockBox.left + 2);
+    bar.name(placed.site ?? "", name.right - name.left, width, lineBox.height);
+    host.style.left = `${Math.round(name.left)}px`;
+    host.style.top = `${Math.round(lineBox.top)}px`;
+  } else if (placement === "after") {
+    /* A small bar with its verdict right after the text itself. */
+    const box = visibleEnd(target, anchor);
+    bar.name(placed.site ?? "", box.right + 8 - box.left);
     host.style.left = `${Math.round(box.right + 8)}px`;
     host.style.top = `${Math.round(box.top + (box.height - h) / 2)}px`;
   } else if (placement === "below") {
+    bar.name(placed.site ?? "", 0);
     host.style.left = `${Math.round(t.left)}px`;
     host.style.top = `${Math.round(t.bottom + 4)}px`;
   } else if (placement === "corner") {
-    /* The card's top-right corner, on the title's first line and shrunk before it. */
+    /* The card's top-right corner, on the title's first line, the verdict dropped when the line is close. */
     const first = fitEnd && shown(fitEnd) ? onPage(firstLine(fitEnd)) : null;
     const right = t.right - 12;
-    const width = Math.max(20, Math.min(FIT_WIDTH, first ? Math.floor(right - first.right - 8) : FIT_WIDTH));
-    host.style.setProperty("--om-width", `${width}px`);
+    const room = first ? Math.floor(right - first.right - 8) : STORY_ROOM;
+    host.toggleAttribute("data-bare", room < STORY_ROOM);
+    const width = room < STORY_ROOM ? STORY_BAR : host.offsetWidth || STORY_ROOM;
+    bar.name(placed.site ?? "", 0);
     host.style.left = `${Math.round(right - width)}px`;
     host.style.top = `${Math.round(first ? first.top + (first.height - h) / 2 : t.top + 10)}px`;
   } else {
-    /* After the label's visible text. Google clips a long label inside a
-       fixed-width box and the text runs on unseen past it, so the visible
-       end is the nearest clipping box's edge, never the text's own. */
-    const range = document.createRange();
-    range.selectNodeContents(target);
-    const text = onPage(range.getBoundingClientRect());
-    let clip = Infinity;
-    for (let el: HTMLElement | null = target, depth = 0; el && el !== anchor.parentElement && depth < 12; el = el.parentElement, depth++) {
-      if (getComputedStyle(el).overflowX !== "visible") clip = Math.min(clip, onPage(el.getBoundingClientRect()).right);
-    }
-    const end = Math.min(text.right || t.right, t.right, clip);
+    /* After the label's visible text, the verdict dropped when the dots are close. */
+    const box = visibleEnd(target, anchor);
     const limit = fitEnd && shown(fitEnd) ? onPage(fitEnd.getBoundingClientRect()).left - 10 : onPage(anchor.getBoundingClientRect()).right - 12;
-    const width = Math.max(20, Math.min(FIT_WIDTH, Math.floor(limit - end - 8)));
-    host.style.setProperty("--om-width", `${width}px`);
-    host.style.left = `${Math.round(end + 8)}px`;
-    host.style.top = `${Math.round((text.height ? text.top : t.top) + ((text.height || t.height) - h) / 2)}px`;
+    host.toggleAttribute("data-bare", limit - box.right - 8 < STORY_ROOM);
+    bar.name(placed.site ?? "", box.right + 8 - box.left);
+    host.style.left = `${Math.round(box.right + 8)}px`;
+    host.style.top = `${Math.round(box.top + (box.height - h) / 2)}px`;
   }
 }
 function pinQuery() {
@@ -134,25 +163,23 @@ function pinQuery() {
     host.style.visibility = "";
     const header = kpHeader(queryPlace.title, queryPlace.subtitle, queryPlace.others);
     const panel = onPage(queryPlace.panel.getBoundingClientRect());
-    const w = host.offsetWidth || 160, h = host.offsetHeight || 44;
+    const w = host.offsetWidth || 160, h = host.offsetHeight || 36;
     /* Right after the dots; pulled left only if a logo leaves no room. */
     const limit = Math.min(header.limit + scrollX, panel.right - 12);
     host.style.left = `${Math.round(Math.min(header.right + scrollX + 16, Math.max(header.right + scrollX + 8, limit - w)))}px`;
     /* The bar on the subtitle's line, "What people think" above it. */
     const seg = host.shadowRoot?.querySelector<HTMLElement>(".seg");
-    const segMid = seg ? seg.getBoundingClientRect().top + seg.getBoundingClientRect().height / 2 - host.getBoundingClientRect().top : h - 7;
+    const segMid = seg ? seg.getBoundingClientRect().top + seg.getBoundingClientRect().height / 2 - host.getBoundingClientRect().top : h - 4;
     host.style.top = `${Math.round(header.base.top + scrollY + (header.base.bottom - header.base.top) / 2 - segMid)}px`;
     return;
   }
   if (!shown(queryPlace.panel)) { host.style.visibility = "hidden"; return; }
   host.style.visibility = "";
   const p = onPage(queryPlace.panel.getBoundingClientRect());
-  /* A narrow sources box gets the name alone, never "of p…". */
-  host.toggleAttribute("data-narrow", p.width < 460);
   host.style.width = `${Math.round(p.width)}px`;
   host.style.left = `${Math.round(p.left)}px`;
-  const h = host.offsetHeight || 44;
-  host.style.top = `${Math.round(queryPlace.below ? p.bottom + 12 : p.top - h - 12)}px`;
+  const h = host.offsetHeight || 14;
+  host.style.top = `${Math.round(queryPlace.below ? p.bottom + 14 : p.top - h - 14)}px`;
 }
 function reposition() {
   if (placements.size || queryBar) layer();
@@ -179,7 +206,7 @@ function liftQuery(): (() => void) | undefined {
   const box = onPage(host.getBoundingClientRect());
   const blank = document.createElement("div");
   blank.setAttribute("data-opinion-meter", "blank");
-  blank.style.cssText = `height:${Math.round(box.height)}px;margin:0 0 16px`;
+  blank.style.cssText = `height:${Math.round(box.height)}px;margin:16px 0 22px`;
   host.before(blank);
   host.removeAttribute("data-flow");
   host.style.cssText = `left:${Math.round(box.left)}px;top:${Math.round(box.top)}px;width:${Math.round(box.width)}px`;
@@ -229,7 +256,7 @@ function positionQuery() {
 }
 function hold(result: Found, bar: Bar) {
   layer().append(bar.host);
-  placements.set(result.anchor, { bar, anchor: result.anchor, target: result.target, placement: result.placement, fitEnd: result.fitEnd });
+  placements.set(result.anchor, { bar, anchor: result.anchor, target: result.target, placement: result.placement, fitEnd: result.fitEnd, line: result.line, block: result.block, site: result.site });
 }
 async function drain() {
   if (busy) return;
@@ -245,12 +272,14 @@ async function drain() {
         if (!result.anchor.isConnected) continue;
         placements.get(result.anchor)?.bar.remove();
         const context = { query: requestQuery, results: [{ url: result.url, title: result.title, ...(result.site ? { site: result.site } : {}) }] };
-        const bar = createBar({ title: result.title, dark, size: result.size, bare: result.placement === "fit" || result.placement === "corner", drawer: drawerFor(context), onGauge: take });
+        const bar = createBar({ shape: result.placement === "block" ? "block" : "story", title: result.site ?? result.title, dark, drawer: drawerFor(context), onGauge: take });
         hold(result, bar);
         drawn.set(result, bar);
       }
       if (initial && config.google.queryBar) {
-        queryBar = createBar({ big: true, title: requestQuery, dark, drawer: drawerFor({ query: requestQuery, results: [] }), onGauge: take, relocate: liftQuery });
+        /* Beside a knowledge panel's title the card is the small square; everywhere else the line. */
+        queryPlace = queryPlacement(config);
+        queryBar = createBar({ shape: queryPlace?.mode === "kp" ? "square" : "line", title: requestQuery, dark, drawer: drawerFor({ query: requestQuery, results: [] }), onGauge: take, relocate: liftQuery });
         positionQuery();
       }
       try {

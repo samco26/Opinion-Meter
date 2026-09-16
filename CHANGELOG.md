@@ -2,6 +2,14 @@
 
 What changed in each version, in plain words, newest first. The version number lives in three places and moves together: `server/package.json`, `extension/package.json` and the health door (`server/src/app/api/health/route.ts`). **Rule:** every push that changes what a reader sees or what the server does adds an entry here in the same commit (see AGENTS.md).
 
+## 0.16.0 — 16 September 2026
+
+- The look from the design handoff of 16 September, to the letter: hairline bars (2 px beside results and in panels, 3 px on the query line, in cards and on the badge) in the page's own greys and font, colour only inside a bar or a 5 px dot, labels in the page's muted grey. Beside a result the bar sits under the site's name across the name-and-address column, with the verdict beside the name; a 5 px gap opens under the name for it. The query line reads "What people think of Kia" with the bar filling to the verdict. A knowledge panel keeps its small square; a sources panel's line sits above the panel. Stories in a panel get a fixed 34 px bar with the verdict.
+- The source card, one design at two token sets (dark on a dark page, light on a light one): name, bar, verdict and × in the header, three dots with the figures, the summary, the platform tiles, "See recurring opinions", the count and confidence, a full-bleed divider and "How it works". 460 px on Google, 360 px on a site. "See recurring opinions" swaps the figures and summary for the list, drawn as quiet rows with a 2 px stance tick, and the chip fills. Platform tiles and "How it works" open the server's page in a new tab.
+- The badge on a site is the handoff's pill (name, fixed 48 px bar, verdict), docked below the site's own header at the top right.
+- The growing animation is unchanged, but nothing moves any more: the header keeps its place while the card grows around it, the card opens 300 ms after the pointer arrives and closes 200 ms after it leaves, and a click after a close does not reopen it under the pointer. Loading keeps the green-then-red sweep; too few opinions is a plain grey track with no label.
+- A test page can be assembled from real bundles CI now builds (opinion-meter-preview).
+
 ## 0.15.1 — 16 September 2026
 
 - A growing card no longer jumps upward: the pin that keeps a bar on its line was measuring the grown card and re-centring on it every half second. It measures the bar at rest now. Cards on Google always grow downward; only a site's card, fixed to the window, grows upward when the window's bottom is right there.

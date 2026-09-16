@@ -12,14 +12,18 @@ const tell = (message: Record<string, unknown>) => { if (window.parent !== windo
 /* What the drawer says while the reading is made. */
 const PHRASES = ["Scanning the web…", "Reading the room…", "Calculating sentiment…", "Weighing the opinions…", "Listening in…"];
 
-/* dark: the drawer host is on Google's dark theme, so the card is drawn
-   dark too. morph: the card is drawn inside the pill that grew to hold
-   it, which already shows the name, the bar and the figures, so the
-   title bar and the bar of its own are left out. */
-export function Embed({ subjectKey, dark = false, morph = false }: { subjectKey: string; dark?: boolean; morph?: boolean }) {
+/* dark: the host is on a dark theme, so the card is drawn dark too.
+   morph: the card is drawn inside the bar that grew to hold it, which
+   already shows the name, the bar and the figures, so the title bar and
+   the bar of its own are left out. part "opinions": only the recurring
+   opinions list, which the grown card frames under its own header; the
+   detail behind an opinion still opens inside, with a way back. start: a
+   platform's posts or the explainer, when opened in a tab of its own. */
+export function Embed({ subjectKey, dark = false, morph = false, part, start }: { subjectKey: string; dark?: boolean; morph?: boolean; part?: "opinions"; start?: string }) {
   const [phase, setPhase] = useState<Phase>({ name: "loading" });
-  const [view, setView] = useState<View | null>(null);
-  const [recurringOpen, setRecurringOpen] = useState(false);
+  const [view, setView] = useState<View | null>(start === "how" ? { kind: "how" } : start && ["youtube", "x", "hn", "bluesky", "reddit"].includes(start) ? { kind: "source", source: start as SourceId } : null);
+  const [recurringOpen, setRecurringOpen] = useState(part === "opinions");
+  const listOnly = part === "opinions";
   const [attempt, setAttempt] = useState(0);
   const [phrase, setPhrase] = useState(0);
   const [fading, setFading] = useState(false);
@@ -43,7 +47,7 @@ export function Embed({ subjectKey, dark = false, morph = false }: { subjectKey:
     try { context = JSON.parse(new URLSearchParams(window.location.hash.slice(1)).get("context") ?? "null"); } catch { context = null; }
     if (!subjectKey && !context) { setPhase({ name: "error", message: "No subject was given." }); return; }
     setPhase({ name: "loading" });
-    setRecurringOpen(false);
+    setRecurringOpen(listOnly);
     const controller = new AbortController();
     fetch(context ? "/api/card" : `/api/card?key=${encodeURIComponent(subjectKey)}`, {
       signal: controller.signal, cache: "no-store",
@@ -61,7 +65,7 @@ export function Embed({ subjectKey, dark = false, morph = false }: { subjectKey:
       }
     }).catch((err: unknown) => { if (!controller.signal.aborted) setPhase({ name: "error", message: err instanceof Error ? err.message : "The reading failed." }); });
     return () => controller.abort();
-  }, [subjectKey, attempt]);
+  }, [subjectKey, attempt, listOnly]);
   useEffect(() => {
     const node = content.current;
     if (!node) return;
@@ -71,12 +75,12 @@ export function Embed({ subjectKey, dark = false, morph = false }: { subjectKey:
     const measure = () => {
       const list = node.querySelector<HTMLElement>(".opinion-list");
       const folded = list ? Math.max(0, Math.min(300, list.scrollHeight) - list.clientHeight) : 0;
-      tell({ type: "resize", height: Math.ceil(node.scrollHeight + folded + (phase.name === "loading" || (morph && !view) ? 26 : 76)) });
+      tell({ type: "resize", height: Math.ceil(node.scrollHeight + folded + (phase.name === "loading" || (morph && !view) || listOnly ? (listOnly ? 8 : 26) : 76)) });
     };
     const observer = new ResizeObserver(measure);
     observer.observe(node); measure();
     return () => observer.disconnect();
-  }, [phase, view, recurringOpen, morph]);
+  }, [phase, view, recurringOpen, morph, listOnly]);
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") { event.preventDefault(); if (view) setView(null); else tell({ type: "close" }); }
@@ -100,11 +104,11 @@ export function Embed({ subjectKey, dark = false, morph = false }: { subjectKey:
     if (target.closest("button, a, input, select, textarea, [role='button'], .opinion-pill, .post-section")) return;
     tell({ type: "close" });
   };
-  return <div className="embed" data-theme={dark ? "dark" : undefined} onClick={plainClick}>
+  return <div className={`embed${listOnly ? " list-only" : ""}`} data-theme={dark ? "dark" : undefined} onClick={plainClick}>
     <section className="embed-card" aria-label="What people think">
-      {phase.name !== "loading" && (!morph || view) && <header className="embed-head">
+      {phase.name !== "loading" && (!morph || view) && !(listOnly && !view) && <header className="embed-head">
         {view ? <button className="back-button" onClick={() => setView(null)}>← Back</button> : <h1 className="embed-title">{name}</h1>}
-        {!morph && <button type="button" className="close ctl" onClick={() => tell({ type: "close" })} aria-label="Close">×</button>}
+        {!morph && !listOnly && <button type="button" className="close ctl" onClick={() => tell({ type: "close" })} aria-label="Close">×</button>}
       </header>}
       <div className="embed-scroll"><div className="embed-content" ref={content}>
         {!view && <>
@@ -112,7 +116,8 @@ export function Embed({ subjectKey, dark = false, morph = false }: { subjectKey:
           {phase.name === "error" && <div className="result-copy"><p className="overall-answer">Something interrupted the reading.</p><p className="quiet">{phase.message}</p><button className="text-action" onClick={() => setAttempt(value => value + 1)}>Try again</button></div>}
           {phase.name === "done" && phase.response.kind === "unknown" && <div className="result-copy"><p className="overall-answer">No reading available yet.</p><p className="quiet">{phase.response.message}</p></div>}
           {phase.name === "done" && phase.response.kind === "insufficient" && <Insufficient response={phase.response} bar={!morph} />}
-          {card && <>
+          {card && listOnly && <OpinionPills opinions={card.opinions} onSelect={opinion => setView({ kind: "opinion", opinion })} />}
+          {card && !listOnly && <>
             <Answer card={card} bar={!morph} onChoose={source => setView({ kind: "source", source })} recurring={{ expanded: recurringOpen, controls: "recurring-opinions", onToggle: () => setRecurringOpen(open => !open) }} />
             <section id="recurring-opinions" className="recurring-section" hidden={!recurringOpen} aria-label="Recurring opinions">
               <h2 className="section-label">Recurring opinions</h2>

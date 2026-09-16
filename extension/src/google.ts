@@ -9,9 +9,11 @@
    or above the results. */
 import type { ExtensionConfig } from "./shared";
 
-/* placement "fit": a bar with no text, shrunk to the room between the label's text and the dots (fitEnd) or the entry's right edge.
-   placement "corner": a bar with no text in the top-right corner of a card whose site name sits at the bottom, kept clear of the title's first line (fitEnd). */
-export interface Found { url: string; title: string; site?: string; anchor: HTMLElement; target: HTMLElement; placement: "after" | "below" | "fit" | "corner"; fitEnd?: HTMLElement; size: number }
+/* placement "block": the per-result stack — the verdict beside the site's name (target) and a hairline under the name spanning the name-and-address column (block), with a 5 px gap opened after the name's line (line).
+   placement "after": a fixed 34 px bar with the verdict right after the target's text.
+   placement "fit": the same, shrunk to the room between the label's text and the dots (fitEnd) or the entry's right edge.
+   placement "corner": the same in the top-right corner of a card whose site name sits at the bottom, kept clear of the title's first line (fitEnd). */
+export interface Found { url: string; title: string; site?: string; anchor: HTMLElement; target: HTMLElement; placement: "block" | "after" | "below" | "fit" | "corner"; fitEnd?: HTMLElement; line?: HTMLElement; block?: HTMLElement; size: number }
 /* "kp": right-aligned on the knowledge panel's title lines, between the text and whatever else shares those lines (others: a logo, a thumbnail). */
 export type QueryPlace =
   | { mode: "kp"; title: HTMLElement; subtitle: HTMLElement | null; panel: HTMLElement; others: HTMLElement[] }
@@ -79,15 +81,18 @@ function lineFree(label: HTMLElement, container: HTMLElement): boolean {
   });
 }
 
-/* The small site name Google prints above an organic title, or at the top of a news card. */
-function siteLabel(anchor: HTMLElement, container: HTMLElement): HTMLElement | undefined {
+/* The small site name Google prints above an organic title, or at the top
+   of a news card; with it, when the name and the address stack in one
+   column, that column (block) and the name's line (line). */
+function siteLabel(anchor: HTMLElement, container: HTMLElement): { label: HTMLElement; line?: HTMLElement; block?: HTMLElement } | undefined {
   const cite = anchor.querySelector<HTMLElement>("cite") ?? container.querySelector<HTMLElement>("cite");
   if (cite) {
     const row = cite.parentElement, block = row?.parentElement, first = block?.firstElementChild;
     const span = row && first && first !== row ? first.querySelector<HTMLElement>("span") : null;
-    if (span && labelLike(clean(span.textContent))) return span;
+    if (span && labelLike(clean(span.textContent))) return { label: span, line: first as HTMLElement, block: block as HTMLElement };
   }
-  return leaves(anchor).find((e) => fontSize(e) <= 12.5 && labelLike(clean(e.textContent)));
+  const label = leaves(anchor).find((e) => fontSize(e) <= 12.5 && labelLike(clean(e.textContent)));
+  return label ? { label } : undefined;
 }
 
 /* The AI Mode page's "quick results" cards have no heading element: the title is the first large line. */
@@ -114,16 +119,21 @@ function organic(config: ExtensionConfig, known: WeakMap<Element, string>): Foun
     known.set(node, signature);
     const container = node.closest<HTMLElement>("[data-hveid]") ?? node.parentElement ?? node;
     const menu = [...container.querySelectorAll<HTMLElement>(MENU)].find((m) => visible(m) && m.getBoundingClientRect().top < heading.getBoundingClientRect().bottom + 40);
-    const label = siteLabel(node, container);
+    const named = siteLabel(node, container);
+    const label = named?.label;
     const cite = node.querySelector<HTMLElement>("cite") ?? container.querySelector<HTMLElement>("cite") ?? undefined;
     /* On the AI Mode page a card carries its site name at the bottom: the bar goes to the card's top-right corner instead. */
     if (aiMode && label && label.getBoundingClientRect().top >= heading.getBoundingClientRect().bottom - 2) {
       found.push({ url, title, site: clean(label.textContent), anchor: node, target: container, placement: "corner", fitEnd: heading, size: 11 });
       continue;
     }
-    /* Beside the site's name when its line is free; otherwise after the dots, which end the line. */
+    /* The stack under the site's name when the name and the address form a column and the name's line is free; otherwise a small bar after the dots, which end the line. */
+    if (label && named?.line && named.block && lineFree(label, container)) {
+      found.push({ url, title, site: clean(label.textContent), anchor: node, target: label, placement: "block", line: named.line, block: named.block, size: 2 });
+      continue;
+    }
     const target = label && lineFree(label, container) ? label : menu ?? label ?? cite ?? heading;
-    found.push({ url, title, site: label ? clean(label.textContent) : undefined, anchor: node, target, placement: "after", size: 12 });
+    found.push({ url, title, site: label ? clean(label.textContent) : undefined, anchor: node, target, placement: "after", size: 2 });
   }
   return found;
 }
@@ -157,7 +167,7 @@ function shopping(known: WeakMap<Element, string>): Found[] {
     if (known.get(tile) === url) continue;
     known.set(tile, url);
     const heading = tile.querySelector<HTMLElement>('h3, [role="heading"]') ?? leaves(tile).find((e) => fontSize(e) >= 14 && clean(e.textContent).length > 8);
-    found.push({ url, title: clean(heading?.textContent) || label, site: label, anchor: tile, target: row, placement: "below", size: 12 });
+    found.push({ url, title: clean(heading?.textContent) || label, site: label, anchor: tile, target: row, placement: "below", size: 2 });
   }
   return found;
 }
@@ -195,8 +205,8 @@ function panelEntries(known: WeakMap<Element, string>): Found[] {
     /* A card that names its site at the bottom gets the bar in its top-right corner; one that names it at the top gets it after the name. */
     const lower = label.getBoundingClientRect().top > box.top + box.height / 2;
     found.push(lower
-      ? { url, title: clean(heading?.textContent) || clean(label.textContent), site: clean(label.textContent), anchor: item, target: item, placement: "corner", fitEnd: heading, size: 11 }
-      : { url, title: clean(heading?.textContent) || clean(label.textContent), site: clean(label.textContent), anchor: item, target: label, placement: "fit", fitEnd: menu, size: 11 });
+      ? { url, title: clean(heading?.textContent) || clean(label.textContent), site: clean(label.textContent), anchor: item, target: item, placement: "corner", fitEnd: heading, size: 2 }
+      : { url, title: clean(heading?.textContent) || clean(label.textContent), site: clean(label.textContent), anchor: item, target: label, placement: "fit", fitEnd: menu, size: 2 });
   }
   return found;
 }
