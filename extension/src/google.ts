@@ -81,9 +81,15 @@ function lineFree(label: HTMLElement, container: HTMLElement): boolean {
   });
 }
 
-/* The small site name Google prints above an organic title, or at the top
-   of a news card; with it, when the name and the address stack in one
-   column, that column (block) and the name's line (line). */
+/* A sponsored result writes its address in a plain span: the small leaf that reads like an address, above the title. */
+const ADDRESS = /^(https?:\/\/|www\.)|^[a-z0-9-]+(\.[a-z0-9-]+)+(\s*›|\s*\/|$)/i;
+function addressLeaf(container: HTMLElement): HTMLElement | undefined {
+  const heading = container.querySelector<HTMLElement>('h3, [role="heading"]');
+  const limit = heading ? heading.getBoundingClientRect().top + 2 : Infinity;
+  /* The lowest such leaf: the address line sits under the site's name, which can read like an address too. */
+  return leaves(container).filter((e) => fontSize(e) <= 13.5 && ADDRESS.test(clean(e.textContent)) && e.getBoundingClientRect().top < limit).at(-1);
+}
+
 /* The favicon before a site's name: the image on the name's line to its left, taken with the box it sits in (Google draws it in a circle);
    failing an image, whatever stands before the name on its line. */
 function favicon(scope: HTMLElement, line: HTMLElement, span: HTMLElement): HTMLElement | undefined {
@@ -101,8 +107,11 @@ function favicon(scope: HTMLElement, line: HTMLElement, span: HTMLElement): HTML
   return [...line.children].find((child): child is HTMLElement => child instanceof HTMLElement && !child.contains(span));
 }
 
+/* The small site name Google prints above an organic title, or at the top
+   of a news card; with it, when the name and the address stack in one
+   column, that column (block) and the name's line (line). */
 function siteLabel(anchor: HTMLElement, container: HTMLElement): { label: HTMLElement; line?: HTMLElement; block?: HTMLElement; icon?: HTMLElement } | undefined {
-  const cite = anchor.querySelector<HTMLElement>("cite") ?? container.querySelector<HTMLElement>("cite");
+  const cite = anchor.querySelector<HTMLElement>("cite") ?? container.querySelector<HTMLElement>("cite") ?? addressLeaf(container);
   if (cite) {
     const row = cite.parentElement, block = row?.parentElement, first = block?.firstElementChild;
     const span = row && first && first !== row ? first.querySelector<HTMLElement>("span") : null;
@@ -125,7 +134,10 @@ function organic(config: ExtensionConfig, known: WeakMap<Element, string>): Foun
   const aiMode = udm() === "50";
   /* An AI answer's sources panel is read by panelEntries; its links must not be counted twice. */
   const panel = sourcesPanel();
+  /* While the page still streams in, the last result on it may be only half parsed: it is left for the next look. */
+  const tail = document.readyState === "loading" ? [...document.querySelectorAll<HTMLElement>("[data-hveid]")].at(-1) ?? null : null;
   for (const node of candidates) {
+    if (tail?.contains(node)) continue;
     if (!visible(node) || panel?.contains(node) || node.closest('nav, [role="navigation"], form, #rhs, [data-attrid], [data-mcpr], [data-aim], [data-sgrd], ' + POPUP + ", " + PRODUCT)) continue;
     const heading = node.querySelector<HTMLElement>('h3, [role="heading"]') ?? (aiMode ? cardTitle(node) : undefined);
     if (!heading) continue;
@@ -135,7 +147,7 @@ function organic(config: ExtensionConfig, known: WeakMap<Element, string>): Foun
     const signature = `${url}|${title}`;
     if (known.get(node) === signature) continue;
     known.set(node, signature);
-    const container = node.closest<HTMLElement>("[data-hveid]") ?? node.parentElement ?? node;
+    const container = node.closest<HTMLElement>("[data-hveid], [data-text-ad], [data-dtld]") ?? node.parentElement ?? node;
     const menu = [...container.querySelectorAll<HTMLElement>(MENU)].find((m) => visible(m) && m.getBoundingClientRect().top < heading.getBoundingClientRect().bottom + 40);
     const named = siteLabel(node, container);
     const label = named?.label;

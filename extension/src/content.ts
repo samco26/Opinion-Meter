@@ -1,4 +1,4 @@
-import { createBar, isDark, resultLevel, type Bar } from "./ui";
+import { createBar, isDark, resultLevel, type Bar, type BarState, type Shape } from "./ui";
 import { kpHeader, queryPlacement, readResults, textBox, type Found, type QueryPlace } from "./google";
 import { send, type ConfigReply, type ExtensionConfig, type Gauge, type GaugeRequest, type GaugeResponse, type SubjectStates } from "./shared";
 
@@ -16,6 +16,8 @@ let config: ExtensionConfig;
 let server = "", query = "", generation = 0, dark = false;
 let queryBar: Bar | null = null;
 let queryPlace: QueryPlace | null = null;
+/* The query bar's latest state, for a remade query bar. */
+let queryState: BarState | null = null;
 let seen = new WeakMap<Element, string>();
 let queue: Found[] = [];
 let busy = false, first = true;
@@ -231,7 +233,8 @@ function apply(states: SubjectStates) {
   for (const [key, state] of Object.entries(states)) {
     if (state.state === "pending") { pending.add(key); continue; }
     pending.delete(key);
-    for (const bar of bars.get(key) ?? []) bar.set(state.state === "ready" ? { kind: "ready", gauge: state.gauge } : { kind: "empty", reason: state.reason, thin: state.thin });
+    const shown: BarState = state.state === "ready" ? { kind: "ready", gauge: state.gauge } : { kind: "empty", reason: state.reason, thin: state.thin };
+    for (const bar of bars.get(key) ?? []) { bar.set(shown); if (bar === queryBar) queryState = shown; }
   }
   settle();
 }
@@ -248,6 +251,8 @@ function positionQuery() {
   if (!queryBar || !config.google.queryBar || queryBar.state() !== "rest") return;
   queryPlace = queryPlacement(config);
   if (!queryPlace) return;
+  const shape = queryPlace.mode === "kp" ? "square" : "line";
+  if (queryBar.host.getAttribute("data-shape") !== shape) remakeQuery(shape);
   const host = queryBar.host;
   host.toggleAttribute("data-square", queryPlace.mode === "kp");
   host.toggleAttribute("data-panel", queryPlace.mode === "panel");
@@ -261,6 +266,16 @@ function positionQuery() {
     if (queryPlace.mode === "kp") host.style.width = "";
   }
   settle();
+}
+/* The query's bar again in another shape, keeping its key and its reading: the page's knowledge panel arrives after the results when the page streams in, and only then is the small square wanted. */
+function remakeQuery(shape: Shape) {
+  if (!queryBar) return;
+  const old = queryBar;
+  const fresh = createBar({ shape, title: query, dark, drawer: drawerFor({ query, results: [] }), onGauge: take, relocate: liftQuery });
+  for (const [key, list] of bars) if (list.includes(old)) bars.set(key, list.map((bar) => (bar === old ? fresh : bar)));
+  if (queryState) fresh.set(queryState);
+  old.remove();
+  queryBar = fresh;
 }
 function hold(result: Found, bar: Bar) {
   /* Unseen until its first placement, so a bar never flashes at the layer's origin. */
@@ -314,7 +329,7 @@ async function drain() {
       } catch {
         if (epoch !== generation) continue;
         for (const bar of drawn.values()) bar.set({ kind: "empty", reason: "The reading could not finish." });
-        if (initial) queryBar?.set({ kind: "empty", reason: "The reading could not finish. Click to retry." });
+        if (initial && queryBar) { queryState = { kind: "empty", reason: "The reading could not finish. Click to retry." }; queryBar.set(queryState); }
       }
     }
   } finally { busy = false; }
@@ -324,9 +339,15 @@ function scan() {
   if (now !== query) {
     generation++; query = now; first = true; queue = []; seen = new WeakMap();
     for (const placed of placements.values()) placed.bar.remove();
-    placements.clear(); bars.clear(); pending.clear(); prefetched.clear(); queryBar?.remove(); queryBar = null; queryPlace = null;
+    placements.clear(); bars.clear(); pending.clear(); prefetched.clear(); queryBar?.remove(); queryBar = null; queryPlace = null; queryState = null;
   }
   if (!query) return;
+  const theme = isDark();
+  if (theme !== dark) {
+    dark = theme;
+    for (const placed of placements.values()) placed.bar.host.toggleAttribute("data-dark", dark);
+    queryBar?.host.toggleAttribute("data-dark", dark);
+  }
   for (const [anchor, placed] of placements) if (!anchor.isConnected) { placed.bar.remove(); placements.delete(anchor); }
   queue.push(...readResults(config, seen)); positionQuery(); void drain(); settle();
 }
@@ -334,11 +355,17 @@ async function main() {
   if (window.top !== window || !currentQuery()) return;
   const reply = await send<ConfigReply>({ type: "config" }).catch(() => null);
   if (!reply?.config.enabled || !reply.config.google.enabled) return;
-  ({ server, config } = reply); query = currentQuery(); dark = isDark(); scan();
-  let timer: number | undefined;
+  ({ server, config } = reply); query = currentQuery();
+  /* The hands start as the page begins (document_start): the body may not be there yet. */
+  if (!document.body) await new Promise<void>((resolve) => { const watch = new MutationObserver(() => { if (document.body) { watch.disconnect(); resolve(); } }); watch.observe(document.documentElement, { childList: true }); });
+  dark = isDark(); scan();
+  /* Results are read as they stream in: a look at once when the page changes after a quiet spell, and another once it settles. */
+  let timer: number | undefined, last = 0;
   new MutationObserver(records => {
     if (records.every(record => (record.target as Element).closest?.('[data-opinion-meter]') || (record.type === "childList" && [...record.addedNodes, ...record.removedNodes].every(node => node instanceof Element && node.hasAttribute('data-opinion-meter'))))) return;
-    clearTimeout(timer); timer = window.setTimeout(scan, 500);
+    const now = performance.now();
+    if (now - last > 400) { last = now; scan(); }
+    clearTimeout(timer); timer = window.setTimeout(() => { last = performance.now(); scan(); }, document.readyState === "loading" ? 250 : 500);
   }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["href", "aria-label", "data-docid"] });
   window.addEventListener("popstate", scan); window.addEventListener("resize", () => { positionQuery(); reposition(); });
   /* Google shifts its page as panels open and images load; follow it. */

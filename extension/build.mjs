@@ -39,7 +39,7 @@ const manifest = (target) => ({
   ...(["firefox", "safari"].includes(target) ? { host_permissions: EVERYWHERE } : {}),
   background: target === "firefox" ? { scripts: ["background.js"] } : { service_worker: "background.js" },
   content_scripts: [
-    { matches, js: ["content.js"], run_at: "document_end" },
+    { matches, js: ["content.js"], run_at: "document_start" },
     { matches: EVERYWHERE, exclude_matches: matches, js: ["site.js"], run_at: "document_idle" },
   ],
   /* The icon opens the menu; the same page serves as the settings page, in a tab. */

@@ -2,6 +2,12 @@
 
 What changed in each version, in plain words, newest first. The version number lives in three places and moves together: `server/package.json`, `extension/package.json` and the health door (`server/src/app/api/health/route.ts`). **Rule:** every push that changes what a reader sees or what the server does adds an entry here in the same commit (see AGENTS.md).
 
+## 0.16.3 — 17 September 2026
+
+- The bars are there from the first moment: the hands now start as the page begins to load and read the results as they stream in, so every result gets its sweeping bar as it appears, well before any reading is back. The query line changes into its small square if the knowledge panel arrives later in the page.
+- A sponsored result gets the same treatment as an organic one: the verdict beside its site name, the hairline under the row. (Google writes an ad's address in a plain span rather than a cite, which is where the site-name detection used to start.)
+- The query line carries the reading's one-sentence summary under the bar, and keeps it in that place when the card grows (the figures follow it).
+
 ## 0.16.2 — 17 September 2026
 
 - A result's bar starts where its name and address start (the column to the favicon's right), the place the owner marked, and no longer under the favicon. The grown card still shows the favicon: it reaches left across the favicon's room, and its figures, summary, tiles and list start level with the name, clear of the favicon.

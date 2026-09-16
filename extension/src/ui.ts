@@ -33,7 +33,7 @@ const CSS = `
   --t1:#e8eaed;--t2:#dadce0;--tb:#c4c8cb;--tm:#969ba1;--tl:#8e9398;
   --shadow:0 12px 32px rgba(0,0,0,.45);--badge-shadow:0 2px 10px rgba(0,0,0,.4)}
 :host([hidden]){display:none!important}
-:host([data-flow]){position:relative;display:block;height:18px;margin:14px 0 20px}
+:host([data-flow]){position:relative;display:block;min-height:18px;margin:14px 0 20px}
 :host([data-site]){position:fixed;top:12px;right:12px;z-index:2147483000;transition:opacity 280ms ease}
 :host([data-site][data-faint]){opacity:.22}
 :host([data-site][data-faint]:hover),:host([data-site][data-faint]:focus-within),:host([data-site][data-faint][data-state="open"]){opacity:1}
@@ -90,6 +90,11 @@ const CSS = `
 :host([data-shape="story"]) .card[data-state="hover"] .who,:host([data-shape="story"]) .card[data-state="open"] .who,:host([data-shape="story"]) .card.closing .who{display:block}
 .head.square{display:grid;grid-template-columns:auto auto auto;grid-template-areas:"lead lead lead" "bar label x";align-items:center;column-gap:8px;row-gap:5px}
 .head.square .lead{grid-area:lead;font-size:11px;color:var(--tl)}.head.square .seg{grid-area:bar;width:72px;--om-h:3px;--om-r:2px}.head.square .label{grid-area:label;color:var(--tb)}.head.square .x{grid-area:x}
+/* The query line's one-sentence summary, under the bar at rest; grown, it stands in for the body's summary above the figures. */
+.tagline{display:none;font-size:12px;line-height:1.5;color:var(--tb);margin-top:7px;white-space:normal;text-wrap:pretty}
+:host([data-shape="line"]) .tagline:not(:empty){display:block}
+:host([data-shape="line"]) .body .summary{display:none}
+:host([data-shape="line"]) .dots{margin-top:14px}
 .body{display:none;flex-direction:column;white-space:normal;opacity:1;transition:opacity 150ms ease}
 .card[data-state="hover"] .body,.card[data-state="open"] .body{display:flex}
 .card.closing .body{display:flex;opacity:0}
@@ -279,6 +284,7 @@ export function createBar(opts: {
   head.setAttribute("tabindex", "0");
   head.setAttribute("role", "img");
   const body = el("div", "body");
+  const tagline = el("div", "tagline");
   const dots = el("div", "dots");
   const summary = el("div", "summary");
   const actions = el("div", "actions");
@@ -295,14 +301,18 @@ export function createBar(opts: {
   const foot = el("button", "foot", "How it works · sources and confidence");
   foot.type = "button";
   body.append(dots, summary, actions, heading, sheet, divider, foot);
-  card.append(who, head, body);
+  card.append(who, head, tagline, body);
   root.append(style, card);
   /* The host's own box is the header's, so the pins measure the bar and never the grown card. */
-  if (!site) new ResizeObserver(() => {
-    if (state !== "rest" || closing) return;
-    if (opts.shape !== "line") host.style.width = `${head.offsetWidth}px`;
-    host.style.height = `${head.offsetHeight}px`;
-  }).observe(head);
+  if (!site) {
+    const mirror = () => {
+      if (state !== "rest" || closing) return;
+      if (opts.shape !== "line") host.style.width = `${card.offsetWidth - 2}px`;
+      host.style.height = `${card.offsetHeight - 2}px`;
+    };
+    const watch = new ResizeObserver(mirror);
+    watch.observe(head); watch.observe(card);
+  }
   if (opts.onDismiss) {
     const dismiss = el("button", "dismiss", "×");
     dismiss.type = "button";
@@ -671,6 +681,7 @@ export function createBar(opts: {
     } else host.hidden = false;
     renderHead(s);
     fitBar();
+    if (opts.shape === "line") tagline.textContent = s.kind === "ready" ? s.gauge.sentence : "";
     if (state !== "rest") { fillCard(); grow(); }
   };
   render({ kind: "loading" });
