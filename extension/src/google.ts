@@ -106,7 +106,7 @@ function siteLabel(anchor: HTMLElement, container: HTMLElement): { label: HTMLEl
   if (cite) {
     const row = cite.parentElement, block = row?.parentElement, first = block?.firstElementChild;
     const span = row && first && first !== row ? first.querySelector<HTMLElement>("span") : null;
-    const icon = span && first ? favicon(block?.parentElement ?? first, first as HTMLElement, span) : undefined;
+    const icon = span && first ? favicon(block?.parentElement instanceof HTMLElement ? block.parentElement : first as HTMLElement, first as HTMLElement, span) : undefined;
     if (span && labelLike(clean(span.textContent))) return { label: span, line: first as HTMLElement, block: block as HTMLElement, icon };
   }
   const label = leaves(anchor).find((e) => fontSize(e) <= 12.5 && labelLike(clean(e.textContent)));
