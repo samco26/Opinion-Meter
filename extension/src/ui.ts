@@ -37,15 +37,20 @@ const CSS = `
 :host([data-site][data-faint]:hover),:host([data-site][data-faint]:focus-within),:host([data-site][data-faint][data-state="open"]){opacity:1}
 /* The card: one box that grows. At rest it is the header alone, without
    surface; grown, it is the source card, offset so the header stays put. */
-.card{position:absolute;left:calc(-1 * var(--px));top:calc(-1 * var(--pt));box-sizing:border-box;display:flex;flex-direction:column;padding:var(--pt) var(--px) var(--pb);border-radius:12px;border:1px solid transparent;background:transparent;overflow:hidden;white-space:nowrap;--px:0px;--pt:0px;--pb:0px;transition:width 340ms cubic-bezier(.16,1,.3,1),height 340ms cubic-bezier(.16,1,.3,1),background 200ms ease,box-shadow 200ms ease,border-color 200ms ease,border-radius 200ms ease}
+.card{position:absolute;left:calc(-1 * var(--px) - 1px);top:calc(-1 * var(--pt) - 1px);box-sizing:border-box;display:flex;flex-direction:column;padding:var(--pt) var(--px) var(--pb);border-radius:12px;border:1px solid transparent;background:transparent;overflow:hidden;white-space:nowrap;--px:0px;--pt:0px;--pb:0px;--ease:cubic-bezier(.16,1,.3,1);transition:width 340ms var(--ease),height 340ms var(--ease),background 200ms ease,box-shadow 200ms ease,border-color 200ms ease,border-radius 200ms ease}
 .card[data-state="hover"],.card[data-state="open"]{--px:18px;--pt:16px;--pb:14px;background:var(--card);border-color:var(--border);box-shadow:var(--shadow);z-index:1}
-:host([data-site]) .card{--px:15px;--pt:8px;--pb:8px;left:0;top:0;position:relative;background:var(--card);border-color:var(--border);border-radius:19px;box-shadow:var(--badge-shadow)}
+/* Closing: the padding stays while the box shrinks and the surface fades out, so nothing inside jumps or is clipped. */
+.card.closing{--px:18px;--pt:16px;--pb:14px}
+/* The query's line spans its host (the results column); the others are as wide as their header. */
+:host([data-shape="line"]) .card{width:calc(100% + 2px)}
+:host([data-site]) .card{--px:15px;--pt:8px;--pb:8px;left:0;top:0;position:relative;background:var(--card);border-color:var(--border);border-radius:19px;box-shadow:var(--badge-shadow);transition:width 340ms var(--ease),height 340ms var(--ease),padding 340ms var(--ease),background 200ms ease,box-shadow 200ms ease,border-color 200ms ease,border-radius 200ms ease}
 :host([data-site]) .card[data-state="hover"],:host([data-site]) .card[data-state="open"]{--px:17px;--pt:15px;--pb:13px;border-radius:12px}
+:host([data-site]) .card.closing{--px:17px;--pt:15px;--pb:13px}
 :host([data-pill]) .card{white-space:nowrap}
 .head{display:flex;align-items:center;gap:11px;min-width:0}
 .head.block{display:grid;grid-template-columns:var(--om-indent,0px) auto 1fr auto;grid-template-rows:var(--om-line,20px) auto;grid-template-areas:"name label . x" "bar bar bar bar";row-gap:1px;column-gap:0;align-items:center}
 :host([data-bare]) .head .label{display:none}
-.head.block .name{grid-area:name;overflow:hidden;text-overflow:clip;white-space:nowrap;font-size:12px;font-weight:400;color:var(--t2);opacity:0}
+.head.block .name{grid-area:name;overflow:hidden;text-overflow:clip;white-space:nowrap;font-size:12px;font-weight:400;color:var(--t2);opacity:0;transition:opacity 200ms ease}
 .card[data-state="hover"] .head.block .name,.card[data-state="open"] .head.block .name{opacity:1}
 .head.block .label{grid-area:label;margin-left:9px}
 .head.block .seg{grid-area:bar;width:var(--om-block,100%)}
@@ -60,19 +65,26 @@ const CSS = `
 .seg{display:flex;height:var(--om-h);border-radius:var(--om-r);overflow:hidden;background:var(--track);flex:none;width:var(--om-width,34px);transition:width 340ms cubic-bezier(.16,1,.3,1)}
 .head.line .seg{flex:1 1 auto;width:auto;--om-h:3px;--om-r:2px}
 :host([data-site]) .head .seg{flex:none;width:48px;--om-h:3px;--om-r:2px}
-:host([data-site]) .card[data-state="hover"] .head .seg,:host([data-site]) .card[data-state="open"] .head .seg{flex:1 1 auto;width:auto}
+:host([data-site]) .card[data-state="hover"] .head .seg,:host([data-site]) .card[data-state="open"] .head .seg,:host([data-site]) .card.closing .head .seg{flex:1 1 auto;width:auto}
 .seg span{display:block;height:100%}.seg .pos{background:var(--pos)}.seg .neu{background:var(--neu)}.seg .neg{background:var(--neg);flex:1}
 .seg.wait{position:relative}.seg.wait:before{content:"";position:absolute;inset:0;width:45%;border-radius:inherit;background:linear-gradient(90deg,var(--pos) 50%,var(--neg) 50%);animation:flow 1600ms ease-in-out infinite}
 @keyframes flow{0%{transform:translateX(-110%)}100%{transform:translateX(220%)}}
-.x{display:none;width:18px;height:18px;border-radius:9px;border:0;padding:0;background:var(--tile);color:var(--tm);font:11px/18px inherit;font-family:inherit;text-align:center;cursor:pointer;flex:none}
-.card[data-state="open"] .x{display:block}
+.x{display:none;opacity:0;transition:opacity 200ms ease;width:18px;height:18px;border-radius:9px;border:0;padding:0;background:var(--tile);color:var(--tm);font:11px/18px inherit;font-family:inherit;text-align:center;cursor:pointer;flex:none}
+.card[data-state="hover"] .x,.card[data-state="open"] .x{display:block;opacity:1}
+.card.closing .x{display:block}
+:host([data-site]) .card.closing .x{display:none}
+/* The line keeps the ×'s room at rest, so its bar never shifts. */
+.head.line .x{display:block;visibility:hidden}
+.card[data-state="hover"] .head.line .x,.card[data-state="open"] .head.line .x{visibility:visible}
 .head.story{gap:8px}.head.story .label{font-size:10px}
 .who{display:none;font-size:13px;font-weight:500;color:var(--t1);white-space:nowrap;margin:0 0 8px}
-:host([data-shape="story"]) .card[data-state="hover"] .who,:host([data-shape="story"]) .card[data-state="open"] .who{display:block}
+:host([data-shape="story"]) .card[data-state="hover"] .who,:host([data-shape="story"]) .card[data-state="open"] .who,:host([data-shape="story"]) .card.closing .who{display:block}
 .head.square{display:grid;grid-template-columns:auto auto auto;grid-template-areas:"lead lead lead" "bar label x";align-items:center;column-gap:8px;row-gap:5px}
 .head.square .lead{grid-area:lead;font-size:11px;color:var(--tl)}.head.square .seg{grid-area:bar;width:72px;--om-h:3px;--om-r:2px}.head.square .label{grid-area:label;color:var(--tb)}.head.square .x{grid-area:x}
-.body{display:none;flex-direction:column;white-space:normal}
+.body{display:none;flex-direction:column;white-space:normal;opacity:1;transition:opacity 150ms ease}
 .card[data-state="hover"] .body,.card[data-state="open"] .body{display:flex}
+.card.closing .body{display:flex;opacity:0}
+@starting-style{.card[data-state="hover"] .body,.card[data-state="open"] .body{opacity:0}}
 .dots{display:flex;gap:16px;margin-top:9px;font-size:10px;color:var(--tl);white-space:nowrap}
 .dots span{display:inline-flex;align-items:center;gap:6px}.dots i{width:5px;height:5px;border-radius:3px;flex:none}
 .summary{font-size:13px;line-height:1.6;color:var(--tb);margin:16px 0 18px;text-wrap:pretty;max-width:62ch}
@@ -192,6 +204,11 @@ export function isDark(): boolean {
 const pageFont = () => getComputedStyle(document.body).fontFamily || "Helvetica, Arial, sans-serif";
 
 const CARD_WIDTH = 460, SITE_CARD_WIDTH = 360, MIN_SHEET = 120, EDGE = 12, OPEN_DELAY = 300, CLOSE_DELAY = 200;
+/* The grown card's padding (the badge's, too, and the badge's at rest), and
+   the transitions that run while a new size is being measured: the surface
+   fades from the first frame, the size is set by hand once known. */
+const PAD = { x: 18, t: 16, b: 14 }, SITE_PAD = { x: 17, t: 15, b: 13 }, SITE_PADDING = "15px 17px 13px", SITE_REST_PADDING = "8px 15px";
+const SURFACE = "background 200ms ease,box-shadow 200ms ease,border-color 200ms ease,border-radius 200ms ease";
 
 /* shape: which bar this is. title: the subject's name for a card that has
    no reading yet. drawer: the address of the server's page for a reading
@@ -245,7 +262,11 @@ export function createBar(opts: {
   card.append(who, head, body);
   root.append(style, card);
   /* The host's own box is the header's, so the pins measure the bar and never the grown card. */
-  if (!site) new ResizeObserver(() => { if (state === "rest") { host.style.width = `${head.offsetWidth}px`; host.style.height = `${head.offsetHeight}px`; } }).observe(head);
+  if (!site) new ResizeObserver(() => {
+    if (state !== "rest" || closing) return;
+    if (opts.shape !== "line") host.style.width = `${head.offsetWidth}px`;
+    host.style.height = `${head.offsetHeight}px`;
+  }).observe(head);
   if (opts.onDismiss) {
     const dismiss = el("button", "dismiss", "×");
     dismiss.type = "button";
@@ -269,6 +290,10 @@ export function createBar(opts: {
   let openTimer: number | undefined, closeTimer: number | undefined;
   let hoverArmed = true;
   let suppress = false;
+  /* closing: shrinking back to the bar (state is already rest). restSize: the bar's own box, where a closing card returns to. */
+  let closing = false;
+  let restSize: { w: number; h: number } | undefined;
+  let relaxTimer: number | undefined;
 
   /* The server's page for this reading, opened in a new tab at a platform's posts or the explainer. */
   const tabTo = (view: string) => {
@@ -311,56 +336,95 @@ export function createBar(opts: {
   };
   foot.addEventListener("click", (event) => { event.stopPropagation(); tabTo("how"); });
 
-  /* ---- sizing: the card grows from the header, which never moves ---- */
-  const grow = () => {
-    const vw = window.innerWidth, vh = window.innerHeight;
-    const fromW = card.offsetWidth, fromH = card.offsetHeight;
-    card.style.transition = "none";
-    card.style.width = ""; card.style.height = "auto";
-    const px = parseFloat(getComputedStyle(card).getPropertyValue("--px")) || 0;
-    let width: number | null = null;
-    if (state !== "rest") {
-      const restW = host.offsetWidth || fromW;
-      const wide = (opts.shape === "line") && restW >= 380;
-      width = wide ? restW + 2 * px : Math.min(site ? SITE_CARD_WIDTH : CARD_WIDTH, vw - 2 * EDGE);
+  /* ---- sizing: the card grows from the header, which never moves ----
+     from: the size (and, for the badge, padding) the card has as the change
+     begins, measured before the state changed. Without it, the card is
+     already in its new state (a resize, the list opening). */
+  const pad = site ? SITE_PAD : PAD;
+  const grow = (from?: { w: number; h: number; padding: string }) => {
+    const vw = document.documentElement.clientWidth || window.innerWidth, vh = window.innerHeight;
+    const fromW = from?.w ?? card.offsetWidth, fromH = from?.h ?? card.offsetHeight;
+    const fromPadding = from?.padding ?? getComputedStyle(card).padding;
+    const grown = state !== "rest";
+    /* Only the surface transitions run while the target is measured; the size (and the badge's padding) is set by hand below. */
+    card.style.transition = SURFACE;
+    let toW: number, toH: number, shift = 0;
+    if (grown) {
+      card.style.width = ""; card.style.height = "auto";
+      body.style.width = ""; head.style.width = ""; head.style.marginLeft = "";
+      if (site) card.style.padding = "";
+      const restW = host.offsetWidth || restSize?.w || fromW;
+      const wide = opts.shape === "line" && restW >= 380;
+      const width = wide ? restW + 2 * pad.x + 2 : Math.min(site ? SITE_CARD_WIDTH : CARD_WIDTH, vw - 2 * EDGE);
       card.style.width = `${width}px`;
+      const hostLeft = host.getBoundingClientRect().left;
+      if (site) {
+        /* A badge at the window's right grows leftwards from there; one dragged elsewhere slides left only as far as the window needs. */
+        if (host.style.right === "auto") shift = Math.max(0, Math.min(hostLeft - EDGE, hostLeft + width - (vw - EDGE)));
+        card.style.left = shift ? `${-Math.round(shift)}px` : "";
+      } else {
+        /* Sideways: never past the window's right edge; the header is pushed right by the same amount, so it stays put.
+           Upwards: a story's name line appears above the bar, and the card rises by exactly that, so the bar stays put. */
+        shift = Math.max(0, Math.min(hostLeft - EDGE, hostLeft - pad.x - 1 + width - (vw - EDGE)));
+        const rise = opts.shape === "story" ? who.getBoundingClientRect().height + (parseFloat(getComputedStyle(who).marginBottom) || 0) : 0;
+        card.style.left = `calc(-1 * var(--px) - ${Math.round(shift) + 1}px)`;
+        card.style.top = `calc(-1 * var(--pt) - ${Math.round(rise) + 1}px)`;
+        head.style.marginLeft = `${Math.round(shift)}px`;
+      }
+      if (state === "open" && listOpen) {
+        const rowBox = head.getBoundingClientRect();
+        const room = vh - rowBox.bottom - EDGE - (card.offsetHeight - sheet.offsetHeight - head.offsetHeight);
+        const cap = Math.max(MIN_SHEET, Math.floor(room));
+        if (sheetHeight > cap) { sheetHeight = cap; sheet.style.height = `${cap}px`; }
+      }
+      toW = card.offsetWidth; toH = card.offsetHeight;
+      /* The contents are laid out at their final width from the first frame, so nothing re-wraps or slides while the box grows. */
+      const inner = toW - 2 * pad.x - 2;
+      body.style.width = `${inner}px`;
+      if (opts.shape === "block") head.style.width = `${inner - Math.round(shift)}px`;
+    } else {
+      /* Back to the bar: its own box plus the card's padding, which drops away once the surface has faded (the badge's padding shrinks with it). */
+      const rest = restSize ?? { w: fromW, h: fromH };
+      toW = site ? rest.w : rest.w + 2 * pad.x;
+      toH = site ? rest.h : rest.h + pad.t + pad.b;
     }
-    /* Sideways: never past the window's right edge; the header is pushed right by the same amount, so it stays put.
-       Upwards: a story's name line appears above the bar, and the card rises by exactly that, so the bar stays put. */
-    const hostLeft = host.getBoundingClientRect().left;
-    const shift = state === "rest" || width === null ? 0 : Math.max(0, Math.min(hostLeft - EDGE, hostLeft - px + width - (vw - EDGE)));
-    const rise = state !== "rest" && opts.shape === "story" ? who.offsetHeight : 0;
-    card.style.left = `calc(-1 * var(--px) - ${Math.round(shift)}px)`;
-    card.style.top = site ? "" : `calc(-1 * var(--pt) - ${Math.round(rise)}px)`;
-    head.style.marginLeft = `${Math.round(shift)}px`;
-    if (state === "open" && listOpen) {
-      const rowBox = head.getBoundingClientRect();
-      const room = vh - rowBox.bottom - EDGE - (card.offsetHeight - sheet.offsetHeight - head.offsetHeight);
-      const cap = Math.max(MIN_SHEET, Math.floor(room));
-      if (sheetHeight > cap) { sheetHeight = cap; sheet.style.height = `${cap}px`; }
-    }
-    const toW = card.offsetWidth, toH = card.offsetHeight;
+    /* From the size it had to the size it needs, with the transitions on. */
     card.style.width = `${fromW}px`; card.style.height = `${fromH}px`;
+    if (site) card.style.padding = fromPadding;
     void card.offsetHeight;
     card.style.transition = "";
     card.style.width = `${toW}px`; card.style.height = `${toH}px`;
+    if (site) card.style.padding = grown ? SITE_PADDING : SITE_REST_PADDING;
   };
+  /* The bar again: the closing card's box goes, and a lifted bar returns to the flow. */
   const relax = () => {
     if (state !== "rest") return;
-    card.style.width = ""; card.style.height = ""; card.style.left = ""; card.style.top = ""; head.style.marginLeft = "";
+    clearTimeout(relaxTimer);
+    closing = false;
+    card.classList.remove("closing");
+    card.style.width = ""; card.style.height = ""; card.style.left = ""; card.style.top = ""; card.style.padding = "";
+    head.style.marginLeft = ""; head.style.width = ""; body.style.width = "";
+    host.style.zIndex = "";
     if (restore) { const back = restore; restore = undefined; back(); }
   };
   card.addEventListener("transitionend", (event) => { if (event.target === card && event.propertyName === "height") relax(); });
   const setState = (next: CardState) => {
     if (state === next) return;
-    if (state === "rest" && !restore) restore = opts.relocate?.();
+    /* Where the animation starts: the size the card has before anything changes. Leaving rest, that is the bar's own box. */
+    const from = { w: card.offsetWidth, h: card.offsetHeight, padding: getComputedStyle(card).padding };
+    if (state === "rest" && !closing) {
+      restSize = { w: from.w, h: from.h };
+      if (!restore) restore = opts.relocate?.();
+    }
+    clearTimeout(relaxTimer);
+    closing = next === "rest";
+    card.classList.toggle("closing", closing);
     state = next;
     card.dataset.state = next;
     host.setAttribute("data-state", next);
-    host.style.zIndex = next === "rest" ? "" : "1";
-    if (next !== "rest") fillCard();
-    grow();
-    if (next === "rest") window.setTimeout(relax, 380);
+    if (next !== "rest") { host.style.zIndex = "1"; fillCard(); }
+    grow(from);
+    if (next === "rest") relaxTimer = window.setTimeout(relax, 400);
   };
 
   /* ---- the recurring opinions, drawn by the server's page inside the card ---- */
