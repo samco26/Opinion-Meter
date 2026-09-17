@@ -11,7 +11,7 @@
    job) turns that folder into a Mac app. */
 
 import { build } from "esbuild";
-import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 
 const { version, description } = JSON.parse(readFileSync("package.json", "utf8"));
 
@@ -64,6 +64,7 @@ for (const target of ["chrome", "edge", "firefox", "safari"]) {
     bundle: true, format: "iife", outdir: out, target: ["chrome111", "firefox127", "safari16"], logLevel: "info",
   });
   cpSync("src/popup.html", `${out}/popup.html`);
-  cpSync("icons", `${out}/icons`, { recursive: true });
+  /* Only the rasters travel; the vector, the renderer and the notes stay in the repository. */
+  cpSync("icons", `${out}/icons`, { recursive: true, filter: (src) => statSync(src).isDirectory() || src.endsWith(".png") });
   writeFileSync(`${out}/manifest.json`, `${JSON.stringify(manifest(target), null, 2)}\n`);
 }
