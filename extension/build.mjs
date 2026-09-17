@@ -6,9 +6,9 @@
    install the Chrome package unchanged; the Edge package is the same
    under its own name, for the Edge store). Firefox needs its own (a
    background script instead of a service worker, an add-on id, host
-   permissions spelt out). Safari takes the Chrome shape without the
-   Chrome version key; Apple's converter on a Mac (the ci.yml "safari-app"
-   job) turns that folder into a Mac app. */
+   permissions spelt out, the data it sends declared). Safari takes the
+   Chrome shape without the Chrome version key; Apple's converter on a Mac
+   (the ci.yml "safari-app" job) turns that folder into a Mac app. */
 
 import { build } from "esbuild";
 import { cpSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
@@ -50,7 +50,16 @@ const manifest = (target) => ({
     /* Firefox names these for the toolbar TEXT colour, not its background. */
     ...(target === "firefox" ? { theme_icons: iconSizes.map((size) => ({ size, light: `icons/icon${size}.png`, dark: `icons/grey${size}.png` })) } : {}),
   },
-  ...(target === "firefox" ? { browser_specific_settings: { gecko: { id: "opinion-meter@samco26.github.io", strict_min_version: "127.0" } } }
+  /* Firefox names the data an extension sends in its install prompt (Mozilla's
+     categories; required of every new add-on on addons.mozilla.org since
+     November 2025). Opinion Meter sends the search words and the titles and
+     addresses of results on Google pages (README section 9) and nothing else:
+     "searchTerms" and "websiteContent". The prompt exists from Firefox 140. */
+  ...(target === "firefox" ? { browser_specific_settings: { gecko: {
+      id: "opinion-meter@samco26.github.io",
+      data_collection_permissions: { required: ["searchTerms", "websiteContent"] },
+      strict_min_version: "140.0",
+    } } }
     : target === "safari" ? { browser_specific_settings: { safari: { strict_min_version: "16.4" } } }
     : { minimum_chrome_version: "111" }),
 });

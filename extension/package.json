@@ -1,7 +1,7 @@
 {
   "name": "opinion-meter-extension",
   "private": true,
-  "version": "0.16.9",
+  "version": "0.16.10",
   "description": "Crowd opinion before you visit. Opinion Meter reads public posts and shows a sentiment bar for every page.",
   "scripts": {
     "build": "node build.mjs",

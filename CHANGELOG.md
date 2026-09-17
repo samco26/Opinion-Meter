@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.16.10 — 18 September 2026
+
+- The Firefox package declares, in its label, the data the extension sends — the search words and the titles and addresses of results on Google pages, Mozilla's "search terms" and "website content" — so Firefox's install prompt can show it. Firefox Add-ons has required this of every new add-on since November 2025 and refused the 0.16.9 upload without it. The package now asks for Firefox 140 or later, the first version with that prompt (it asked for 127). Nothing else changes: what is sent, and the code in all four packages, is exactly 0.16.9's.
+
 ## 0.16.9 — 17 September 2026
 
 - The figures row shows on hover, not only after a click. The card's height was measured while the row was still folded, and a folded row is the one thing in the card the layout was allowed to squeeze to nothing, so it never got its room until a click re-measured. The row is measured open and can no longer be squeezed.
