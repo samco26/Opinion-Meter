@@ -4,17 +4,19 @@
 <meta charset="utf-8">
 <title>Opinion Meter</title>
 <style>
-  :root{--bg:#f3f5f6;--ink:#1f1f1f;--muted:#5f6368;--card:#ffffff;--on:#3fae66;--off:#9aa0a6}
-  @media(prefers-color-scheme:dark){:root{--bg:#303134;--ink:#e8eaed;--muted:#9aa0a6;--card:#ffffff14;--off:#5f6368}}
-  html,body{margin:0}
-  body{width:340px;box-sizing:border-box;padding:16px 16px 14px;font:14px/1.45 "Google Sans",Helvetica,"Helvetica Neue",Arial,sans-serif;color:var(--ink);background:var(--bg)}
+  /* The icon's palette: an umber panel with rounded corners, cream type, eucalypt for "on". The browser draws the
+     window square; a thin gutter in the browser's own colour gives the panel its corners. */
+  :root{--bg:#5C4433;--ink:#F3E7D3;--muted:#DCD2BF;--card:#F3E7D316;--on:#7FB069;--off:#2B1B12;--gutter:#ffffff;color-scheme:light dark}
+  @media(prefers-color-scheme:dark){:root{--gutter:#202124}}
+  html{margin:0;background:var(--gutter)}
+  body{width:328px;box-sizing:border-box;margin:6px;padding:16px 16px 14px;border-radius:18px;font:14px/1.45 "Google Sans",Helvetica,"Helvetica Neue",Arial,sans-serif;color:var(--ink);background:var(--bg)}
   h1{font-size:18px;font-weight:500;letter-spacing:-.3px;margin:0 0 12px}
   .row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-radius:18px;background:var(--card)}
   .row b{font-weight:500}.row p{margin:2px 0 0;font-size:12px;line-height:1.4;color:var(--muted)}
   .switch{position:relative;flex-shrink:0;width:40px;height:22px;border-radius:99px;border:0;padding:0;background:var(--off);cursor:pointer;transition:background 180ms ease}
-  .switch:before{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform 180ms ease}
+  .switch:before{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#F3E7D3;transition:transform 180ms ease}
   .switch[aria-checked="true"]{background:var(--on)}.switch[aria-checked="true"]:before{transform:translateX(18px)}
-  .token{margin:12px 4px 0;font-size:11px;color:var(--muted)}code{font-size:11px}
+  .token{margin:12px 4px 0;font-size:11px;color:var(--muted);opacity:.85}code{font-size:11px}
   .foot{display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding:0 4px;font-size:11px;color:var(--muted)}
   a{color:inherit}
 </style>

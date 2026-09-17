@@ -100,7 +100,7 @@ const CSS = `
 .card.closing .body{display:flex;opacity:0}
 @starting-style{.card[data-state="hover"] .body,.card[data-state="open"] .body{opacity:0}}
 /* The figures, right under the bar on every card (as on the badge), sliding open with the card and folding away as it closes. */
-.dots{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:0;max-height:0;width:0;overflow:hidden;opacity:0;font-size:10px;line-height:14px;color:var(--tl);white-space:nowrap;transition:max-height 340ms var(--ease),margin-top 340ms var(--ease),opacity 150ms ease}
+.dots{display:flex;flex:none;flex-wrap:wrap;gap:8px 16px;margin-top:0;max-height:0;width:0;overflow:hidden;opacity:0;font-size:10px;line-height:14px;color:var(--tl);white-space:nowrap;transition:max-height 340ms var(--ease),margin-top 340ms var(--ease),opacity 150ms ease}
 .card[data-state="hover"] .dots,.card[data-state="open"] .dots{width:auto;max-height:36px;margin-top:9px;opacity:1}
 .card.closing .dots{width:auto;max-height:0;margin-top:0;opacity:0}
 .dots span{display:inline-flex;align-items:center;gap:6px}.dots i{width:5px;height:5px;border-radius:3px;flex:none}
@@ -431,6 +431,8 @@ export function createBar(opts: {
       card.style.width = ""; card.style.height = "auto";
       body.style.width = ""; body.style.marginLeft = ""; dots.style.marginLeft = ""; head.style.width = ""; head.style.marginLeft = "";
       if (site) card.style.padding = "";
+      /* The figures row is measured open (its slide would otherwise start at nothing and leave it no room). */
+      dots.style.transition = "none";
       /* The card's width: its own, or wider when the bar itself (a long address's column, the query's line) needs
          more to fit inside the padding; never wider than the window allows. */
       const restW = site ? 0 : host.offsetWidth || restSize?.w || fromW;
@@ -464,8 +466,14 @@ export function createBar(opts: {
       const inner = toW - 2 * pad.x - 2;
       body.style.width = `${inner - lead}px`;
       if (!site) head.style.width = `${inner - Math.round(shift) - lead}px`;
-      /* Leaving rest: the box starts as the bar wrapped in padding (transparent still), never smaller, so the bar is whole from the first frame. */
-      if (from?.rest && !site && restSize) ({ w: fromW, h: fromH } = wrapped(restSize, Math.round(shift) + lead, Math.round(rise)));
+      /* Leaving rest: the box starts as the bar wrapped in padding (transparent still), never smaller, so the bar is whole from the first frame;
+         the figures row starts folded and slides open. */
+      if (from?.rest) {
+        if (!site && restSize) ({ w: fromW, h: fromH } = wrapped(restSize, Math.round(shift) + lead, Math.round(rise)));
+        dots.style.maxHeight = "0px"; dots.style.marginTop = "0px"; dots.style.opacity = "0";
+        void dots.offsetHeight;
+      }
+      dots.style.transition = ""; dots.style.maxHeight = ""; dots.style.marginTop = ""; dots.style.opacity = "";
     } else {
       /* Back to the bar: its box wrapped in the padding (and the shift and rise it had), which drops away once the surface has faded. */
       const rest = restSize ?? { w: fromW, h: fromH };

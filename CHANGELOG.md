@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.16.9 — 17 September 2026
+
+- The figures row shows on hover, not only after a click. The card's height was measured while the row was still folded, and a folded row is the one thing in the card the layout was allowed to squeeze to nothing, so it never got its room until a click re-measured. The row is measured open and can no longer be squeezed.
+- The icon is the owner's gauge on an umber square (28 px corners), in place of both earlier sets; the menu takes the icon's palette, drawn as a rounded panel.
+- The manifest carries the store description; `STORE.md` holds the listing choices.
+
 ## 0.16.8 — 17 September 2026
 
 - The figures row (positive, neutral, negative) lines up with the bar and the rest of the card's contents, past the favicon's room, on hover as on click.
