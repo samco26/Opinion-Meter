@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.16.8 — 17 September 2026
+
+- The figures row (positive, neutral, negative) lines up with the bar and the rest of the card's contents, past the favicon's room, on hover as on click.
+- Every card's footer carries "Built by samco" on the right, mirroring "How it works · sources and confidence" on the left.
+
 ## 0.16.7 — 17 September 2026
 
 - Merged with the Mac session's 0.16.5 and 0.16.6 below (the loading sweep unhidden, the main gauge always above the results, bars drawn at the scan).

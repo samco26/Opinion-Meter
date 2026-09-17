@@ -126,7 +126,10 @@ iframe{display:block;width:100%;height:100%;border:0;background:transparent;colo
 .wait{position:absolute;inset:0;display:none;align-items:center;justify-content:center;gap:10px;font-size:11px;color:var(--tl)}.wait.on{display:flex}.wait a{color:inherit}
 .divider{height:1px;background:var(--divider);margin:14px calc(-1 * var(--px)) 10px calc(-1 * var(--px) - var(--om-lead,0px))}
 :host([data-site]) .divider{margin:11px calc(-1 * var(--px)) 9px}
+/* The footer: "How it works" on the left, the maker's mark on the right. */
+.footer{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .foot{font-size:10px;color:var(--tl);background:none;border:0;padding:0;font-family:inherit;cursor:pointer;text-align:left}.foot:hover{color:var(--t2)}
+.credit{font-size:10px;color:var(--tl);white-space:nowrap}
 .bar{display:contents}
 .dismiss{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;border:0;padding:0;background:var(--tile);color:var(--t1);font:12px/20px inherit;font-family:inherit;text-align:center;cursor:pointer;opacity:0;transition:opacity 160ms ease;z-index:2}
 :host(:hover) .dismiss,.dismiss:focus-visible{opacity:1}
@@ -304,8 +307,10 @@ export function createBar(opts: {
   sheet.append(wait);
   const divider = el("div", "divider");
   const foot = el("button", "foot", "How it works · sources and confidence");
+  const footer = el("div", "footer");
+  footer.append(foot, el("span", "credit", "Built by samco"));
   foot.type = "button";
-  body.append(summary, actions, heading, sheet, divider, foot);
+  body.append(summary, actions, heading, sheet, divider, footer);
   card.append(who, head, dots, tagline, body);
   root.append(style, card);
   /* The host's own box is the header's, so the pins measure the bar and never the grown card. */
@@ -424,7 +429,7 @@ export function createBar(opts: {
     let toW: number, toH: number, shift = 0;
     if (grown) {
       card.style.width = ""; card.style.height = "auto";
-      body.style.width = ""; body.style.marginLeft = ""; head.style.width = ""; head.style.marginLeft = "";
+      body.style.width = ""; body.style.marginLeft = ""; dots.style.marginLeft = ""; head.style.width = ""; head.style.marginLeft = "";
       if (site) card.style.padding = "";
       /* The card's width: its own, or wider when the bar itself (a long address's column, the query's line) needs
          more to fit inside the padding; never wider than the window allows. */
@@ -446,6 +451,7 @@ export function createBar(opts: {
         card.style.top = `calc(-1 * var(--pt) - ${Math.round(rise) + 1}px)`;
         head.style.marginLeft = `${Math.round(shift) + lead}px`;
         body.style.marginLeft = `${lead}px`;
+        dots.style.marginLeft = `${lead}px`;
       }
       if (state === "open" && listOpen) {
         const rowBox = head.getBoundingClientRect();
@@ -481,7 +487,7 @@ export function createBar(opts: {
     closing = false;
     card.classList.remove("closing");
     card.style.width = ""; card.style.height = ""; card.style.left = ""; card.style.top = ""; card.style.padding = "";
-    head.style.marginLeft = ""; head.style.width = ""; body.style.width = ""; body.style.marginLeft = "";
+    head.style.marginLeft = ""; head.style.width = ""; body.style.width = ""; body.style.marginLeft = ""; dots.style.marginLeft = "";
     host.style.zIndex = "";
     if (restore) { const back = restore; restore = undefined; back(); }
   };
