@@ -544,6 +544,9 @@ export function createBar(opts: {
       if (site) card.style.padding = "";
       /* The figures row is measured open (its slide would otherwise start at nothing and leave it no room). */
       dots.style.transition = "none";
+      /* So is the badge's ×, which grows in from nothing: measured at its full size, it gives the top row its full height; the slide is then replayed. */
+      const xBtn = site ? head.querySelector<HTMLElement>(".x") : null;
+      if (xBtn) xBtn.style.transition = "none";
       /* The card's width: its own, or wider when the bar itself (a long address's column, the query's line) needs
          more to fit inside the padding; never wider than the window allows. */
       const restW = site ? 0 : host.offsetWidth || restSize?.w || fromW;
@@ -592,6 +595,10 @@ export function createBar(opts: {
         void dots.offsetHeight;
       }
       dots.style.transition = ""; dots.style.maxHeight = ""; dots.style.marginTop = ""; dots.style.opacity = "";
+      if (xBtn) {
+        if (from?.rest) { xBtn.style.width = "0px"; xBtn.style.height = "0px"; xBtn.style.marginLeft = "-11px"; void xBtn.offsetHeight; }
+        xBtn.style.transition = ""; xBtn.style.width = ""; xBtn.style.height = ""; xBtn.style.marginLeft = "";
+      }
     } else {
       /* Back to the bar: its box wrapped in the padding (and the shift and rise it had), which drops away once the surface has faded. */
       const rest = restSize ?? { w: fromW, h: fromH };
@@ -749,8 +756,10 @@ export function createBar(opts: {
     clearTimeout(closeTimer);
     closeTimer = window.setTimeout(() => { if (state === "hover") setState("rest"); }, CLOSE_DELAY);
   };
-  /* On the badge only the top row previews on hover, so the pointer can reach the second row untroubled. */
+  /* On the badge only the top half previews on hover, and only once the pointer rests on it: a pointer passing
+     through on its way to the second half keeps restarting the delay, so the button never moves from under it. */
   (site ? head : host).addEventListener("mouseenter", hoverIn);
+  if (site) head.addEventListener("mousemove", hoverIn);
   host.addEventListener("mouseleave", hoverOut);
   head.addEventListener("focus", () => { if (state === "rest" && current) { setMode("site"); setState("hover"); } });
   head.addEventListener("blur", () => { if (state === "hover") hoverOut(); });
