@@ -5,7 +5,7 @@
    quarter of an hour (it carries quotes), so a second press opens at once;
    the page's text is never kept. */
 
-import { analysePage, extractPageOpinions, namePage, pageEntries, TEXT_MAX } from "./analysis/page";
+import { analysePage, extractPageOpinions, namePage, pageEntries, readAggregate, TEXT_MAX, type Aggregate } from "./analysis/page";
 import { configured, settings } from "./env";
 import { sourcesFor } from "./gauge";
 import { claimFresh } from "./limits";
@@ -15,7 +15,7 @@ import { hashKey, normaliseUrl } from "./subject";
 import type { PageRequest, PageResponse } from "./types";
 
 /* Bumped whenever the page classifier changes, so old readings are not served. */
-const READING = 3;
+const READING = 4;
 const PAGE_TTL = 15 * 60;
 /* A page named as nothing in particular is remembered longer: a cheap answer. */
 const NOTHING_TTL = 6 * 3600;
@@ -60,11 +60,14 @@ export async function pageFor(req: PageRequest, budgetMs: number): Promise<PageR
   if (!(await claimFresh())) throw new Error("Today's reading budget is used up. Please try again tomorrow.");
 
   /* The platforms and the page, read side by side. A platform sweep that fails still leaves the page's own reviews. */
-  const [collected, quotes] = await Promise.all([
+  const [collected, extracted] = await Promise.all([
     collectAdaptive(subject.name, sourcesFor(subject), { link: subject.link, aliases: subject.aliases, depth: "full", budgetMs: Math.min(16_000, remaining() - 24_000) })
       .catch(() => ({ items: [], statuses: [], window: { from: new Date(Date.now() - 36 * 30 * 86_400_000).toISOString(), to: new Date().toISOString(), months: 36 } })),
-    extractPageOpinions(subject, req, Math.min(24_000, remaining() - 22_000)).catch(() => [] as string[]),
+    extractPageOpinions(subject, req, Math.min(24_000, remaining() - 22_000)).catch(() => ({ quotes: [] as string[], rating: null as Aggregate | null })),
   ]);
+  const quotes = extracted.quotes;
+  /* The page's own rating: from its structured data first, else as the model read it off the page. */
+  const rating = readAggregate(req.data) ?? extracted.rating;
   const entries = pageEntries(quotes, req, collected.items);
   const minItems = settings.minItems();
   const opinions = entries.filter((entry) => entry.kind !== "video").length;
@@ -72,7 +75,7 @@ export async function pageFor(req: PageRequest, budgetMs: number): Promise<PageR
   if (opinions < minItems) {
     response = { kind: "insufficient", subject: subject.name, message: INSUFFICIENT, pageCount: quotes.length, platformCount: opinions - quotes.length };
   } else {
-    const analysed = await analysePage(subject, entries, collected.window, minItems, Math.min(22_000, remaining() - 1000));
+    const analysed = await analysePage(subject, entries, collected.window, minItems, Math.min(22_000, remaining() - 1000), rating);
     response = analysed.kind === "page"
       ? { kind: "page", page: { ...analysed.card, key } }
       : { kind: "insufficient", subject: subject.name, message: INSUFFICIENT, pageCount: analysed.pageCount, platformCount: analysed.platformCount };

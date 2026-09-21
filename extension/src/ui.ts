@@ -158,7 +158,7 @@ iframe{display:block;width:100%;height:100%;border:0;background:transparent;colo
 :host([data-site]) .card[data-state="rest"] .head:hover::before{background:var(--tile)}
 .split{display:none;flex:none;height:1px;margin:8px calc(-1 * var(--px)) 0;background:var(--divider)}
 :host([data-site]) .split{display:block}
-.analyse{display:none;position:relative;align-self:stretch;align-items:center;gap:10px;min-width:0;margin-top:8px;padding:0;border:0;background:transparent;color:var(--t2);font:11px/18px inherit;font-family:inherit;text-align:left;cursor:pointer;white-space:nowrap}
+.analyse{display:none;position:relative;align-self:stretch;align-items:center;gap:10px;min-width:0;margin-top:8px;padding:0;border:0;background:transparent;color:var(--t1);font:12px/18px inherit;font-family:inherit;font-weight:500;text-align:left;cursor:pointer;white-space:nowrap}
 :host([data-site]) .analyse{display:flex}
 .analyse::before{content:"";position:absolute;inset:-8px calc(-1 * var(--px)) calc(-1 * var(--pb));z-index:-1;background:transparent;transition:background 160ms ease}
 /* Inside a grown card the half is a row among others: its darkening keeps to its own box. */
@@ -167,7 +167,7 @@ iframe{display:block;width:100%;height:100%;border:0;background:transparent;colo
 .analyse[data-page="nothing"],.analyse[data-page="insufficient"]{cursor:default}
 .analyse[data-page="nothing"]:hover::before,.analyse[data-page="insufficient"]:hover::before{background:transparent}
 .analyse[data-page="busy"]{color:var(--tb);cursor:progress}
-.analyse .go{margin-left:auto;color:var(--tl)}
+/* The chip's wording, hidden until the chip is shown. */
 .analyse .name{font-size:12px;font-weight:500;color:var(--t1);flex:0 1 auto;min-width:0;max-width:220px;overflow:hidden;text-overflow:ellipsis}
 .analyse .seg{flex:1 1 auto;width:auto;min-width:48px;--om-h:3px;--om-r:2px}
 .analyse .label{color:var(--t2)}
@@ -177,21 +177,19 @@ iframe{display:block;width:100%;height:100%;border:0;background:transparent;colo
 .analyse .quiet{color:var(--tl)}
 .analyse .short{display:none}
 /* While the site's own card is grown, the button shrinks into a chip at the top right, on the site's line just left of the ×, so the figures and the summary below stay as they are; the head keeps room for it (set as the card grows). */
-.card[data-mode="site"][data-state="hover"] .analyse,.card[data-mode="site"][data-state="open"] .analyse{position:absolute;top:var(--pt);right:calc(var(--px) + 26px);margin:0;padding:0 8px;height:18px;box-sizing:border-box;gap:6px;align-self:auto;border:1px solid var(--border);border-radius:9px;background:var(--card);font-size:10px;line-height:16px;z-index:2}
+.card[data-mode="site"][data-state="hover"] .analyse,.card[data-mode="site"][data-state="open"] .analyse{position:absolute;top:calc(var(--pt) + 23px);right:var(--px);margin:0;padding:0 9px;height:20px;box-sizing:border-box;gap:6px;align-self:auto;border:1px solid var(--border);border-radius:10px;background:var(--card);font-size:12px;line-height:18px;z-index:2}
 .card[data-mode="site"][data-state="hover"] .analyse::before,.card[data-mode="site"][data-state="open"] .analyse::before{inset:-1px;border-radius:inherit}
 .card[data-mode="site"][data-state="hover"] .split,.card[data-mode="site"][data-state="open"] .split,.card[data-mode="site"][data-state="hover"] .analyse .seg,.card[data-mode="site"][data-state="open"] .analyse .seg,.card[data-mode="site"][data-state="hover"] .analyse .full,.card[data-mode="site"][data-state="open"] .analyse .full,.card[data-mode="site"][data-state="hover"] .analyse .quiet,.card[data-mode="site"][data-state="open"] .analyse .quiet,.card[data-mode="site"][data-state="hover"] .analyse .lines .sub,.card[data-mode="site"][data-state="open"] .analyse .lines .sub{display:none}
 .card[data-mode="site"][data-state="hover"] .analyse .short,.card[data-mode="site"][data-state="open"] .analyse .short{display:inline}
 .card[data-mode="site"][data-state="hover"] .analyse .name,.card[data-mode="site"][data-state="open"] .analyse .name{max-width:90px;font-size:10px}
 .card[data-mode="site"][data-state="hover"] .analyse .label,.card[data-mode="site"][data-state="open"] .analyse .label{font-size:10px}
 /* The ring of light while the page is read: a rotating green-into-red sweep around the whole
-   badge, shown through a ring-shaped mask that sits just outside the card, with a soft glow of
-   the same under it. Both live beside the card (never inside it, which clips), and only while
-   the badge is at rest. */
-.halo,.haloglow{display:none;position:absolute;inset:-2px;border-radius:19px;pointer-events:none;overflow:hidden}
+   badge, shown through a ring-shaped mask that sits just outside the card (never inside it,
+   which clips), and only while the badge is at rest. Just the outline: no glow under it. */
+.halo{display:none;position:absolute;inset:-2px;border-radius:19px;pointer-events:none;overflow:hidden}
 .halo{padding:2px;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude}
-.haloglow{inset:-5px;border-radius:22px;filter:blur(8px);opacity:.55}
-.halo::before,.haloglow::before{content:"";position:absolute;left:50%;top:50%;width:200%;padding-top:200%;margin:-100% 0 0 -100%;border-radius:50%;background:conic-gradient(from 0deg,transparent 0 52%,var(--pos) 70%,var(--neg) 88%,transparent 100%);animation:spin 1500ms linear infinite}
-:host([data-busy]:not([data-state="hover"]):not([data-state="open"])) .halo,:host([data-busy]:not([data-state="hover"]):not([data-state="open"])) .haloglow{display:block}
+.halo::before{content:"";position:absolute;left:50%;top:50%;width:200%;padding-top:200%;margin:-100% 0 0 -100%;border-radius:50%;background:conic-gradient(from 0deg,transparent 0 52%,var(--pos) 70%,var(--neg) 88%,transparent 100%);animation:spin 1500ms linear infinite}
+:host([data-busy]:not([data-state="hover"]):not([data-state="open"])) .halo{display:block}
 @keyframes spin{to{transform:rotate(360deg)}}
 /* ---- The page card ---- */
 .pagebody{display:none;flex-direction:column;white-space:normal;min-height:0;opacity:1;transition:opacity 150ms ease}
@@ -357,6 +355,10 @@ export function isDark(): boolean {
 }
 /* The page's own type, so the annotation reads as part of it. */
 const pageFont = () => getComputedStyle(document.body).fontFamily || "Helvetica, Arial, sans-serif";
+/* 502000 → "502K", 1200000 → "1.2M": a count as a page prints it. */
+const compact = (n: number) => (n >= 1_000_000 ? `${(n / 1_000_000).toFixed(n >= 10_000_000 ? 0 : 1).replace(/\.0$/, "")}M` : n >= 1000 ? `${Math.round(n / 1000)}K` : String(n));
+/* The extension's own type, as on Google and in the menu. */
+const UI_FONT = '"Google Sans", Helvetica, "Helvetica Neue", Arial, sans-serif';
 
 const CARD_WIDTH = 460, SITE_CARD_WIDTH = 360, MIN_SHEET = 120, MIN_SCROLL = 140, EDGE = 12, OPEN_DELAY = 300, CLOSE_DELAY = 200;
 /* The grown card's padding (the badge's, too, and the badge's at rest), and
@@ -393,7 +395,8 @@ export function createBar(opts: {
   if (opts.dark) host.setAttribute("data-dark", "");
   if (site) host.setAttribute("data-site", "");
   if (opts.shape === "line" || opts.shape === "square" || site) host.setAttribute("data-pill", "");
-  host.style.setProperty("--om-font", pageFont());
+  /* On Google the bars take the page's own type; the badge on other sites keeps the extension's own, whatever the site uses. */
+  host.style.setProperty("--om-font", site ? UI_FONT : pageFont());
   /* When the bar was made, in page time: a reading for anyone auditing how early the bars come. */
   host.dataset.omAt = String(Math.round(performance.now()));
   const root = host.attachShadow({ mode: "open" });
@@ -435,10 +438,10 @@ export function createBar(opts: {
   const pscroll = el("div", "pscroll");
   /* The line across the badge's middle, and the ring of light around it while a page is read. */
   const split = el("div", "split");
-  const halo = el("div", "halo"), haloglow = el("div", "haloglow");
+  const halo = el("div", "halo");
   /* The badge's second row sits right under the head and its figures, before the site card's body: whatever grows, the button stays where it was. */
   card.append(who, head, dots, tagline, ...(site && opts.page ? [split, analyse] : []), body, ...(site && opts.page ? [pagebody] : []));
-  root.append(style, card, ...(site && opts.page ? [haloglow, halo] : []));
+  root.append(style, card, ...(site && opts.page ? [halo] : []));
   /* The host's own box is the header's, so the pins measure the bar and never the grown card. */
   if (!site) {
     const mirror = () => {
@@ -595,9 +598,9 @@ export function createBar(opts: {
         const over = hostBox.top + card.offsetHeight + EDGE - vh;
         if (over > 0) pscroll.style.maxHeight = `${Math.max(MIN_SCROLL, pscroll.offsetHeight - over)}px`;
       }
-      /* The badge's chip sits between the verdict and the ×: the × keeps that much room to its left (its margin, which slides with it). */
+      /* The badge's chip sits at the right end of the figures' line: the figures keep that much room, wrapping if they must. */
       const chipRoom = site && opts.page && mode === "site" ? analyse.offsetWidth + 8 : 0;
-      if (xBtn) xBtn.style.marginLeft = chipRoom ? `${chipRoom}px` : "";
+      dots.style.paddingRight = chipRoom ? `${chipRoom}px` : "";
       toW = card.offsetWidth; toH = card.offsetHeight;
       /* The contents are laid out at their final width from the first frame, so nothing re-wraps or slides while the box grows. */
       const inner = toW - 2 * pad.x - 2;
@@ -613,7 +616,7 @@ export function createBar(opts: {
       dots.style.transition = ""; dots.style.maxHeight = ""; dots.style.marginTop = ""; dots.style.opacity = "";
       if (xBtn) {
         if (from?.rest) { xBtn.style.width = "0px"; xBtn.style.height = "0px"; xBtn.style.marginLeft = "-11px"; void xBtn.offsetHeight; }
-        xBtn.style.transition = ""; xBtn.style.width = ""; xBtn.style.height = ""; xBtn.style.marginLeft = chipRoom ? `${chipRoom}px` : "";
+        xBtn.style.transition = ""; xBtn.style.width = ""; xBtn.style.height = ""; xBtn.style.marginLeft = "";
       }
     } else {
       /* Back to the bar: its box wrapped in the padding (and the shift and rise it had), which drops away once the surface has faded. */
@@ -636,7 +639,7 @@ export function createBar(opts: {
     closing = false;
     card.classList.remove("closing");
     card.style.width = ""; card.style.height = ""; card.style.left = ""; card.style.top = ""; card.style.padding = "";
-    head.style.marginLeft = ""; head.style.width = ""; body.style.width = ""; body.style.marginLeft = ""; dots.style.marginLeft = "";
+    head.style.marginLeft = ""; head.style.width = ""; body.style.width = ""; body.style.marginLeft = ""; dots.style.marginLeft = ""; dots.style.paddingRight = "";
     host.style.zIndex = "";
     setMode("site");
     if (restore) { const back = restore; restore = undefined; back(); }
@@ -659,7 +662,7 @@ export function createBar(opts: {
     clearTimeout(relaxTimer);
     closing = next === "rest";
     card.classList.toggle("closing", closing);
-    if (closing) { const xBtn = head.querySelector<HTMLElement>(".x"); if (xBtn) xBtn.style.marginLeft = ""; }
+    if (closing) dots.style.paddingRight = "";
     state = next;
     card.dataset.state = next;
     host.setAttribute("data-state", next);
@@ -845,7 +848,7 @@ export function createBar(opts: {
     analyse.disabled = false;
     if (s.kind === "button" || s.kind === "error") {
       /* Each wording twice: in full for the row, short for the chip (the stylesheet shows one or the other). */
-      analyse.append(el("span", "full", s.kind === "error" ? `${s.message} · try again` : ANALYSE_LABEL), el("span", "short", s.kind === "error" ? "Try again" : "Analyse page"), el("span", "go", "›"));
+      analyse.append(el("span", "full", s.kind === "error" ? `${s.message} · try again` : ANALYSE_LABEL), el("span", "short", s.kind === "error" ? "Try again" : "Analyse page"));
       analyse.setAttribute("aria-label", ANALYSE_LABEL);
     } else if (s.kind === "busy") {
       analyse.append(el("span", "full", "Analysing this page…"), el("span", "short", "Analysing…"));
@@ -962,7 +965,7 @@ export function createBar(opts: {
     const pactions = el("div", "actions");
     const ptiles = el("div", "tiles");
     for (const { source } of page.sources) ptiles.append(platformTile(source, () => showDetail({ kind: "source", source })));
-    const pmeta = el("span", "meta", `${page.count} opinions · ${page.pageCount} on this page · ${page.confidence.level} confidence`);
+    const pmeta = el("span", "meta", `${page.count} opinions · ${page.pageCount} on this page${page.rating ? ` · rated ${page.rating.value}/${page.rating.best}${page.rating.count ? ` by ${compact(page.rating.count)}` : ""} on this page` : ""} · ${page.confidence.level} confidence`);
     pactions.append(ptiles, pmeta);
     const cols = el("div", "cols");
     for (const [side, title, points] of [["pro", "Pros", page.pros], ["con", "Cons", page.cons]] as const) {
@@ -1014,7 +1017,7 @@ export function createBar(opts: {
     } else if (view.kind === "how") {
       pdetail.append(el("p", "ptitle", "Sources and confidence"));
       pdetail.append(el("p", "quiet", `${page.confidence.level} confidence · ${page.confidence.reason}`));
-      pdetail.append(el("p", "quiet", `This card is about ${page.subject}, the subject of the page you are on. The reviews and comments found on the page itself lead the reading: each counts as three platform posts. Public posts about the subject from the platforms add to it.`));
+      pdetail.append(el("p", "quiet", `This card is about ${page.subject}, the subject of the page you are on. The reviews and comments found on the page itself lead the reading: each counts as three platform posts. Public posts about the subject from the platforms add to it.${page.rating ? ` The page's own rating, ${page.rating.value} out of ${page.rating.best}${page.rating.count ? ` from ${compact(page.rating.count)} ratings` : ""}, joins the meter as a block of up to 500 votes, read as the share who liked it on that scale.` : ""}`));
       pdetail.append(el("p", "quiet", `Percentages come from classified reviews and posts, weighted by reactions. These are selected online comments, not a representative survey. Fewer than eight relevant opinions means no verdict.`));
       for (const { source, count } of page.sources) pdetail.append(el("p", "quiet", `${source === "page" ? "On this page" : PLATFORM_NAMES[source] ?? source} · ${count} ${count === 1 ? "opinion" : "opinions"}`));
       if (page.window) pdetail.append(el("p", "quiet", `Platform posts from ${page.window.from.slice(0, 10)} to ${page.window.to.slice(0, 10)}.`));

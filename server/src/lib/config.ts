@@ -12,7 +12,8 @@ export const DEFAULT_CONFIG: ExtensionConfig = {
   minExtensionVersion: "0.2.0",
   ttlMinutes: 60,
   pollMs: 3000,
-  polls: 10,
+  /* A fresh reading can take half a minute (naming, a 12 s sweep, a 12 s classification): the hands ask for longer than that. */
+  polls: 25,
   google: {
     enabled: true,
     queryBar: true,

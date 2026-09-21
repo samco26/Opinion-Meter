@@ -275,6 +275,8 @@ export interface PageCard {
   pros: PagePoint[];
   cons: PagePoint[];
   sources: Array<{ source: PageSource; count: number }>;
+  /* The page's own overall rating, when it prints one: its value on its scale and how many ratings it rests on. It joins the meter as a block of votes. */
+  rating?: { value: number; best: number; count: number };
   window?: SearchWindow;
   simulated?: boolean;
   updatedAt: string;

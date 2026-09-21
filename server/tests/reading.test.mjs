@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { liteGauge } from "../src/lib/analysis/lite.ts";
 import { analyseCard } from "../src/lib/analysis/analyse.ts";
-import { countPage, pageEntries, pointsFrom, verifyQuotes, PAGE_WEIGHT } from "../src/lib/analysis/page.ts";
+import { countPage, pageEntries, pointsFrom, verifyQuotes, readAggregate, likedShare, aggregateWeight, withRating, PAGE_WEIGHT, AGGREGATE_MAX } from "../src/lib/analysis/page.ts";
 import { readPageRequest } from "../src/lib/page.ts";
 import { verdictOf } from "../src/lib/sentiment.ts";
 
@@ -77,4 +77,28 @@ test("the page door takes only a sane request and caps what it reads", () => {
   assert.equal(ok.text.length, 60_000);
   assert.equal(ok.site, "Site");
   assert.equal("cookie" in ok, false);
+});
+
+test("a page's own rating is read from its structured data and joins the meter as a block of votes", () => {
+  const imdb = JSON.stringify({ "@context": "https://schema.org", "@type": "Movie", name: "The Odyssey", aggregateRating: { "@type": "AggregateRating", ratingCount: 502000, bestRating: 10, worstRating: 1, ratingValue: 8.4 } });
+  const shop = JSON.stringify([{ "@type": "Product", name: "Headphones", aggregateRating: { "@type": "AggregateRating", ratingValue: "4.2", reviewCount: "20,124" } }]);
+  const tomatoes = JSON.stringify({ "@graph": [{ "@type": "Movie", aggregateRating: { "@type": "AggregateRating", ratingValue: 94, bestRating: 100, ratingCount: 312 } }] });
+  assert.deepEqual(readAggregate(imdb), { value: 8.4, best: 10, count: 502000 });
+  assert.deepEqual(readAggregate(shop), { value: 4.2, best: 5, count: 20124 });
+  assert.deepEqual(readAggregate(tomatoes), { value: 94, best: 100, count: 312 });
+  assert.equal(readAggregate("not json\n{\"name\":\"nothing rated\"}"), null);
+  assert.equal(readAggregate(undefined), null);
+  /* The share who liked it: the rating's place on its scale. */
+  assert.equal(Math.round(likedShare({ value: 8.4, best: 10, count: 1 }) * 100), 82);
+  assert.equal(Math.round(likedShare({ value: 4.2, best: 5, count: 1 }) * 100), 80);
+  assert.equal(likedShare({ value: 94, best: 100, count: 1 }), 0.94);
+  /* Weighed by how many rated, up to the ceiling; an unstated count stands for a few dozen. */
+  assert.equal(aggregateWeight({ value: 8.4, best: 10, count: 502000 }), AGGREGATE_MAX);
+  assert.equal(aggregateWeight({ value: 8.4, best: 10, count: 120 }), 120);
+  assert.equal(aggregateWeight({ value: 8.4, best: 10, count: 0 }), 50);
+  /* Text opinions split down the middle; the film's 8.4 from half a million people pulls the meter to where the rating sits. */
+  const split = withRating({ positive: 30, neutral: 0, negative: 30 }, { value: 8.4, best: 10, count: 502000 });
+  const share = split.positive / (split.positive + split.negative);
+  assert.ok(share > 0.75 && share < 0.85, `share ${share}`);
+  assert.deepEqual(withRating({ positive: 1, neutral: 0, negative: 1 }, null), { positive: 1, neutral: 0, negative: 1 });
 });

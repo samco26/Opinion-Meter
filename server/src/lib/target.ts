@@ -55,12 +55,13 @@ export async function resultSubjects(query: string, results: Array<RawResult & {
   }
   let named: { query: Subject | null };
   let sites: Map<string, Subject | null | undefined>;
-  /* A site asking for its own reading sends no query: nothing to name there. */
+  /* A site asking for its own reading sends no query: nothing to name there. The results' titles go along as context for the query's name. */
+  const titles = results.map((result) => result.title.trim()).filter(Boolean);
   const blank = !query.trim();
   if (background && configured.openai()) {
     /* Only what the memory knows now; the rest is made in the background and asked for again. */
     const [storedQuery, storedSites] = await Promise.all([blank ? null : cachedQueryName(query), cachedSiteNames([...unknown.keys()])]);
-    if (storedQuery === undefined) { queryLater = true; background(nameSubjects(query, [], timeoutMs)); }
+    if (storedQuery === undefined) { queryLater = true; background(nameSubjects(query, [], timeoutMs, titles)); }
     named = { query: storedQuery ?? null };
     sites = storedSites;
     const unnamed = [...unknown.values()].filter((entry) => sites.get(entry.host) === undefined);
@@ -70,7 +71,7 @@ export async function resultSubjects(query: string, results: Array<RawResult & {
     }
   } else {
     [named, sites] = await Promise.all([
-      blank ? Promise.resolve({ query: null }) : nameSubjects(query, [], timeoutMs),
+      blank ? Promise.resolve({ query: null }) : nameSubjects(query, [], timeoutMs, titles),
       unknown.size ? nameSites([...unknown.values()].map(({ host, label, title }) => ({ host, label, title })), timeoutMs) : Promise.resolve(new Map<string, Subject | null>()),
     ]);
   }

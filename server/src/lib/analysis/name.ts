@@ -27,7 +27,7 @@ Rules:
 - A site's front page (an address with no path, like x.com or netflix.com), an app-store listing and a shop's page for a service or product all name that service or product by its current official name, in its current form: "X", not "X (Formerly Twitter)" and not "Twitter"; "Netflix", not "Netflix Australia". A business is company; an app or online service is app.
 - A broad class, a how-to, a generic question or a list ("best headphones 2026", "how to boil eggs", "smartphones") is topic. A page that is about nothing in particular (a login page, a category page, a search page) is none.
 - A named individual, living or dead, is person, named as they are publicly known ("Francis Bourgeois"). Never return a person under any other kind.
-- For the query, do the same with the words the person typed: "sony xm6 review" is the product Sony WH-1000XM6; "how to boil eggs" is topic.
+- For the query, do the same with the words the person typed: "sony xm6 review" is the product Sony WH-1000XM6; "how to boil eggs" is topic. The titles of the top results on the page are given as context: they say which of several things sharing a name the person means (a query typed as "the oddysey" beside results about a 2026 film is that film, not the ancient poem) and how the name is spelt. They are context only, never subjects themselves.
 - For the query also give aliases: up to two other names that discussion uses for the same thing, so that searches find it — "Twitter" for X, "XM6" for Sony WH-1000XM6, "Play Store" for Google Play. An empty list when there are none. Never a different thing.
 - Return every result index you were given, once.`;
 
@@ -39,7 +39,7 @@ const NAMEABLE_QUERY = new Set<string>([...NAMEABLE_RESULT, "topic"]);
 type Stored = { subject: Subject | null };
 
 const resultKey = (r: RawResult) => `name:r:${hashKey(`${r.url}|${r.title}`)}`;
-const queryKey = (query: string) => `name:q2:${hashKey(query.toLowerCase().trim())}`;
+const queryKey = (query: string) => `name:q3:${hashKey(query.toLowerCase().trim())}`;
 
 /* What the memory already knows, without asking the model: a subject, null
    (named before: nothing ratable), or undefined (never named). */
@@ -109,7 +109,8 @@ export async function nameSites(sites: Array<{ host: string; label?: string; tit
   return out;
 }
 
-export async function nameSubjects(query: string, unknown: Array<RawResult & { i: number }>, timeoutMs: number): Promise<Naming> {
+/* context: the titles of the top results on the page, so the query is read as the thing the page is about. */
+export async function nameSubjects(query: string, unknown: Array<RawResult & { i: number }>, timeoutMs: number, context: string[] = []): Promise<Naming> {
   const m = memory();
   const results = new Map<number, Subject | null>();
   const [storedQuery, ...storedResults] = await Promise.all([m.get<Stored>(queryKey(query)), ...unknown.map((r) => m.get<Stored>(resultKey(r)))]);
@@ -127,7 +128,7 @@ export async function nameSubjects(query: string, unknown: Array<RawResult & { i
   }
   try {
     const out = await structured(Named, "subject_names", INSTRUCTIONS,
-      `Query: ${JSON.stringify(query)}\nResults (JSON lines):\n${pending.map((r) => JSON.stringify({ i: r.i, title: r.title, url: r.url, snippet: r.snippet ?? "" })).join("\n")}`,
+      `Query: ${JSON.stringify(query)}${context.length ? `\nTop results on the page, context for the query only: ${context.slice(0, 6).map((title) => JSON.stringify(title.slice(0, 120))).join(", ")}` : ""}\nResults (JSON lines):\n${pending.map((r) => JSON.stringify({ i: r.i, title: r.title, url: r.url, snippet: r.snippet ?? "" })).join("\n")}`,
       { model: liteModel(), maxTokens: 1200, timeoutMs });
     const byIndex = new Map(out.results.map((r) => [r.i, r]));
     const writes: Array<Promise<void>> = [];
