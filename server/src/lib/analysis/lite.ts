@@ -1,7 +1,9 @@
 /* The lite tier: the quick reading behind the bar. The model classifies
    a bounded sample and writes one sentence; the numbers are counted from
    the classification. Without an AI key a word count stands in, marked
-   simulated. */
+   simulated. The sample and its classification come back with the gauge
+   so the card can be built from the very same entries and verdicts: one
+   reading, whichever way it is looked at. */
 
 import { z } from "zod";
 import { liteModel, structured } from "../ai";
@@ -10,7 +12,7 @@ import { normalise, verdictOf } from "../sentiment";
 import { SOURCE_IDS, type Gauge, type SearchWindow, type SourceItem, type Subject } from "../types";
 import { buildEvidence, type Classification } from "./evidence";
 import { heuristicClassify, heuristicSentence } from "./heuristic";
-import { BUCKETS, CLASSIFY_RULES, counted, formatItems, prefilter, sample } from "./prompt";
+import { BUCKETS, CLASSIFY_RULES, counted, formatItems, prefilter, sample, type Bucket } from "./prompt";
 import { targetInstructions } from "../target";
 
 /* The same sample size as the card, so the bar and the drawer agree. */
@@ -29,10 +31,17 @@ const INSTRUCTIONS = `You read a sample of public discussion about a subject and
 - If almost nothing is about the subject, the sentence says so plainly.
 - Confidence is about the evidence: how much there is, how consistent it is, how much is on topic.`;
 
-export async function liteGauge(subject: Subject, items: SourceItem[], window: SearchWindow, timeoutMs: number): Promise<Gauge | null> {
-  const entries = sample(prefilter(items).kept, LITE_MAX);
+/* The gauge and what it was counted from: the sampled entries (videos as
+   context), each entry's counted verdict, and the model's own five-way
+   view of it (event kept apart from irrelevant, for the card's "lately"). */
+export interface LiteReading { gauge: Gauge; entries: SourceItem[]; classifications: Classification[]; views: Array<[number, Bucket]>; dropped: number }
+
+export async function liteGauge(subject: Subject, items: SourceItem[], window: SearchWindow, timeoutMs: number): Promise<LiteReading | null> {
+  const { kept, dropped } = prefilter(items);
+  const entries = sample(kept, LITE_MAX);
   const live = configured.openai();
   let classifications: Classification[];
+  let views: Array<[number, Bucket]>;
   let sentence: string;
   let confidence: Gauge["confidence"];
   if (live) {
@@ -40,17 +49,19 @@ export async function liteGauge(subject: Subject, items: SourceItem[], window: S
       `Subject: ${JSON.stringify(subject.name)} (${subject.kind})\nOpinion window: ${window.from.slice(0, 10)} to ${window.to.slice(0, 10)}\n\n${entries.length} entries (JSON lines):\n${formatItems(entries)}`,
       { model: liteModel(), maxTokens: 2500, timeoutMs });
     classifications = BUCKETS.flatMap((bucket) => out.classified[bucket].map((ref) => ({ ref, sentiment: counted(bucket) })));
+    views = BUCKETS.flatMap((bucket) => out.classified[bucket].map((ref): [number, Bucket] => [ref, bucket]));
     sentence = out.sentence.trim();
     confidence = out.confidence;
   } else {
     classifications = heuristicClassify(entries);
+    views = classifications.map((c): [number, Bucket] => [c.ref, c.sentiment]);
     confidence = "low";
     sentence = "";
   }
   const evidence = buildEvidence(entries, classifications);
   if (evidence.relevantTotal < settings.minItems()) return null;
   const split = normalise(evidence.split);
-  return {
+  const gauge: Gauge = {
     key: subject.key, name: subject.name, kind: subject.kind, category: subject.category,
     split, count: evidence.relevantTotal, verdict: verdictOf(split),
     sentence: live ? sentence : heuristicSentence(subject.name, split, evidence.relevantTotal),
@@ -61,4 +72,5 @@ export async function liteGauge(subject: Subject, items: SourceItem[], window: S
     updatedAt: new Date().toISOString(),
     scope: subject.scope, domain: subject.domain, targetUrl: subject.link,
   };
+  return { gauge, entries, classifications, views, dropped };
 }

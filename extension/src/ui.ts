@@ -7,9 +7,15 @@
    it stays; "See recurring opinions" swaps the summary for the list,
    which the server's page draws inside the card. Everything lives in its
    own shadow root so the page's styles and ours never touch. A bar with
-   too few opinions is a plain grey track with no label. */
+   too few opinions is a plain grey track with no label.
 
-import type { Gauge } from "./shared";
+   The badge on a site has a second row, "Analyse this page's subject":
+   pressed, a ring of light circles it while the server reads the page,
+   and the same box then grows into the page card — the page's subject,
+   its bar and figures, a summary, the sources, and the pros and the cons
+   in two columns, each opening the words behind it. */
+
+import type { Gauge, PageCard, PagePoint, PageQuote, PageResponse, PageSource } from "./shared";
 
 /* Platform marks for the 24 px tiles, small enough to carry inline. */
 const MARKS: Record<string, string> = {
@@ -19,7 +25,7 @@ const MARKS: Record<string, string> = {
   bluesky: "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 10.8c-1-2-3.9-5.9-6.6-7.8C2.8 1.2 1.8 1.5 1.2 1.8.5 2.1.3 3.2.3 3.8c0 .7.4 5.6.6 6.4.9 2.8 4 3.7 6.9 3.4-4.2.6-7.9 2.1-3 7.5 5.3 5.6 7.3-1.2 8.2-4.6.9 3.4 2 10 8.2 4.6 4.7-4.6 1.2-6.9-3-7.5 2.9.3 6-.6 6.9-3.4.2-.8.6-5.7.6-6.4 0-.6-.2-1.7-.9-2C22.2 1.5 21.2 1.2 18.6 3c-2.7 1.9-5.6 5.8-6.6 7.8z" fill="#1185fe"/></svg>'),
   reddit: "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#ff4500"/><ellipse cx="12" cy="13.5" rx="6" ry="4" fill="#fff"/><circle cx="9.7" cy="13" r="1" fill="#ff4500"/><circle cx="14.3" cy="13" r="1" fill="#ff4500"/></svg>'),
 };
-const PLATFORM_NAMES: Record<string, string> = { youtube: "YouTube", x: "X", hn: "Hacker News", bluesky: "Bluesky", reddit: "Reddit" };
+const PLATFORM_NAMES: Record<string, string> = { youtube: "YouTube", x: "X", hn: "Hacker News", bluesky: "Bluesky", reddit: "Reddit", page: "This page" };
 /* The tiles, in the handoff's order. */
 const PLATFORMS = ["youtube", "x", "hn", "bluesky", "reddit"];
 
@@ -28,9 +34,11 @@ const CSS = `
   --pos:#7ec98f;--neu:#7a7f84;--neg:#e0705f;
   --card:#ffffff;--row:#f6f7f8;--tile:#f0f1f2;--border:#dcdfe2;--divider:#e6e8ea;--track:#e6e8ea;
   --t1:#202122;--t2:#54595d;--tb:#3b4045;--tm:#72777d;--tl:#72777d;
+  --pro-bg:rgba(126,201,143,.18);--pro-ink:#2c7a43;--con-bg:rgba(224,112,95,.17);--con-ink:#a8433a;
   --shadow:0 6px 24px rgba(0,0,0,.14);--badge-shadow:0 2px 8px rgba(0,0,0,.10)}
 :host([data-dark]){--card:#26282b;--row:#2b2d30;--tile:#303235;--border:#35383b;--divider:#33363a;--track:#303235;
   --t1:#e8eaed;--t2:#dadce0;--tb:#c4c8cb;--tm:#969ba1;--tl:#8e9398;
+  --pro-bg:rgba(126,201,143,.16);--pro-ink:#a6dfb3;--con-bg:rgba(224,112,95,.18);--con-ink:#f2a89c;
   --shadow:0 12px 32px rgba(0,0,0,.45);--badge-shadow:0 2px 10px rgba(0,0,0,.4)}
 :host([hidden]){display:none!important}
 :host([data-flow]){position:relative;display:block;min-height:18px;margin:14px 0 20px}
@@ -47,7 +55,7 @@ const CSS = `
 .card.closing{--px:18px;--pt:16px;--pb:14px}
 /* The query's line spans its host (the results column); the others are as wide as their header. */
 :host([data-shape="line"]) .card{width:calc(100% + 2px)}
-:host([data-site]) .card{--px:15px;--pt:8px;--pb:8px;left:0;top:0;position:relative;background:var(--card);border-color:var(--border);border-radius:19px;box-shadow:var(--badge-shadow);transition:width 340ms var(--ease),height 340ms var(--ease),padding 340ms var(--ease),left 340ms var(--ease),background 200ms ease,box-shadow 200ms ease,border-color 200ms ease,border-radius 200ms ease}
+:host([data-site]) .card{--px:15px;--pt:8px;--pb:8px;left:0;top:0;position:relative;background:var(--card);border-color:var(--border);border-radius:17px;box-shadow:var(--badge-shadow);transition:width 340ms var(--ease),height 340ms var(--ease),padding 340ms var(--ease),left 340ms var(--ease),background 200ms ease,box-shadow 200ms ease,border-color 200ms ease,border-radius 200ms ease}
 :host([data-site]) .card[data-state="hover"],:host([data-site]) .card[data-state="open"]{--px:17px;--pt:15px;--pb:13px;border-radius:12px}
 :host([data-site]) .card.closing{--px:17px;--pt:15px;--pb:13px}
 :host([data-pill]) .card{white-space:nowrap}
@@ -112,12 +120,13 @@ const CSS = `
 .tile{width:24px;height:24px;border-radius:7px;border:0;padding:0;background:var(--tile);display:grid;place-items:center;cursor:pointer;color:var(--t2);transition:background 160ms ease}.tile:hover{background:var(--border)}
 .tile img{width:15px;height:15px;display:block}
 .tile.mark-x{color:var(--t1)}
+.tile.mark-page img{border-radius:3px}
 .chip{height:24px;padding:0 11px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--t2);font-size:11px;font-family:inherit;display:inline-flex;align-items:center;cursor:pointer;white-space:nowrap;transition:background 160ms ease}
 .chip:hover{background:var(--tile)}.chip.on{background:var(--tile);border-color:var(--tile)}
 .meta{flex:1 0 100%;text-align:left;font-size:10px;color:var(--tl);white-space:nowrap}
 :host([data-site]) .tiles{gap:5px}:host([data-site]) .tile{width:22px;height:22px;border-radius:6px}:host([data-site]) .tile img{width:14px;height:14px}
 :host([data-site]) .chip{height:22px;padding:0 10px;border-radius:11px;color:var(--tb)}
-:host([data-site]) .actions{gap:9px}:host([data-site]) .meta{flex:none;text-align:left;margin-top:11px;order:9;width:100%}
+:host([data-site]) .actions{gap:9px}:host([data-site]) .meta{flex:none;text-align:left;margin-top:11px;order:9;width:100%;white-space:normal}
 :host([data-site]) .actions{flex-wrap:wrap}
 .heading{display:none;font-size:10px;font-weight:500;letter-spacing:.8px;text-transform:uppercase;color:var(--tl);margin:18px 0 9px}
 .sheet{display:none;position:relative}
@@ -135,7 +144,61 @@ iframe{display:block;width:100%;height:100%;border:0;background:transparent;colo
 :host(:hover) .dismiss,.dismiss:focus-visible{opacity:1}
 :host([data-dragging]) .card{cursor:grabbing}
 .head[tabindex]:focus-visible{outline:2px solid var(--tm);outline-offset:4px;border-radius:4px}
-@media(prefers-reduced-motion:reduce){.card,.seg{transition:none}.seg.loading:before{animation:none;width:100%;opacity:.6}}
+/* ---- The badge's second row: "Analyse this page's subject" ---- */
+.analyse{display:none;position:relative;align-self:stretch;align-items:center;gap:10px;min-width:0;margin-top:7px;padding:6px 10px;border:1px solid var(--border);border-radius:11px;background:transparent;color:var(--t2);font:11px/16px inherit;font-family:inherit;text-align:left;cursor:pointer;white-space:nowrap;transition:background 160ms ease,border-color 160ms ease}
+:host([data-site]) .analyse{display:flex}
+/* While the site's own card is grown the row steps aside; it is back in the box as the card shrinks. */
+:host([data-site]) .card[data-mode="site"][data-state="hover"] .analyse,:host([data-site]) .card[data-mode="site"][data-state="open"] .analyse{display:none}
+.analyse:hover{background:var(--tile)}
+.analyse[data-page="nothing"],.analyse[data-page="insufficient"]{cursor:default}
+.analyse[data-page="nothing"]:hover,.analyse[data-page="insufficient"]:hover{background:transparent}
+.analyse[data-page="busy"]{color:var(--tb);cursor:progress}
+.analyse .go{margin-left:auto;color:var(--tl)}
+.analyse .name{font-size:12px;font-weight:500;color:var(--t1)}
+.analyse .seg{flex:1 1 auto;width:auto;min-width:40px;--om-h:3px;--om-r:2px}
+.analyse .label{color:var(--t2)}
+:host([data-dark]) .analyse .label{color:var(--tb)}
+.analyse .lines{display:flex;flex-direction:column;gap:2px;min-width:0}
+.analyse .lines .sub{font-size:10px;color:var(--tl)}
+.analyse .quiet{color:var(--tl)}
+/* The ring of light while the page is read: a rotating green-into-red sweep, shown through a ring-shaped mask, with a soft glow of the same under it. */
+.ring,.glow{display:none;position:absolute;inset:-1px;border-radius:inherit;pointer-events:none;overflow:hidden}
+.ring{padding:1.5px;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude}
+.glow{inset:-4px;filter:blur(7px);opacity:.5}
+.ring::before,.glow::before{content:"";position:absolute;left:50%;top:50%;width:200%;padding-top:200%;margin:-100% 0 0 -100%;border-radius:50%;background:conic-gradient(from 0deg,transparent 0 52%,var(--pos) 70%,var(--neg) 88%,transparent 100%);animation:spin 1500ms linear infinite}
+.analyse[data-page="busy"] .ring,.analyse[data-page="busy"] .glow{display:block}
+.analyse[data-page="busy"]{border-color:transparent}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* ---- The page card ---- */
+.pagebody{display:none;flex-direction:column;white-space:normal;min-height:0;opacity:1;transition:opacity 150ms ease}
+.card[data-mode="page"][data-state="open"] .pagebody{display:flex}
+.card[data-mode="page"].closing .pagebody{display:flex;opacity:0}
+.card[data-mode="page"] .body,.card[data-mode="page"] .dots,.card[data-mode="page"] .heading,.card[data-mode="page"] .sheet{display:none!important}
+.card[data-mode="page"] .analyse{margin-top:9px}
+@starting-style{.card[data-mode="page"][data-state="open"] .pagebody{opacity:0}}
+.pscroll{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;margin:0 calc(-1 * var(--px));padding:0 var(--px)}
+.pdots{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:10px;font-size:10px;line-height:14px;color:var(--tl)}
+.pdots span{display:inline-flex;align-items:center;gap:6px}.pdots i{width:5px;height:5px;border-radius:3px;flex:none}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start;margin-top:14px}
+.col h4{margin:0 0 8px;font-size:10px;font-weight:500;letter-spacing:.8px;text-transform:uppercase;color:var(--tl)}
+.bubble{display:block;width:100%;box-sizing:border-box;text-align:left;margin:0 0 6px;padding:7px 10px;border-radius:12px;border:0;font:11px/1.45 inherit;font-family:inherit;cursor:pointer;white-space:normal;text-wrap:pretty;overflow-wrap:anywhere;transition:filter 160ms ease,transform 160ms ease}
+.bubble.pro{background:var(--pro-bg);color:var(--pro-ink)}.bubble.con{background:var(--con-bg);color:var(--con-ink)}
+.bubble:hover{filter:brightness(.96)}:host([data-dark]) .bubble:hover{filter:brightness(1.12)}
+.bubble .n{opacity:.7;font-size:10px;margin-left:4px}
+.none{font-size:11px;color:var(--tl);margin:2px 0 6px}
+.pdetail{display:none;flex-direction:column;margin-top:12px}
+.pagebody.detail .cols{display:none}.pagebody.detail .pdetail{display:flex}
+.back{align-self:flex-start;background:none;border:0;padding:0;margin:0 0 10px;font:11px inherit;font-family:inherit;color:var(--t2);cursor:pointer}.back:hover{color:var(--t1)}
+.ptitle{font-size:12px;font-weight:500;color:var(--t1);margin:0 0 4px;white-space:normal;text-wrap:pretty}
+.quote{padding:8px 0;border-top:1px solid var(--divider);font-size:11px;line-height:1.5;color:var(--tb);white-space:normal;text-wrap:pretty;overflow-wrap:anywhere}
+.quote:first-of-type{border-top:0}
+.quote .from{display:flex;align-items:center;gap:6px;margin-bottom:3px;font-size:10px;color:var(--tl);white-space:nowrap}
+.quote .from img{width:12px;height:12px;border-radius:2px}
+.quote .from a{color:inherit;text-decoration:none;overflow:hidden;text-overflow:ellipsis;max-width:220px}.quote .from a:hover{text-decoration:underline}
+.quiet{font-size:11px;line-height:1.5;color:var(--tl);white-space:normal;text-wrap:pretty;margin:0 0 6px}
+.note{font-size:12px;line-height:1.55;color:var(--tb);white-space:normal;text-wrap:pretty;margin:12px 0 14px}
+.choices{display:flex;gap:8px}
+@media(prefers-reduced-motion:reduce){.card,.seg{transition:none}.seg.loading:before{animation:none;width:100%;opacity:.6}.ring::before,.glow::before{animation:none;background:linear-gradient(90deg,var(--pos),var(--neg))}}
 `;
 
 export type BarState = { kind: "loading" } | { kind: "ready"; gauge: Gauge } | { kind: "empty"; reason: string; thin?: boolean };
@@ -146,6 +209,8 @@ export type CardState = "rest" | "hover" | "open";
    square: "What people think" over the bar and verdict, beside a knowledge panel's title.
    site: the badge on another site. */
 export type Shape = "line" | "block" | "story" | "square" | "site";
+/* The badge's second row: the button; the ring while the page is read; the page's subject with its bar; or a plain word. */
+export type PageState = { kind: "button" } | { kind: "busy" } | { kind: "ready"; page: PageCard } | { kind: "nothing"; message: string } | { kind: "insufficient"; subject: string; message: string } | { kind: "error"; message: string };
 
 export interface NameMore { block?: number; line?: number; lead?: number; icon?: HTMLElement; iconX?: number; iconY?: number; like?: HTMLElement }
 
@@ -163,7 +228,11 @@ export interface Bar {
   name(text: string, indent: number, more?: NameMore): void;
   remove(): void;
   state(): CardState;
+  /* Which card the box holds while grown: the site's, or the page's. */
+  mode(): "site" | "page";
   close(): void;
+  /* The badge's second row, and the page card behind it (a ready reading opens it). */
+  page(state: PageState): void;
 }
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, className?: string, text?: string): HTMLElementTagNameMap[K] => {
@@ -174,7 +243,7 @@ const el = <K extends keyof HTMLElementTagNameMap>(tag: K, className?: string, t
 };
 
 /* Percentages that add to exactly 100. */
-export function percentages(gauge: Gauge): [number, number, number] {
+export function percentages(gauge: { split: Gauge["split"] }): [number, number, number] {
   const values = [gauge.split.positive, gauge.split.neutral, gauge.split.negative];
   const total = values.reduce((sum, value) => sum + value, 0) || 1;
   const exact = values.map((value) => (value / total) * 100);
@@ -186,13 +255,13 @@ export function percentages(gauge: Gauge): [number, number, number] {
 }
 
 /* "82% negative" or "71% positive": whichever side leads; never both. */
-const verdict = (gauge: Gauge) => {
+const verdict = (gauge: { split: Gauge["split"]; verdict: Gauge["verdict"] }) => {
   const [pos, , neg] = percentages(gauge);
   return gauge.verdict === "negative" || (gauge.verdict !== "positive" && neg > pos) ? `${neg}% negative` : `${pos}% positive`;
 };
 
 /* The bar: positive, neutral (3-part bars only), negative takes the rest. */
-function segments(gauge: Gauge | undefined, parts: 2 | 3): HTMLElement {
+function segments(gauge: { split: Gauge["split"] } | undefined, parts: 2 | 3): HTMLElement {
   const seg = el("div", "seg");
   if (!gauge) return seg;
   const [pos, neu] = percentages(gauge);
@@ -201,6 +270,18 @@ function segments(gauge: Gauge | undefined, parts: 2 | 3): HTMLElement {
   if (parts === 3) { const n = el("span", "neu"); n.style.width = `${neu}%`; seg.append(n); }
   seg.append(el("span", "neg"));
   return seg;
+}
+/* The three figures with their dots. */
+function figures(gauge: { split: Gauge["split"] }, into: HTMLElement) {
+  into.replaceChildren();
+  const [pos, neu, neg] = percentages(gauge);
+  for (const [cls, text] of [["pos", `${pos}% positive`], ["neu", `${neu}% neutral`], ["neg", `${neg}% negative`]] as const) {
+    const item = el("span");
+    const dot = el("i");
+    dot.style.background = `var(--${cls})`;
+    item.append(dot, text);
+    into.append(item);
+  }
 }
 
 const SWALLOW = ["mousedown", "mouseup", "pointerdown", "pointerup", "auxclick", "touchstart", "touchend"] as const;
@@ -250,26 +331,33 @@ export function isDark(): boolean {
 /* The page's own type, so the annotation reads as part of it. */
 const pageFont = () => getComputedStyle(document.body).fontFamily || "Helvetica, Arial, sans-serif";
 
-const CARD_WIDTH = 460, SITE_CARD_WIDTH = 360, MIN_SHEET = 120, EDGE = 12, OPEN_DELAY = 300, CLOSE_DELAY = 200;
+const CARD_WIDTH = 460, SITE_CARD_WIDTH = 360, MIN_SHEET = 120, MIN_SCROLL = 140, EDGE = 12, OPEN_DELAY = 300, CLOSE_DELAY = 200;
 /* The grown card's padding (the badge's, too, and the badge's at rest), and
    the transitions that run while a new size is being measured: the surface
    fades from the first frame, the size is set by hand once known. */
 const PAD = { x: 18, t: 16, b: 14 }, SITE_PAD = { x: 17, t: 15, b: 13 }, SITE_PADDING = "15px 17px 13px", SITE_REST_PADDING = "8px 15px";
 const SURFACE = "background 200ms ease,box-shadow 200ms ease,border-color 200ms ease,border-radius 200ms ease";
+export const ANALYSE_LABEL = "Analyse this page's subject";
+const NOTE = "This page's text is sent to Opinion Meter's server, once, to find the page's subject and the reviews written on it. Nothing is kept.";
+
+/* What a site badge needs for its second row: whether the reader has seen
+   the one-time note (and to record that they have), the page reading
+   itself, and the page's own favicon for its tile. */
+export interface PageHooks { consented: () => Promise<boolean>; consent: () => Promise<void>; analyse: () => Promise<PageResponse>; favicon: string }
 
 /* shape: which bar this is. title: the subject's name for a card that has
    no reading yet. drawer: the address of the server's page for a reading
    (the recurring opinions list draws inside the card; platforms and "How
-   it works" open it in a new tab). onGauge: the list page's numbers coming
-   back. relocate: lifts a bar living in the page's flow onto the layer
-   before it grows, and returns the way back. site badges take onDismiss
-   (the ×) and onMove (dragged). */
+   it works" open it in a new tab). relocate: lifts a bar living in the
+   page's flow onto the layer before it grows, and returns the way back.
+   site badges take onDismiss (the ×), onMove (dragged) and page (the
+   second row). */
 export function createBar(opts: {
   shape: Shape; title?: string; dark?: boolean;
   drawer: (gauge: Gauge | undefined) => string | null;
-  onGauge?: (gauge: Gauge) => void;
   relocate?: () => (() => void) | undefined;
   onDismiss?: () => void; onMove?: (pos: { left: number; top: number }) => void;
+  page?: PageHooks;
 }): Bar {
   const site = opts.shape === "site";
   const host = el("div");
@@ -311,7 +399,12 @@ export function createBar(opts: {
   footer.append(foot, el("span", "credit", "Built by samco"));
   foot.type = "button";
   body.append(summary, actions, heading, sheet, divider, footer);
-  card.append(who, head, dots, tagline, body);
+  /* The badge's second row and the page card it opens. */
+  const analyse = el("button", "analyse");
+  analyse.type = "button";
+  const pagebody = el("div", "pagebody");
+  const pscroll = el("div", "pscroll");
+  card.append(who, head, dots, tagline, body, ...(site && opts.page ? [analyse, pagebody] : []));
   root.append(style, card);
   /* The host's own box is the header's, so the pins measure the bar and never the grown card. */
   if (!site) {
@@ -326,7 +419,7 @@ export function createBar(opts: {
   if (opts.onDismiss) {
     const dismiss = el("button", "dismiss", "×");
     dismiss.type = "button";
-    dismiss.setAttribute("aria-label", "Hide on this site");
+    dismiss.setAttribute("aria-label", "Hide on this page");
     for (const type of SWALLOW) dismiss.addEventListener(type, (event) => event.stopPropagation());
     dismiss.addEventListener("click", (event) => { event.preventDefault(); event.stopPropagation(); opts.onDismiss?.(); });
     root.append(dismiss);
@@ -350,6 +443,11 @@ export function createBar(opts: {
     host.style.setProperty("--om-block", `${Math.max(34, Math.round(Math.max(rowBlock, row)))}px`);
   };
   let state: CardState = "rest";
+  /* Which card the grown box holds: the site's reading, or the page's. */
+  let mode: "site" | "page" = "site";
+  let pageState: PageState = { kind: "button" };
+  /* The page card's inner view: the columns, or the words behind one point, one source, or "how it works". */
+  let pageView: { kind: "columns" } | { kind: "point"; point: PagePoint; side: "pro" | "con" } | { kind: "source"; source: PageSource } | { kind: "how" } | { kind: "note" } = { kind: "columns" };
   let listOpen = false;
   let frame: HTMLIFrameElement | null = null;
   let frameOrigin = "";
@@ -369,7 +467,7 @@ export function createBar(opts: {
   let wantedView: string | null = null;
   const tellView = () => { if (frame && ready && wantedView) frame.contentWindow?.postMessage({ om: true, type: "view", view: wantedView }, frameOrigin); };
   const openView = (view: string) => {
-    if (state !== "open") pin();
+    if (state !== "open" || mode !== "site") pin();
     if (!listOpen) showList(true);
     wantedView = view;
     tellView();
@@ -380,14 +478,7 @@ export function createBar(opts: {
     dots.replaceChildren();
     tiles.replaceChildren();
     if (!current) return;
-    const [pos, neu, neg] = percentages(current);
-    for (const [cls, text] of [["pos", `${pos}% positive`], ["neu", `${neu}% neutral`], ["neg", `${neg}% negative`]] as const) {
-      const item = el("span");
-      const dot = el("i");
-      dot.style.background = `var(--${cls})`;
-      item.append(dot, text);
-      dots.append(item);
-    }
+    figures(current, dots);
     summary.textContent = current.sentence;
     const counted = new Map<string, number>((current.sources ?? []).map((s): [string, number] => [s.source, s.count]));
     const sources = PLATFORMS.filter((p) => p !== "reddit" || (counted.get("reddit") ?? 0) > 0);
@@ -438,7 +529,8 @@ export function createBar(opts: {
       const restW = site ? 0 : host.offsetWidth || restSize?.w || fromW;
       const width = Math.min(vw - 2 * EDGE, Math.max((site ? SITE_CARD_WIDTH : CARD_WIDTH) + lead, restW + 2 * pad.x + 2 + lead));
       card.style.width = `${width}px`;
-      const hostLeft = host.getBoundingClientRect().left;
+      const hostBox = host.getBoundingClientRect();
+      const hostLeft = hostBox.left;
       const rise = riseNow();
       if (site) {
         /* A badge at the window's right grows leftwards from there; one dragged elsewhere slides left only as far as the window needs. */
@@ -455,11 +547,17 @@ export function createBar(opts: {
         body.style.marginLeft = `${lead}px`;
         dots.style.marginLeft = `${lead}px`;
       }
-      if (state === "open" && listOpen) {
+      if (state === "open" && mode === "site" && listOpen) {
         const rowBox = head.getBoundingClientRect();
         const room = vh - rowBox.bottom - EDGE - (card.offsetHeight - sheet.offsetHeight - head.offsetHeight);
         const cap = Math.max(MIN_SHEET, Math.floor(room));
         if (sheetHeight > cap) { sheetHeight = cap; sheet.style.height = `${cap}px`; }
+      }
+      if (state === "open" && mode === "page") {
+        /* The page card never runs past the window's bottom: its scrolling part gives way, down to a minimum. */
+        pscroll.style.maxHeight = "";
+        const over = hostBox.top + card.offsetHeight + EDGE - vh;
+        if (over > 0) pscroll.style.maxHeight = `${Math.max(MIN_SCROLL, pscroll.offsetHeight - over)}px`;
       }
       toW = card.offsetWidth; toH = card.offsetHeight;
       /* The contents are laid out at their final width from the first frame, so nothing re-wraps or slides while the box grows. */
@@ -497,9 +595,21 @@ export function createBar(opts: {
     card.style.width = ""; card.style.height = ""; card.style.left = ""; card.style.top = ""; card.style.padding = "";
     head.style.marginLeft = ""; head.style.width = ""; body.style.width = ""; body.style.marginLeft = ""; dots.style.marginLeft = "";
     host.style.zIndex = "";
+    setMode("site");
     if (restore) { const back = restore; restore = undefined; back(); }
   };
   card.addEventListener("transitionend", (event) => { if (event.target === card && event.propertyName === "height") relax(); });
+  const setMode = (next: "site" | "page") => {
+    mode = next;
+    card.dataset.mode = next;
+    host.setAttribute("data-mode", next);
+  };
+  setMode("site");
+| "page") => {
+    mode = next;
+    card.dataset.mode = next;
+    host.setAttribute("data-mode", next);
+  };
   const setState = (next: CardState) => {
     if (state === next) return;
     /* Where the animation starts: the size the card has before anything changes. Leaving rest, that is the bar's own box. */
@@ -514,18 +624,18 @@ export function createBar(opts: {
     state = next;
     card.dataset.state = next;
     host.setAttribute("data-state", next);
-    if (next !== "rest") { if (!site) host.style.zIndex = "1"; fillCard(); }
+    if (next !== "rest") { if (!site) host.style.zIndex = "1"; if (mode === "page") fillPage(); else fillCard(); }
+    if (site && opts.page) renderAnalyse();
     grow(from);
     if (next === "rest") relaxTimer = window.setTimeout(relax, 400);
   };
 
   /* ---- the recurring opinions, drawn by the server's page inside the card ---- */
   const onMessage = (event: MessageEvent) => {
-    const data = event.data as { om?: boolean; type?: string; height?: number; gauge?: Gauge } | null;
+    const data = event.data as { om?: boolean; type?: string; height?: number } | null;
     if (!frame || event.source !== frame.contentWindow || event.origin !== frameOrigin || !data?.om) return;
     if (data.type === "ready") { ready = true; wait.classList.remove("on"); tellView(); }
     if (data.type === "close") close();
-    if (data.type === "gauge" && data.gauge && typeof data.gauge.key === "string" && data.gauge.split) opts.onGauge?.(data.gauge);
     if (data.type === "resize" && typeof data.height === "number" && Number.isFinite(data.height)) {
       sheetHeight = Math.min(Math.max(40, Math.ceil(data.height)), 640);
       sheet.style.height = `${sheetHeight}px`;
@@ -574,16 +684,23 @@ export function createBar(opts: {
     chip.textContent = "See recurring opinions";
     chip.classList.remove("on");
   };
-  chip.addEventListener("click", (event) => { event.stopPropagation(); if (state !== "open") pin(); showList(!listOpen); });
+  chip.addEventListener("click", (event) => { event.stopPropagation(); if (state !== "open" || mode !== "site") pin(); showList(!listOpen); });
 
   /* ---- states ---- */
   const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") close(); };
   const onOutside = (event: Event) => { if (!event.composedPath().includes(host)) close(); };
-  const pin = () => {
-    if (state === "open" || still || !current) return;
-    clearTimeout(openTimer); clearTimeout(closeTimer);
+  const listen = () => {
     window.addEventListener("keydown", onKey);
     document.addEventListener("pointerdown", onOutside, true);
+  };
+  /* The site's card, pinned; from the page card, the box changes over without closing. */
+  const pin = () => {
+    if (still || !current) return;
+    if (state === "open" && mode === "site") return;
+    clearTimeout(openTimer); clearTimeout(closeTimer);
+    listen();
+    if (state === "open") { switchTo("site"); return; }
+    setMode("site");
     setState("open");
   };
   const close = () => {
@@ -595,11 +712,20 @@ export function createBar(opts: {
     hoverArmed = false;
     setState("rest");
   };
+  /* The other card in the same box: the contents change and the box grows or shrinks to them, the header staying put. */
+  const switchTo = (next: "site" | "page") => {
+    const from = { w: card.offsetWidth, h: card.offsetHeight, padding: getComputedStyle(card).padding };
+    if (next === "site" && frame) dropList();
+    setMode(next);
+    if (next === "page") fillPage(); else fillCard();
+    renderAnalyse();
+    grow(from);
+  };
   const hoverIn = () => {
     if (!hoverArmed || state !== "rest" || !current || host.hasAttribute("data-dragging")) return;
     clearTimeout(closeTimer);
     clearTimeout(openTimer);
-    openTimer = window.setTimeout(() => { if (state === "rest" && hoverArmed) setState("hover"); }, OPEN_DELAY);
+    openTimer = window.setTimeout(() => { if (state === "rest" && hoverArmed) { setMode("site"); setState("hover"); } }, OPEN_DELAY);
   };
   const hoverOut = () => {
     clearTimeout(openTimer);
@@ -608,21 +734,23 @@ export function createBar(opts: {
     clearTimeout(closeTimer);
     closeTimer = window.setTimeout(() => { if (state === "hover") setState("rest"); }, CLOSE_DELAY);
   };
-  host.addEventListener("mouseenter", hoverIn);
+  /* On the badge only the top row previews on hover, so the pointer can reach the second row untroubled. */
+  (site ? head : host).addEventListener("mouseenter", hoverIn);
   host.addEventListener("mouseleave", hoverOut);
-  head.addEventListener("focus", () => { if (state === "rest" && current) setState("hover"); });
+  head.addEventListener("focus", () => { if (state === "rest" && current) { setMode("site"); setState("hover"); } });
   head.addEventListener("blur", () => { if (state === "hover") hoverOut(); });
-  head.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); if (state === "open") close(); else pin(); } });
+  head.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); if (state === "open" && mode === "site") close(); else pin(); } });
   /* A bar must never act as the link it sits beside. */
   for (const type of SWALLOW) card.addEventListener(type, (event) => event.stopPropagation());
   card.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
     if (suppress) { suppress = false; return; }
-    if (still || !current) return;
     if ((event.target as HTMLElement).closest?.(".x")) { close(); return; }
-    /* Hovering: a click pins. Pinned: a click anywhere that is not a control shrinks it back. */
-    if (state !== "open") pin(); else close();
+    /* Pinned: a click anywhere that is not a control shrinks it back. Hovering: a click pins. */
+    if (state === "open") { close(); return; }
+    if (still || !current) return;
+    pin();
   });
 
   /* A site's badge can be dragged anywhere on the window. */
@@ -660,6 +788,194 @@ export function createBar(opts: {
     card.addEventListener("pointerup", settle);
     card.addEventListener("pointercancel", settle);
   }
+
+  /* ---- the badge's second row ---- */
+  const renderAnalyse = () => {
+    if (!site || !opts.page) return;
+    const s = pageState;
+    analyse.dataset.page = s.kind;
+    analyse.replaceChildren();
+    analyse.removeAttribute("aria-busy");
+    analyse.disabled = false;
+    if (s.kind === "button" || s.kind === "error") {
+      analyse.append(el("span", undefined, s.kind === "error" ? `${s.message} · try again` : ANALYSE_LABEL), el("span", "go", "›"));
+      analyse.setAttribute("aria-label", ANALYSE_LABEL);
+    } else if (s.kind === "busy") {
+      analyse.append(el("span", "ring"), el("span", "glow"), el("span", undefined, "Analysing this page…"));
+      analyse.setAttribute("aria-busy", "true");
+      analyse.setAttribute("aria-label", "Analysing this page's subject");
+    } else if (s.kind === "ready") {
+      const seg = segments(s.page, state === "rest" ? 2 : 3);
+      analyse.append(el("span", "name", s.page.subject), seg, el("span", "label", verdict(s.page)));
+      analyse.setAttribute("aria-label", `${verdict(s.page)} sentiment for ${s.page.subject}, the subject of this page. ${state === "open" && mode === "page" ? "Close" : "Open"} the page card.`);
+    } else if (s.kind === "insufficient") {
+      const lines = el("span", "lines");
+      lines.append(el("span", "name", s.subject), el("span", "sub", s.message));
+      analyse.append(lines);
+      analyse.setAttribute("aria-label", `${s.subject}: ${s.message}`);
+    } else {
+      analyse.append(el("span", "quiet", s.message));
+      analyse.setAttribute("aria-label", s.message);
+    }
+  };
+  /* The press: the note the first time, then the reading; a ready reading opens or closes the page card. */
+  const analysePressed = async () => {
+    const hooks = opts.page;
+    if (!hooks) return;
+    if (pageState.kind === "busy" || pageState.kind === "nothing" || pageState.kind === "insufficient") return;
+    if (pageState.kind === "ready") {
+      if (state === "open" && mode === "page") close();
+      else openPage();
+      return;
+    }
+    if (!(await hooks.consented())) { pageView = { kind: "note" }; openPage(); return; }
+    await run();
+  };
+  const run = async () => {
+    const hooks = opts.page;
+    if (!hooks) return;
+    if (state !== "rest") close();
+    pageState = { kind: "busy" };
+    renderAnalyse();
+    try {
+      const response = await hooks.analyse();
+      if (pageState.kind !== "busy") return;
+      if (response.kind === "page") { pageState = { kind: "ready", page: response.page }; pageView = { kind: "columns" }; renderAnalyse(); openPage(); }
+      else if (response.kind === "insufficient") { pageState = { kind: "insufficient", subject: response.subject, message: response.message }; renderAnalyse(); }
+      else { pageState = { kind: "nothing", message: response.message }; renderAnalyse(); }
+    } catch (err) {
+      pageState = { kind: "error", message: /budget|allowance/i.test(String(err)) ? "Today's readings are used up" : "Couldn't read this page" };
+      renderAnalyse();
+    }
+  };
+  analyse.addEventListener("click", (event) => { event.stopPropagation(); void analysePressed(); });
+  /* The page card, pinned open (a click elsewhere in the box, Escape, an outside click or the × shrinks it back). */
+  const openPage = () => {
+    clearTimeout(openTimer); clearTimeout(closeTimer);
+    listen();
+    if (state === "open") { switchTo("page"); return; }
+    setMode("page");
+    setState("open");
+  };
+
+  /* ---- the page card ---- */
+  const platformTile = (source: string, onClick: () => void) => {
+    const tile = el("button", `tile mark-${source}`);
+    tile.type = "button";
+    tile.title = PLATFORM_NAMES[source] ?? source;
+    tile.setAttribute("aria-label", `${PLATFORM_NAMES[source] ?? source} opinions`);
+    const img = el("img");
+    img.src = source === "page" ? (opts.page?.favicon ?? "") : (MARKS[source] ?? MARKS.hn);
+    img.alt = "";
+    img.addEventListener("error", () => { img.remove(); tile.textContent = "◎"; });
+    tile.append(img);
+    tile.addEventListener("click", (event) => { event.stopPropagation(); onClick(); });
+    return tile;
+  };
+  const quoteRow = (quote: PageQuote) => {
+    const row = el("div", "quote");
+    const from = el("div", "from");
+    const img = el("img");
+    img.src = quote.source === "page" ? (opts.page?.favicon ?? "") : (MARKS[quote.source] ?? MARKS.hn);
+    img.alt = "";
+    img.addEventListener("error", () => img.remove());
+    from.append(img);
+    const where = quote.source === "page" ? "On this page" : PLATFORM_NAMES[quote.source] ?? quote.source;
+    if (quote.url && quote.source !== "page") {
+      const a = el("a", undefined, quote.title ? `${where} · ${quote.title}` : where);
+      a.href = quote.url; a.target = "_blank"; a.rel = "noopener noreferrer";
+      a.addEventListener("click", (event) => event.stopPropagation());
+      from.append(a);
+    } else from.append(el("span", undefined, where));
+    row.append(from, el("span", undefined, quote.text));
+    return row;
+  };
+  const fillPage = () => {
+    pagebody.replaceChildren();
+    pagebody.classList.remove("detail");
+    const hooks = opts.page;
+    if (!hooks) return;
+    if (pageView.kind === "note") {
+      const note = el("div", "note", NOTE);
+      const choices = el("div", "choices");
+      const go = el("button", "chip", "Continue"), no = el("button", "chip", "Not now");
+      go.type = "button"; no.type = "button";
+      go.addEventListener("click", (event) => { event.stopPropagation(); void hooks.consent().then(() => { pageView = { kind: "columns" }; void run(); }); });
+      no.addEventListener("click", (event) => { event.stopPropagation(); pageView = { kind: "columns" }; close(); });
+      choices.append(go, no);
+      pagebody.append(note, choices);
+      return;
+    }
+    if (pageState.kind !== "ready") return;
+    const page = pageState.page;
+    pscroll.replaceChildren();
+    const pdots = el("div", "pdots");
+    figures(page, pdots);
+    const psummary = el("div", "summary", page.summary);
+    const pactions = el("div", "actions");
+    const ptiles = el("div", "tiles");
+    for (const { source } of page.sources) ptiles.append(platformTile(source, () => showDetail({ kind: "source", source })));
+    const pmeta = el("span", "meta", `${page.count} opinions · ${page.pageCount} on this page · ${page.confidence.level} confidence`);
+    pactions.append(ptiles, pmeta);
+    const cols = el("div", "cols");
+    for (const [side, title, points] of [["pro", "Pros", page.pros], ["con", "Cons", page.cons]] as const) {
+      const col = el("div", "col");
+      col.append(el("h4", undefined, title));
+      if (!points.length) col.append(el("p", "none", "Nothing recurring"));
+      for (const point of points) {
+        const bubble = el("button", `bubble ${side}`);
+        bubble.type = "button";
+        bubble.append(el("span", undefined, point.sentence), el("span", "n", `×${point.support}`));
+        bubble.setAttribute("aria-label", `${title.slice(0, -1)}: ${point.sentence}, said ${point.support} times. Show the words behind it.`);
+        bubble.addEventListener("click", (event) => { event.stopPropagation(); showDetail({ kind: "point", point, side }); });
+        col.append(bubble);
+      }
+      cols.append(col);
+    }
+    const pdetail = el("div", "pdetail");
+    pscroll.append(pdots, psummary, pactions, el("div", "divider"), cols, pdetail);
+    const pfoot = el("button", "foot", "How it works · sources and confidence");
+    pfoot.type = "button";
+    pfoot.addEventListener("click", (event) => { event.stopPropagation(); showDetail({ kind: "how" }); });
+    const pfooter = el("div", "footer");
+    pfooter.append(pfoot, el("span", "credit", "Built by samco"));
+    pagebody.append(pscroll, el("div", "divider"), pfooter);
+    if (pageView.kind !== "columns") showDetail(pageView);
+  };
+  /* The words behind a point, a source's quotes, or the explainer, in place of the columns; Back returns. */
+  const showDetail = (view: typeof pageView) => {
+    if (pageState.kind !== "ready" || view.kind === "columns" || view.kind === "note") return;
+    const page = pageState.page;
+    const pdetail = pscroll.querySelector<HTMLElement>(".pdetail");
+    if (!pdetail) return;
+    pageView = view;
+    pdetail.replaceChildren();
+    const back = el("button", "back", "← Back");
+    back.type = "button";
+    back.addEventListener("click", (event) => { event.stopPropagation(); pageView = { kind: "columns" }; pagebody.classList.remove("detail"); pscroll.scrollTop = 0; grow(); });
+    pdetail.append(back);
+    if (view.kind === "point") {
+      pdetail.append(el("p", "ptitle", view.point.sentence));
+      pdetail.append(el("p", "quiet", `${view.side === "pro" ? "For" : "Against"} · ${view.point.support} ${view.point.support === 1 ? "voice" : "voices"}`));
+      for (const quote of view.point.quotes) pdetail.append(quoteRow(quote));
+    } else if (view.kind === "source") {
+      pdetail.append(el("p", "ptitle", view.source === "page" ? "On this page" : PLATFORM_NAMES[view.source] ?? view.source));
+      const seen = new Set<string>();
+      const quotes = [...page.pros, ...page.cons].flatMap((point) => point.quotes).filter((quote) => quote.source === view.source && !seen.has(quote.text) && seen.add(quote.text));
+      if (!quotes.length) pdetail.append(el("p", "quiet", "These voices were counted in the figures; none of them stood behind a recurring point."));
+      for (const quote of quotes) pdetail.append(quoteRow(quote));
+    } else if (view.kind === "how") {
+      pdetail.append(el("p", "ptitle", "Sources and confidence"));
+      pdetail.append(el("p", "quiet", `${page.confidence.level} confidence · ${page.confidence.reason}`));
+      pdetail.append(el("p", "quiet", `This card is about ${page.subject}, the subject of the page you are on. The reviews and comments found on the page itself lead the reading: each counts as three platform posts. Public posts about the subject from the platforms add to it.`));
+      pdetail.append(el("p", "quiet", `Percentages come from classified reviews and posts, weighted by reactions. These are selected online comments, not a representative survey. Fewer than eight relevant opinions means no verdict.`));
+      for (const { source, count } of page.sources) pdetail.append(el("p", "quiet", `${source === "page" ? "On this page" : PLATFORM_NAMES[source] ?? source} · ${count} ${count === 1 ? "opinion" : "opinions"}`));
+      if (page.window) pdetail.append(el("p", "quiet", `Platform posts from ${page.window.from.slice(0, 10)} to ${page.window.to.slice(0, 10)}.`));
+    }
+    pagebody.classList.add("detail");
+    pscroll.scrollTop = 0;
+    if (state === "open") grow();
+  };
 
   /* ---- the header for each shape ---- */
   const x = () => { const b = el("button", "x", "×"); b.type = "button"; b.setAttribute("aria-label", "Close"); return b; };
@@ -701,9 +1017,10 @@ export function createBar(opts: {
     renderHead(s);
     fitBar();
     if (opts.shape === "line") tagline.textContent = s.kind === "ready" ? s.gauge.sentence : "";
-    if (state !== "rest") { fillCard(); grow(); }
+    if (state !== "rest" && mode === "site") { fillCard(); grow(); }
   };
   render({ kind: "loading" });
+  if (site && opts.page) renderAnalyse();
   return {
     host,
     set: render,
@@ -732,7 +1049,16 @@ export function createBar(opts: {
       if (more.block !== undefined) { rowBlock = more.block; fitBar(); }
     },
     state: () => state,
+    mode: () => mode,
     close,
+    page: (s) => {
+      /* A ready reading arriving from outside opens the card; anything else only changes the row. */
+      pageState = s;
+      if (s.kind !== "ready") pageView = { kind: "columns" };
+      if (state !== "rest" && mode === "page" && s.kind !== "ready") close();
+      renderAnalyse();
+      if (s.kind === "ready") { pageView = { kind: "columns" }; openPage(); }
+    },
     remove: () => { close(); host.remove(); },
   };
 }

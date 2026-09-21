@@ -20,7 +20,7 @@ const { version, description } = JSON.parse(readFileSync("package.json", "utf8")
 const GOOGLE = ["com", "com.au", "co.uk", "ca", "co.nz", "ie", "co.in", "com.sg", "com.hk", "co.za", "de", "fr", "es", "it", "nl", "be", "ch", "at", "se", "no", "dk", "fi", "pl", "pt", "cz", "gr", "hu", "ro", "com.tr", "com.br", "com.mx", "com.ar", "cl", "co", "com.pe", "co.jp", "co.kr", "com.tw", "com.ph", "co.id", "com.my", "co.th", "com.vn", "ae", "com.sa", "co.il", "com.eg", "com.ng", "co.ke", "com.pk"];
 const matches = GOOGLE.map((tld) => `*://www.google.${tld}/search*`);
 
-/* "Take the bar with you" (on unless the reader turns it off in the menu)
+/* The card on every site (on unless the reader turns it off in the menu)
    runs the site script on every site but Google's search pages, so the
    label names every site: the browser says so at install. Firefox lists
    the hosts as permissions too and, from 127, asks for them at install. */
@@ -53,11 +53,14 @@ const manifest = (target) => ({
   /* Firefox names the data an extension sends in its install prompt (Mozilla's
      categories; required of every new add-on on addons.mozilla.org since
      November 2025). Opinion Meter sends the search words and the titles and
-     addresses of results on Google pages (README section 9) and nothing else:
-     "searchTerms" and "websiteContent". The prompt exists from Firefox 140. */
+     addresses of results on Google pages, the address and declared name of
+     every site visited (for the site's reading), and the text of a page when
+     the reader presses "Analyse this page's subject" (README section 9):
+     "searchTerms", "browsingActivity" and "websiteContent". The prompt exists
+     from Firefox 140. */
   ...(target === "firefox" ? { browser_specific_settings: { gecko: {
       id: "opinion-meter@samco26.github.io",
-      data_collection_permissions: { required: ["searchTerms", "websiteContent"] },
+      data_collection_permissions: { required: ["searchTerms", "browsingActivity", "websiteContent"] },
       strict_min_version: "140.0",
     } } }
     : target === "safari" ? { browser_specific_settings: { safari: { strict_min_version: "16.4" } } }

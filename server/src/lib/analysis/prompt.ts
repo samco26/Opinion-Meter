@@ -14,11 +14,15 @@ export const CLASSIFY_RULES = `Classify EVERY supplied non-video entry exactly o
   A blunt or sarcastic wording is not a negative view unless it is aimed at the subject; a swear word in praise is still praise. Never list a missing reference. Do not repeat entry text in the output.
 Video titles and descriptions are context only, never opinions; a parent reference links a comment to its video.`;
 
-export function formatItems(items: SourceItem[]): string {
+/* views: a settled classification printed with each entry (the card built
+   from the bar's own sample), so the model reads the verdicts it must keep
+   rather than making its own. */
+export function formatItems(items: SourceItem[], views?: Map<number, string>): string {
   const references = new Map(items.map((item, index) => [item.id, index]));
   return items.map((it, index) => {
     const metadata = [it.kind, it.publishedAt?.slice(0, 10), it.engagement != null ? `${it.engagement} reactions` : null].filter(Boolean).join(", ");
-    return JSON.stringify({ ref: index, source: it.source, metadata, parent: it.parentId ? references.get(it.parentId) : undefined, text: it.text });
+    const view = views?.get(index);
+    return JSON.stringify({ ref: index, source: it.source, metadata, parent: it.parentId ? references.get(it.parentId) : undefined, ...(view ? { view } : {}), text: it.text });
   }).join("\n");
 }
 

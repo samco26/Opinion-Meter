@@ -10,31 +10,48 @@ import { memory } from "./memory";
 import { collectAdaptive } from "./sources/adaptive";
 import { domainSubject, resultSubjects } from "./target";
 import { liteGauge } from "./analysis/lite";
+import type { Classification } from "./analysis/evidence";
+import type { Bucket } from "./analysis/prompt";
 import { youtubeVideoId } from "./sources/youtube";
-import type { Card, Gauge, GaugeRequest, GaugeResponse, SourceId, Subject, SubjectStates } from "./types";
+import type { Card, Gauge, GaugeRequest, GaugeResponse, SearchWindow, SourceId, SourceItem, SourceStatus, Subject, SubjectStates } from "./types";
 
-/* Every connected platform reads every subject by name (Reddit is off
-   until an application succeeds; X joins in the full card only, on a
-   click or a prefetch, because it is paid per post). A page is also looked
-   up by link on the platforms that can, and a linked video's own comments
-   are read. */
-export const LITE_SOURCES: SourceId[] = ["youtube", "hn", "bluesky"];
-export const LINK_SOURCES: SourceId[] = ["hn", "bluesky"];
-/* A YouTube video is read from its own comments alone (the owner's rule for
-   the Videos tab); any other link is looked up on the platforms that search by link. */
-export const sourcesFor = (subject: Subject): SourceId[] => subject.link ? (youtubeVideoId(subject.link) ? ["youtube"] : LINK_SOURCES) : LITE_SOURCES;
+/* Every connected platform reads every subject by name, X included (the
+   owner's decision of 21 September 2026: the bar and the card read the
+   same platforms, so X is paid for once per subject, for both). Reddit is
+   off until an application succeeds. A page is also looked up by link on
+   the platforms that can, and a linked video's own comments are read. */
+export const LITE_SOURCES: SourceId[] = ["youtube", "hn", "bluesky", "x"];
+export const LINK_SOURCES: SourceId[] = ["hn", "bluesky", "x"];
+/* A YouTube video is read from its own comments (the owner's rule for the
+   Videos tab) and the posts that share it; any other link is looked up on
+   the platforms that search by link. */
+export const sourcesFor = (subject: Subject): SourceId[] => subject.link ? (youtubeVideoId(subject.link) ? ["youtube", "x"] : LINK_SOURCES) : LITE_SOURCES;
 const MAX_RESULTS = 20;
 const PENDING_TTL = 120;
 const NONE_TTL = 6 * 3600;
 /* Bumped whenever the classifier changes, so old readings are not served. */
-const READING = 3;
+export const READING = 3;
 const SUBJECT_TTL = 86_400;
+/* The bar's sample — entries and their verdicts — is held as long as a
+   finished card is (a quarter of an hour, never on disk), so a card asked
+   for in that time is built from the very same reading. */
+export const SAMPLE_TTL = 15 * 60;
 
 export type Stored = { state: "ready"; gauge: Gauge } | { state: "none"; reason: string; thin?: boolean };
 
+/* What the bar was counted from: the target actually read (the subject, or
+   its website when the page itself had too little), the sampled entries,
+   each one's counted verdict and five-way view, the platform statuses and
+   the window. */
+export interface HeldSample { target: Subject; entries: SourceItem[]; classifications: Classification[]; views: Array<[number, Bucket]>; dropped: number; statuses: SourceStatus[]; window: SearchWindow }
+export const heldSample = (key: string) => memory().get<HeldSample>(`sample:${READING}:${key}`);
+export const isPending = async (key: string) => Boolean(await memory().get(`pending:${key}`));
+
 export async function computeGauge(subject: Subject): Promise<Stored> {
   const m = memory();
+  const before = await m.get<Stored>(`gauge:${READING}:${subject.key}`);
   let stored: Stored;
+  let sample: HeldSample | undefined;
   try {
     if (subject.scope && !configured.openai()) {
       stored = { state: "none", reason: "Website/link opinions need AI analysis. The server's AI key is not connected yet." };
@@ -47,23 +64,37 @@ export async function computeGauge(subject: Subject): Promise<Stored> {
         // Different pages on the same domain reuse the domain reading.
         const cached = target.scope === "domain" ? await m.get<Stored>(`gauge:${READING}:${target.key}`) : null;
         if (cached?.state === "ready") {
+          sample = (await heldSample(target.key)) ?? undefined;
           stored = { state: "ready", gauge: { ...cached.gauge, key: subject.key, targetUrl: subject.link } }; break;
         }
-        /* The bar reads exactly what the card reads — the whole three years,
-           the same platforms, the same sample — so the two can never
-           disagree by much; the card's own numbers then replace these. */
-        const { items, window } = await collectAdaptive(target.name, sourcesFor(target), { link: target.link, domain: target.scope === "domain" ? target.domain : undefined, aliases: target.aliases, depth: "full", budgetMs: 12_000 });
+        /* The bar reads the whole three years, the same platforms and the
+           same sample size as the card; the card is then built from this
+           very sample while it is held, so the two cannot disagree. */
+        const { items, statuses, window } = await collectAdaptive(target.name, sourcesFor(target), { link: target.link, domain: target.scope === "domain" ? target.domain : undefined, aliases: target.aliases, depth: "full", budgetMs: 12_000 });
         if (items.filter(item => item.kind !== "video").length < settings.minItems()) continue;
-        const gauge = await liteGauge(target, items, window, 12_000);
-        if (!gauge) continue;
-        if (target.scope === "domain") await m.set(`gauge:${READING}:${target.key}`, { state: "ready", gauge }, settings.cacheTtlSeconds());
-        stored = { state: "ready", gauge: { ...gauge, key: subject.key, targetUrl: subject.link } }; break;
+        const reading = await liteGauge(target, items, window, 12_000);
+        if (!reading) continue;
+        sample = { target, entries: reading.entries, classifications: reading.classifications, views: reading.views, dropped: reading.dropped, statuses, window };
+        if (target.scope === "domain") {
+          await m.set(`gauge:${READING}:${target.key}`, { state: "ready", gauge: reading.gauge }, settings.cacheTtlSeconds());
+          await m.set(`sample:${READING}:${target.key}`, sample, SAMPLE_TTL);
+        }
+        stored = { state: "ready", gauge: { ...reading.gauge, key: subject.key, targetUrl: subject.link } }; break;
       }
     }
   } catch (err) {
     stored = { state: "none", reason: err instanceof Error ? err.message : "The analysis failed." };
   }
-  await m.set(`gauge:${READING}:${subject.key}`, stored, stored.state === "ready" ? settings.cacheTtlSeconds() : NONE_TTL);
+  /* A full card made meanwhile (a click that could not wait for this) has
+     already written this subject's gauge from its own reading; that one
+     stands, so the two never race. */
+  const meanwhile = await m.get<Stored>(`gauge:${READING}:${subject.key}`);
+  const overtaken = meanwhile?.state === "ready" && !(before?.state === "ready" && before.gauge.updatedAt === meanwhile.gauge.updatedAt);
+  if (overtaken && meanwhile) stored = meanwhile;
+  else {
+    if (sample) await m.set(`sample:${READING}:${subject.key}`, sample, SAMPLE_TTL);
+    await m.set(`gauge:${READING}:${subject.key}`, stored, stored.state === "ready" ? settings.cacheTtlSeconds() : NONE_TTL);
+  }
   await m.del(`pending:${subject.key}`);
   return stored;
 }
@@ -113,8 +144,10 @@ export async function gaugeFor(req: GaugeRequest, budgetMs: number, keepAlive: (
   return response;
 }
 
-/* The bar takes the card's numbers whenever a card has been made, so what
-   the drawer says and what the bar shows are one reading. */
+/* A card made when no bar's sample was there to build it from (the sample
+   aged out, or the card came first) becomes the subject's reading: the bar
+   takes its numbers from then on. A bar already drawn on a page keeps what
+   it shows; the next search shows these. */
 const firstSentence = (text: string) => {
   const sentence = (text.match(/^.*?[.!?](?=\s|$)/)?.[0] ?? text).trim();
   return sentence.length > 160 ? `${sentence.slice(0, 157).trimEnd()}…` : sentence;

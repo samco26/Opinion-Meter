@@ -67,18 +67,37 @@ test("all simultaneous Google readings survive and follow onto their sites", asy
       },
     },
   };
+  let lastBody;
   runInNewContext(readFileSync(process.env.BACKGROUND_UNDER_TEST ?? "dist/safari/background.js", "utf8"), {
-    chrome, URL, crypto: { randomUUID: () => "synthetic-test-token" },
-    fetch: async () => { fetches++; return { ok: true, json: async () => ({ query: { key: null }, results, subjects }) }; },
+    chrome, URL, crypto: { randomUUID: () => "synthetic-test-token" }, setInterval, clearInterval,
+    fetch: async (_url, init) => {
+      fetches++;
+      lastBody = init?.body ? JSON.parse(init.body) : null;
+      // A site asking for its own reading sends no query: the synthetic server names nothing for it.
+      if (lastBody && lastBody.query === "") return { ok: true, json: async () => ({ query: { key: null }, results: lastBody.results.map(r => ({ url: r.url, key: null })), subjects: {} }) };
+      return { ok: true, json: async () => ({ query: { key: null }, results, subjects }) };
+    },
   });
   const send = message => new Promise(resolve => listener(message, {}, resolve));
   await send({ type: "gauge", request: { query: "synthetic test", results } });
   for (const result of results) {
     const reply = await send({ type: "site", url: result.url.replace("article", "another-page") });
     assert.equal(reply.reading?.key, result.key);
+    assert.equal(reply.state, "ready");
   }
-  assert.equal(fetches, 1, "visiting sites never calls the server");
-  assert.equal((await send({ type: "site", url: "https://unknown.example/" })).reading, null);
+  assert.equal(fetches, 1, "a site whose reading was carried from Google never calls the server");
+  // A site nothing was carried for is asked about by its address alone: the origin, never the page's path, with the name it declares.
+  const unknown = await send({ type: "site", url: "https://unknown.example/private/path?q=secret", label: "Unknown Example" });
+  assert.equal(unknown.reading, null);
+  assert.equal(unknown.state, "none");
+  assert.equal(fetches, 2);
+  assert.deepEqual(lastBody, { query: "", results: [{ url: "https://unknown.example/", title: "Unknown Example", site: "Unknown Example" }] });
+  // The answer is remembered: the same site asks the server nothing for a while.
+  await send({ type: "site", url: "https://unknown.example/other" });
+  assert.equal(fetches, 2);
   local.sitesOff = true;
-  assert.equal((await send({ type: "site", url: results[0].url })).reading, null);
+  const off = await send({ type: "site", url: results[0].url });
+  assert.equal(off.reading, null);
+  assert.equal(off.state, "off");
+  assert.equal(fetches, 2);
 });

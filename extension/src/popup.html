@@ -24,12 +24,12 @@
 <body>
 <h1>Opinion Meter</h1>
 <div class="row">
-  <div><b>Take the bar with you</b><p>The card at the top right of sites whose bar you saw on Google. It reads only the page's address and sends nothing.</p></div>
-  <button id="sites" class="switch" type="button" role="switch" aria-checked="true" aria-label="Take the bar with you"></button>
+  <div><b>Show the card on every site</b><p>The card at the top right of every site: the site's reading, and a button to analyse the page's subject. Off hides it everywhere.</p></div>
+  <button id="sites" class="switch" type="button" role="switch" aria-checked="true" aria-label="Show the card on every site"></button>
 </div>
 <p class="token">Install token: <code id="token"></code></p>
 <div class="foot"><span id="version"></span><a id="privacy" href="https://opinionmeter.vercel.app/privacy" target="_blank" rel="noopener">Privacy</a></div>
-<p class="token">Why “read and change data”? Browsers require page access to draw the bars and card automatically. Opinion Meter does not read passwords or form entries. It sends Google search words and result labels/links to its server; on other sites it looks up an existing reading by address inside your browser.</p>
+<p class="token">Why “read and change data”? Browsers require page access to draw the bars and card automatically. Opinion Meter does not read passwords or form entries. It sends Google search words and result labels/links to its server; on other sites, the site's address and name to fetch the site's reading; and the page's text only when you press “Analyse this page's subject”.</p>
 <script src="popup.js"></script>
 </body>
 </html>

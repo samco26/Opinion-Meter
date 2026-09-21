@@ -220,3 +220,69 @@ export interface ExtensionConfig {
     maxResults: number;
   };
 }
+
+/* ---- The page card: "Analyse this page's subject" ----------------------
+   What the site badge's second button asks for: the page's own text goes
+   to the server once, on that click, and comes back as one reading of the
+   page's subject built from the reviews found on the page (first) and the
+   platforms (supplementary). */
+
+export interface PageRequest {
+  url: string;
+  title: string;
+  /* The site's own declared name (og:site_name), when the page states one. */
+  site?: string;
+  description?: string;
+  /* The page's visible text, reviews and comments first, capped by the hands. */
+  text: string;
+  /* Structured data the page carries (JSON-LD), when any: ratings and reviews often live there. */
+  data?: string;
+}
+
+/* Where an opinion in a page reading came from: a platform, or the page itself. */
+export type PageSource = SourceId | "page";
+
+export interface PageQuote {
+  text: string;
+  source: PageSource;
+  url?: string;
+  title?: string;
+}
+
+/* One recurring point for or against the subject, with the entries behind it. */
+export interface PagePoint {
+  id: string;
+  sentence: string;
+  /* Distinct entries supporting it. */
+  support: number;
+  quotes: PageQuote[];
+}
+
+export interface PageCard {
+  key: string;
+  subject: string;
+  kind: SubjectKind;
+  category: Category;
+  split: SentimentSplit;
+  verdict: Verdict;
+  /* Opinions counted: on the page plus on the platforms. */
+  count: number;
+  pageCount: number;
+  platformCount: number;
+  sentence: string;
+  summary: string;
+  confidence: Confidence;
+  pros: PagePoint[];
+  cons: PagePoint[];
+  sources: Array<{ source: PageSource; count: number }>;
+  window?: SearchWindow;
+  simulated?: boolean;
+  updatedAt: string;
+}
+
+export type PageResponse =
+  | { kind: "page"; page: PageCard }
+  /* A subject was named, but neither the page nor the platforms hold enough opinions about it. */
+  | { kind: "insufficient"; subject: string; message: string; pageCount: number; platformCount: number }
+  /* The page is about nothing in particular (a login page, a listing, a search). */
+  | { kind: "nothing"; message: string };

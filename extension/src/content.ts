@@ -209,8 +209,6 @@ const settle = () => requestAnimationFrame(() => requestAnimationFrame(repositio
    a lost subject can be recovered, and stays out of address logs. */
 const drawerFor = (context: GaugeRequest) => (gauge: Gauge | undefined) =>
   `${server}/embed?key=${encodeURIComponent(gauge?.key ?? "")}&morph=1${dark ? "&theme=dark" : ""}#context=${encodeURIComponent(JSON.stringify(context))}`;
-/* The card's numbers come back; every bar for that subject takes them. */
-const take = (fresh: Gauge) => apply({ [fresh.key]: { state: "ready", gauge: fresh } });
 /* The query's card in the results flow cannot grow there without pushing
    the results down, and there it would sit under the bar layer: before it
    grows (hover or click) it is lifted onto the layer at the very same
@@ -277,7 +275,7 @@ function positionQuery() {
 function remakeQuery(shape: Shape) {
   if (!queryBar) return;
   const old = queryBar;
-  const fresh = createBar({ shape, title: query, dark, drawer: drawerFor({ query, results: [] }), onGauge: take, relocate: liftQuery });
+  const fresh = createBar({ shape, title: query, dark, drawer: drawerFor({ query, results: [] }), relocate: liftQuery });
   for (const [key, list] of bars) if (list.includes(old)) bars.set(key, list.map((bar) => (bar === old ? fresh : bar)));
   if (queryState) fresh.set(queryState);
   old.remove();
@@ -360,10 +358,10 @@ function scan() {
   for (const result of found) {
     placements.get(result.anchor)?.bar.remove();
     const context = { query, results: [{ url: result.url, title: result.title, ...(result.site ? { site: result.site } : {}) }] };
-    hold(result, createBar({ shape: result.placement === "block" ? "block" : "story", title: result.site ?? result.title, dark, drawer: drawerFor(context), onGauge: take }));
+    hold(result, createBar({ shape: result.placement === "block" ? "block" : "story", title: result.site ?? result.title, dark, drawer: drawerFor(context) }));
   }
   if (!queryBar && config.google.queryBar && queryPlacement(config)) {
-    queryBar = createBar({ shape: "line", title: query, dark, drawer: drawerFor({ query, results: [] }), onGauge: take, relocate: liftQuery });
+    queryBar = createBar({ shape: "line", title: query, dark, drawer: drawerFor({ query, results: [] }), relocate: liftQuery });
   }
   queue.push(...found); positionQuery(); void drain(); settle();
 }

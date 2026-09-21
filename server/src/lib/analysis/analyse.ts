@@ -11,7 +11,7 @@ import { normalise, verdictOf } from "../sentiment";
 import type { Card, SearchWindow, SourceId, SourceItem, SourceStatus, Subject } from "../types";
 import { buildEvidence, type Classification } from "./evidence";
 import { heuristicClassify, heuristicSentence } from "./heuristic";
-import { BUCKETS, CLASSIFY_RULES, counted, formatItems, prefilter, sample } from "./prompt";
+import { BUCKETS, CLASSIFY_RULES, counted, formatItems, prefilter, sample, type Bucket } from "./prompt";
 import { targetInstructions } from "../target";
 
 const CARD_MAX = 250;
@@ -55,18 +55,32 @@ Rules:
 
 export type Analysed = { kind: "card"; card: Card } | { kind: "insufficient"; relevant: number; sources: SourceStatus[] };
 
-export async function analyseCard(subject: Subject, items: SourceItem[], statuses: SourceStatus[], window: SearchWindow, timeoutMs: number): Promise<Analysed> {
-  const { kept, dropped } = prefilter(items);
-  const entries = sample(kept, CARD_MAX);
+/* The card built on the bar's own reading: the entries are the bar's sample
+   as it was, and each one's verdict is settled, so the model only writes
+   (summary, themes, recurring opinions, representative posts) and the
+   numbers it is shown are the bar's to the digit. */
+export interface GivenReading { classifications: Classification[]; views: Array<[number, Bucket]>; dropped: number }
+const Settled = Analysis.omit({ classified: true });
+const SETTLED = `Each entry carries its settled "view" (positive, neutral, negative, event or irrelevant), decided already and counted already; you do not classify. Read the views as given: draw the summary, the themes and the recurring opinions from the entries marked positive, neutral or negative, treat those marked event as event entries and ignore those marked irrelevant. Never list a missing reference. Do not repeat entry text in the output. Video titles and descriptions are context only, never opinions; a parent reference links a comment to its video.`;
+/* The settled variant swaps the classifying rule for the settled one; everything else reads the same. */
+const SETTLED_INSTRUCTIONS = INSTRUCTIONS.replace(`- ${CLASSIFY_RULES}`, `- ${SETTLED}`);
+
+export async function analyseCard(subject: Subject, items: SourceItem[], statuses: SourceStatus[], window: SearchWindow, timeoutMs: number, given?: GivenReading): Promise<Analysed> {
+  /* From the bar's sample nothing is filtered or sampled again: the references must stay the bar's. */
+  const { kept, dropped } = given ? { kept: items, dropped: given.dropped } : prefilter(items);
+  const entries = given ? items : sample(kept, CARD_MAX);
   const live = configured.openai();
-  const out = live
-    ? await structured(Analysis, "card_analysis", `${INSTRUCTIONS}\n${targetInstructions(subject)}`,
-      `Subject: ${JSON.stringify(subject.name)} (${subject.kind})\nOpinion window: ${window.from.slice(0, 10)} to ${window.to.slice(0, 10)} (${window.months} months)\nToday: ${new Date().toISOString().slice(0, 10)}\nPlatforms with opinions: ${[...new Set(entries.filter((e) => e.kind !== "video").map((e) => e.source))].join(", ")}\n\n${entries.length} entries (JSON lines):\n${formatItems(entries)}`,
-      { model: cardModel(), maxTokens: 16000, timeoutMs })
-    : null;
-  const classifications: Classification[] = out
-    ? BUCKETS.flatMap((bucket) => out.classified[bucket].map((ref) => ({ ref, sentiment: counted(bucket) })))
-    : heuristicClassify(entries);
+  const views = given ? new Map<number, string>(given.views) : undefined;
+  const input = `Subject: ${JSON.stringify(subject.name)} (${subject.kind})\nOpinion window: ${window.from.slice(0, 10)} to ${window.to.slice(0, 10)} (${window.months} months)\nToday: ${new Date().toISOString().slice(0, 10)}\nPlatforms with opinions: ${[...new Set(entries.filter((e) => e.kind !== "video").map((e) => e.source))].join(", ")}\n\n${entries.length} entries (JSON lines):\n${formatItems(entries, views)}`;
+  const out = !live ? null
+    : given
+      ? { ...await structured(Settled, "card_analysis_settled", `${SETTLED_INSTRUCTIONS}\n${targetInstructions(subject)}`, input, { model: cardModel(), maxTokens: 12000, timeoutMs }), classified: undefined }
+      : await structured(Analysis, "card_analysis", `${INSTRUCTIONS}\n${targetInstructions(subject)}`, input, { model: cardModel(), maxTokens: 16000, timeoutMs });
+  const classifications: Classification[] = given
+    ? given.classifications
+    : out?.classified
+      ? BUCKETS.flatMap((bucket) => out.classified![bucket].map((ref) => ({ ref, sentiment: counted(bucket) })))
+      : heuristicClassify(entries);
   const readings: Array<{ source: SourceId; drawnFrom: number[] }> = out?.bySource ?? [];
   const evidence = buildEvidence(entries, classifications, out?.opinions ?? [], readings.flatMap((r) => r.drawnFrom.filter((ref) => entries[ref]?.source === r.source)));
   const sources = statuses.map((status) => {

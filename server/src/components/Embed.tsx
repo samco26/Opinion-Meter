@@ -69,13 +69,8 @@ export function Embed({ subjectKey, dark = false, morph = false, part, start }: 
       const data = await res.json() as CardResponse | { error: string };
       if (!res.ok || "error" in data) throw new Error("error" in data ? data.error : `The server answered ${res.status}.`);
       if (controller.signal.aborted) return;
+      /* The bar that opened this drawer keeps its own numbers: the card is built from the bar's sample, so nothing is sent back to change it. */
       setPhase({ name: "done", response: data });
-      /* The bar that opened this drawer takes the card's numbers, so the two agree. */
-      if (data.kind === "card") {
-        const c = data.card;
-        const count = c.sources.reduce((total, status) => total + (status.relevant ?? status.itemsAnalysed), 0);
-        tell({ type: "gauge", gauge: { key: c.key, name: c.subject, kind: c.kind, category: c.category, split: c.sentiment, count, verdict: c.verdict, sentence: c.summary, confidence: c.confidence.level, sources: c.sources.filter((status) => (status.relevant ?? 0) > 0).map((status) => ({ source: status.source, count: status.relevant ?? 0 })), window: c.window, updatedAt: c.updatedAt } });
-      }
     }).catch((err: unknown) => { if (!controller.signal.aborted) setPhase({ name: "error", message: err instanceof Error ? err.message : "The reading failed." }); });
     return () => controller.abort();
   }, [subjectKey, attempt, listOnly]);

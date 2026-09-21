@@ -12,6 +12,8 @@ declare namespace chrome {
     function sendMessage(message: unknown, callback: (response: unknown) => void): void;
     function getManifest(): { version: string; content_scripts?: Array<{ matches?: string[] }> };
     function openOptionsPage(): Promise<void>;
+    /* Any extension API call resets the worker's idle clock; this is the cheapest. */
+    function getPlatformInfo(callback: (info: unknown) => void): void;
     const onMessage: { addListener(listener: (message: never, sender: unknown, sendResponse: (response: unknown) => void) => boolean | void): void };
     const onInstalled: { addListener(listener: () => void): void };
     const onStartup: { addListener(listener: () => void): void };

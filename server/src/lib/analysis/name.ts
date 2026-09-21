@@ -53,7 +53,7 @@ export async function cachedSiteNames(hosts: string[]): Promise<Map<string, Subj
   return new Map(hosts.map((host, index) => [host, stored[index] ? stored[index]!.subject : undefined]));
 }
 
-function toSubject(kind: string, name: string, url?: string, forQuery = false): Subject | null {
+export function toSubject(kind: string, name: string, url?: string, forQuery = false): Subject | null {
   const clean = name.replace(/\s+/g, " ").trim();
   if (!(forQuery ? NAMEABLE_QUERY : NAMEABLE_RESULT).has(kind) || !clean) return null;
   if (kind === "article") {

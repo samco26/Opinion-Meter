@@ -1,5 +1,5 @@
-/* X search, paid per post returned. Off unless a token exists; used only
-   for the full card. The full archive is tried first, widening 3, 12, 36
+/* X search, paid per post returned. Off unless a token exists; read for the
+   bar and the card alike, once per subject. The full archive is tried first, widening 3, 12, 36
    months on empty responses and stopping at the first match; a token
    without archive access falls back to the last seven days, which every
    paid tier can read. At most X_MAX_RESULTS posts are ever billed for one

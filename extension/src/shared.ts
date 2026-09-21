@@ -2,9 +2,9 @@
    address, the messages between them, and the storage. The wire shapes
    are the server's own types, imported for checking only. */
 
-import type { ExtensionConfig, Gauge, GaugeRequest, GaugeResponse, SubjectStates } from "../../server/src/lib/types";
+import type { ExtensionConfig, Gauge, GaugeRequest, GaugeResponse, PageCard, PagePoint, PageQuote, PageRequest, PageResponse, PageSource, SubjectStates } from "../../server/src/lib/types";
 
-export type { ExtensionConfig, Gauge, GaugeRequest, GaugeResponse, SubjectStates };
+export type { ExtensionConfig, Gauge, GaugeRequest, GaugeResponse, PageCard, PagePoint, PageQuote, PageRequest, PageResponse, PageSource, SubjectStates };
 
 export const DEFAULT_SERVER = "https://opinionmeter.vercel.app";
 
@@ -14,17 +14,20 @@ export type Message =
   | { type: "poll"; keys: string[] }
   /* Ask the server to prepare a subject's full card now, so the drawer opens at once later. */
   | { type: "prefetch"; key: string }
-  /* From a page on another site: the reading remembered for it, if any (none while the menu has the card turned off). */
-  | { type: "site"; url: string }
-  /* The × on a site's card: hide it on that site until its bar is next loaded on Google. */
-  | { type: "site-hide"; url: string };
+  /* From a page on another site: the site's reading — carried from Google, or fetched for the site by its address and its own declared name. */
+  | { type: "site"; url: string; label?: string }
+  /* "Analyse this page's subject": the page's text goes to the server once, on the reader's press. */
+  | { type: "page"; request: PageRequest };
 
 export interface ConfigReply { server: string; config: ExtensionConfig }
 
 /* A reading carried from Google to a site: the subject, its numbers, and
    the request that made it, so the drawer can recover the card. */
 export interface SiteReading { key: string; gauge: Gauge; context: GaugeRequest; at: number }
-export interface SiteReply { reading: SiteReading | null; server: string }
+/* state: ready (a reading), pending (the server is still reading; ask
+   again shortly), none (no reading: too few opinions, or the site names
+   nothing), off (the menu has the card turned off). */
+export interface SiteReply { reading: SiteReading | null; server: string; state: "ready" | "pending" | "none" | "off"; reason?: string; thin?: boolean; name?: string }
 
 /* The site a host belongs to: kia.com for www.kia.com, abc.net.au for
    www.abc.net.au, bbc.co.uk for www.bbc.co.uk. */
