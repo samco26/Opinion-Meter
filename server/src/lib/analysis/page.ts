@@ -81,7 +81,7 @@ export async function namePage(req: PageRequest, timeoutMs: number): Promise<Sub
    of votes: its value on its own scale read as the share who liked it,
    weighed by how many rated, up to a ceiling so the words still count. */
 export interface Aggregate { value: number; best: number; count: number }
-export const AGGREGATE_MAX = 500;
+export const AGGREGATE_MAX = 1000;
 /* How many a rating stands for when the page does not say. */
 const AGGREGATE_ASSUMED = 50;
 
