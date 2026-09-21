@@ -159,7 +159,9 @@ iframe{display:block;width:100%;height:100%;border:0;background:transparent;colo
 .tray{display:none;position:absolute;left:auto;right:0;width:100%;top:calc(100% - 14px);z-index:0;box-sizing:border-box;padding:14px 15px 0;border:1px solid var(--border);border-top:0;border-radius:0 0 17px 17px;background:var(--card);box-shadow:var(--badge-shadow);overflow:hidden;white-space:nowrap;--px:15px;transition:height 340ms var(--ease),width 340ms var(--ease),left 340ms var(--ease),padding 340ms var(--ease),border-radius 200ms ease}
 :host([data-site]) .tray{display:flex;flex-direction:column}
 .card[data-state="hover"] ~ .tray,.card[data-state="open"] ~ .tray,.card.closing ~ .tray{border-radius:0 0 12px 12px}
-.tray[data-open],.tray.closing{padding:14px 17px 13px;--px:17px}
+.tray[data-open]{padding:14px 17px 13px;--px:17px}
+/* Closing, the page card fades under the shrinking tray; the strip it shrinks to has no bottom room. */
+.tray.closing{padding:14px 17px 0;--px:17px}
 /* The strip: the tray's header row, pressed to read the page or to open and close its card. */
 .analyse{display:flex;position:relative;flex:none;align-items:center;gap:10px;min-width:0;width:100%;height:30px;padding:0;border:0;background:transparent;color:var(--t1);font-size:12px;line-height:18px;font-family:inherit;font-weight:500;text-align:left;cursor:pointer;white-space:nowrap;box-sizing:border-box}
 .analyse::before{content:"";position:absolute;inset:0 calc(-1 * var(--px));z-index:-1;background:transparent;transition:background 160ms ease}
