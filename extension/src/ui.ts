@@ -466,6 +466,8 @@ export function createBar(opts: {
   }
 
   let current: Gauge | undefined;
+  /* The reading as last set, so the head can be drawn again in another form. */
+  let lastState: BarState = { kind: "loading" };
   let still = false;
   let nameText = opts.title ?? "";
   /* The page's favicon and its copy for the grown card; the page's name element and its type, copied onto the name. */
@@ -647,6 +649,7 @@ export function createBar(opts: {
     card.style.width = site && trayOpen ? `${trayWidth()}px` : ""; card.style.height = ""; card.style.left = ""; card.style.top = ""; card.style.padding = "";
     head.style.marginLeft = ""; head.style.width = ""; body.style.width = ""; body.style.marginLeft = ""; dots.style.marginLeft = ""
     host.style.zIndex = "";
+    refreshHead();
     if (restore) { const back = restore; restore = undefined; back(); }
   };
   /* The card's height settled: back to the bar, or, with the tray open beneath a card that just grew or shrank, the tray refitted to the window. */
@@ -671,6 +674,7 @@ export function createBar(opts: {
     card.dataset.state = next;
     host.setAttribute("data-state", next);
     if (next !== "rest") { if (!site) host.style.zIndex = "1"; fillCard(); }
+    refreshHead();
     if (site && opts.page) renderAnalyse();
     grow(from);
     if (next === "rest") relaxTimer = window.setTimeout(relax, 400);
@@ -1102,10 +1106,16 @@ export function createBar(opts: {
 
   /* ---- the header for each shape ---- */
   const x = () => { const b = el("button", "x", "×"); b.type = "button"; b.setAttribute("aria-label", "Close"); return b; };
+  /* A result's bar and the resting badge's have two parts (the neutral share folded into the rest); the query's line and a grown badge show three.
+     The badge's head is drawn again when its card crosses that line, so the open card's bar shows its grey part — it used to keep the two-part bar it opened with. */
+  const partsFor = (): 2 | 3 => opts.shape === "block" || opts.shape === "story" || (site && state === "rest" && !closing) ? 2 : 3;
+  let headParts: 2 | 3 = 2;
+  const refreshHead = () => { if (site && partsFor() !== headParts) renderHead(lastState); };
   const renderHead = (s: BarState) => {
     head.replaceChildren();
     const gauge = s.kind === "ready" ? s.gauge : undefined;
-    const parts: 2 | 3 = opts.shape === "block" || opts.shape === "story" || (site && state === "rest") ? 2 : 3;
+    const parts = partsFor();
+    headParts = parts;
     const seg = segments(gauge, parts);
     if (s.kind === "loading") seg.classList.add("loading");
     /* Beside a Google result the verdict says what it is a verdict on: "63% positive opinion of Sony Australia". */
@@ -1130,6 +1140,7 @@ export function createBar(opts: {
     head.setAttribute("aria-label", said);
   };
   const render = (s: BarState) => {
+    lastState = s;
     still = s.kind !== "ready";
     if (s.kind === "ready") { current = s.gauge; if (opts.shape !== "block" && opts.shape !== "story") nameText = s.gauge.name; }
     else current = undefined;

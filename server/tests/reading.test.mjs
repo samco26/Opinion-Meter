@@ -5,6 +5,7 @@ import { analyseCard } from "../src/lib/analysis/analyse.ts";
 import { countPage, pageEntries, pointsFrom, verifyQuotes, readAggregate, likedShare, aggregateWeight, withRating, PAGE_WEIGHT, AGGREGATE_MAX } from "../src/lib/analysis/page.ts";
 import { readPageRequest } from "../src/lib/page.ts";
 import { verdictOf } from "../src/lib/sentiment.ts";
+import { firstSentence } from "../src/lib/gauge.ts";
 
 /* Synthetic entries only; no server, credentials or real opinions. No AI key is set in tests, so the word-count stand-in classifies. */
 const withoutAi = async (run) => {
@@ -101,4 +102,12 @@ test("a page's own rating is read from its structured data and joins the meter a
   const share = split.positive / (split.positive + split.negative);
   assert.ok(share > 0.75 && share < 0.85, `share ${share}`);
   assert.deepEqual(withRating({ positive: 1, neutral: 0, negative: 1 }, null), { positive: 1, neutral: 0, negative: 1 });
+});
+
+test("a card's first sentence reaches the bar whole, never cut short with an ellipsis", () => {
+  const long = "Wikipedia is widely valued as a free, ad-free, surprisingly reliable reference built by volunteers, especially as other online information becomes less trustworthy and more commercial. Its editors are sometimes criticised for tone.";
+  assert.equal(firstSentence(long), "Wikipedia is widely valued as a free, ad-free, surprisingly reliable reference built by volunteers, especially as other online information becomes less trustworthy and more commercial.");
+  assert.ok(!firstSentence(long).endsWith("…"));
+  assert.equal(firstSentence("Is it any good? Mostly, yes."), "Is it any good?");
+  assert.equal(firstSentence("No full stop at all"), "No full stop at all");
 });

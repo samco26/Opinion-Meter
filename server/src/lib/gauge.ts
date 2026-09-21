@@ -148,10 +148,10 @@ export async function gaugeFor(req: GaugeRequest, budgetMs: number, keepAlive: (
    aged out, or the card came first) becomes the subject's reading: the bar
    takes its numbers from then on. A bar already drawn on a page keeps what
    it shows; the next search shows these. */
-const firstSentence = (text: string) => {
-  const sentence = (text.match(/^.*?[.!?](?=\s|$)/)?.[0] ?? text).trim();
-  return sentence.length > 160 ? `${sentence.slice(0, 157).trimEnd()}…` : sentence;
-};
+/* The summary's first sentence, whole. It was cut at 160 characters with an
+   ellipsis, and the card printed the cut ("…becomes less trust…"); the card
+   wraps, so nothing is gained by cutting. */
+export const firstSentence = (text: string) => (text.match(/^.*?[.!?](?=\s|$)/)?.[0] ?? text).trim();
 export async function rememberGaugeFromCard(subject: Subject, card: Card): Promise<Gauge> {
   const count = card.sources.reduce((total, status) => total + (status.relevant ?? 0), 0);
   const gauge: Gauge = {

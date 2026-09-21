@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.1 — 21 September 2026
+
+- The summary in a site's card no longer ends in a cut ("…becomes less trust…"). When a subject's reading came from a full card, the server kept the summary's first sentence but cut it at 160 characters with an ellipsis; the card wraps, so the whole sentence goes now. A reading already in memory keeps its cut sentence until it ages out (a day at most).
+- The open badge's bar shows its grey neutral part. The bar has two parts at rest (as beside a result) and three once the card is open, but the head was never drawn again as the card opened, so it kept the two-part bar. It is drawn again as the card opens and closes.
+- A debug audit of the badge on a stubbed page (every row, card, tile, bubble, detail view, note, Escape, outside press and ×) and of the four packages: the packages' scripts are byte-identical, the manifests differ only where each browser requires (HANDOFF.md has the list).
+
 ## 1.0.0 — 21 September 2026
 
 - Version one. Everything below under 0.17.0 — one reading, the badge on every site, "Analyse this page's subject" — is the product as the owner wanted it, and is called 1.0.

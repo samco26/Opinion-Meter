@@ -1,4 +1,4 @@
-# Handoff — 21 September 2026 (v1.0.0)
+# Handoff — 21 September 2026 (v1.0.1)
 
 Where Opinion Meter is up to, for whoever (or whatever) picks it up next. README.md is the specification; AGENTS.md the rules; CHANGELOG.md the version history; this is the state.
 
