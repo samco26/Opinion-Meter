@@ -68,7 +68,7 @@ const CSS = `
 :host([data-bare]) .head .label{display:none}
 .head.block .name{grid-area:name;overflow:hidden;text-overflow:clip;white-space:nowrap;font-size:12px;font-weight:400;color:var(--t2);opacity:0;transition:opacity 160ms ease}
 .card[data-state="hover"] .head.block .name,.card[data-state="open"] .head.block .name{opacity:1}
-.head.block .label{grid-area:label;margin-left:3px}
+.head.block .label{grid-area:label;margin-left:3px;min-width:0;max-width:calc(var(--om-block,100%) - var(--om-indent,0px) - 3px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .head.block .seg{grid-area:bar;width:var(--om-block,100%)}
 .head.block .x{grid-area:x;justify-self:end}
 .name{font-size:13px;font-weight:500;color:var(--t1);white-space:nowrap}
@@ -91,9 +91,6 @@ const CSS = `
 .x{display:none;opacity:0;transition:opacity 160ms ease;width:18px;height:18px;border-radius:9px;border:0;padding:0;background:var(--tile);color:var(--tm);font-size:11px;line-height:18px;font-family:inherit;text-align:center;cursor:pointer;flex:none}
 .card[data-state="hover"] .x,.card[data-state="open"] .x{display:block;opacity:1}
 .card.closing .x{display:block}
-/* The badge's × grows in from nothing, so the verdict slides rather than jumps as the card opens, and back as it closes. */
-:host([data-site]) .x{display:block;width:0;height:0;margin-left:-11px;overflow:hidden;transition:width 340ms var(--ease),height 340ms var(--ease),margin-left 340ms var(--ease),opacity 160ms ease}
-:host([data-site]) .card[data-state="hover"] .x,:host([data-site]) .card[data-state="open"] .x{width:18px;height:18px;margin-left:0}
 /* The query's line keeps the ×'s room at rest, so its bar never shifts (the badge, a line too, has no × at rest). */
 :host(:not([data-site])) .head.line .x{display:block;visibility:hidden}
 .card[data-state="hover"] .head.line .x,.card[data-state="open"] .head.line .x{visibility:visible}
@@ -188,9 +185,6 @@ iframe{display:block;width:100%;height:100%;border:0;background:transparent;colo
 .analyse .lines{display:flex;flex-direction:column;gap:2px;min-width:0;line-height:1.3}
 .analyse .lines .sub{font-size:10px;line-height:1.4;color:var(--tl);white-space:normal;text-wrap:pretty;max-width:250px}
 .analyse .quiet{color:var(--tl)}
-/* The tray's own ×, in from nothing as the tray opens (the pill's × slides the same way). */
-.analyse .x{display:block;width:0;height:0;margin-left:-10px;overflow:hidden;opacity:0;transition:width 340ms var(--ease),height 340ms var(--ease),margin-left 340ms var(--ease),opacity 160ms ease}
-.tray[data-open] .analyse .x{width:18px;height:18px;margin-left:0;opacity:1}
 /* The ring of light while the page is read: a rotating green-into-red sweep, shown through a
    ring-shaped mask that sits just outside the sheets (never inside them, which clips). Around the
    pill and the strip together while the pill is at rest; around the tray alone under a grown card,
@@ -484,7 +478,8 @@ export function createBar(opts: {
     if (opts.shape !== "block") return;
     const label = head.querySelector<HTMLElement>(".label");
     const row = rowIndent + 3 + (label ? label.getBoundingClientRect().width : 0);
-    host.style.setProperty("--om-block", `${Math.max(34, Math.round(Math.max(rowBlock, row)))}px`);
+    /* The column's width where it is known (a long label is clipped to it, never run over the dots); else the name-and-label row. */
+    host.style.setProperty("--om-block", `${Math.max(34, Math.round(rowBlock || row))}px`);
   };
   let state: CardState = "rest";
   /* The tray: open on the page card, or the strip alone. */
@@ -933,13 +928,9 @@ export function createBar(opts: {
       analyse.setAttribute("aria-busy", "true");
       analyse.setAttribute("aria-label", "Analysing this page's subject");
     } else if (s.kind === "ready") {
-      /* The subject's row, and the tray's own × once it is open. */
+      /* The subject's row (a press on it, or anywhere on the open page card but its lists, folds the card: no × needed). */
       const seg = segments(s.page, trayOpen ? 3 : 2);
-      const x = el("button", "x", "×");
-      x.type = "button";
-      x.setAttribute("aria-label", "Close the page card");
-      x.addEventListener("click", (event) => { event.stopPropagation(); closeTray(); });
-      analyse.append(el("span", "name", s.page.subject), seg, el("span", "label", verdict(s.page)), x);
+      analyse.append(el("span", "name", s.page.subject), seg, el("span", "label", verdict(s.page)));
       analyse.setAttribute("aria-label", `${verdict(s.page)} sentiment for ${s.page.subject}, the subject of this page. ${trayOpen ? "Close" : "Open"} the page card.`);
     } else if (s.kind === "insufficient") {
       const lines = el("span", "lines");
@@ -1112,7 +1103,8 @@ export function createBar(opts: {
     const parts: 2 | 3 = opts.shape === "block" || opts.shape === "story" || (site && state === "rest") ? 2 : 3;
     const seg = segments(gauge, parts);
     if (s.kind === "loading") seg.classList.add("loading");
-    const label = el("span", "label", gauge ? verdict(gauge) : "");
+    /* Beside a Google result the verdict says what it is a verdict on: "63% positive opinion of Sony Australia". */
+    const label = el("span", "label", gauge ? (opts.shape === "block" ? `${verdict(gauge)} opinion of ${gauge.name}` : verdict(gauge)) : "");
     if (opts.shape === "block") {
       const name = el("span", "name", nameText);
       name.style.cssText = look;
@@ -1126,7 +1118,8 @@ export function createBar(opts: {
     } else {
       /* line and site: name, bar, verdict. */
       const name = el("span", "name", site ? nameText : `What people think of ${nameText}`);
-      head.append(name, seg, label, x());
+      /* The badge has no ×: a press on the card (outside its lists), Escape or a press outside folds it. */
+      if (site) head.append(name, seg, label); else head.append(name, seg, label, x());
     }
     const said = gauge ? `${verdict(gauge)} sentiment for ${gauge.name}` : s.kind === "loading" ? `Reading what people think of ${nameText}` : `No verdict for ${nameText}`;
     head.setAttribute("aria-label", said);

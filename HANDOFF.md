@@ -1,8 +1,8 @@
-# Handoff — 21 September 2026
+# Handoff — 21 September 2026 (v1.0.0)
 
 Where Opinion Meter is up to, for whoever (or whatever) picks it up next. README.md is the specification; AGENTS.md the rules; CHANGELOG.md the version history; this is the state.
 
-## v0.17.0 — 21 September 2026: one reading, the card on every site, "Analyse this page's subject"
+## v1.0.0 — 21 September 2026: one reading, the card on every site, "Analyse this page's subject" (0.17.0 through the day, declared 1.0.0 that evening; the result rows read "63% positive opinion of <site>"; the badge's cards have no ×s)
 
 **The bug that started it.** The bar said one figure; "See recurring opinions" loaded and the figure changed. Two readings: `computeGauge` (lite model, one sample, no X) for the bar and `cardFor` (card model, a second sample, X added) for the list, and `Embed.tsx` posted the card's numbers back (`tell({type:"gauge"})`) while `card.ts` overwrote the memory (`rememberGaugeFromCard`). **The fix** keeps the first load as quick as it was: `liteGauge` now returns its sample too (`LiteReading`: entries, per-entry classifications, the model's five-way `views`, `dropped`), `computeGauge` holds it as `sample:3:<key>` for `SAMPLE_TTL` (15 min, like a card) and refuses to overwrite a gauge a card wrote meanwhile (`overtaken`: a ready gauge with another `updatedAt` than the one seen at the start). `cardFor` waits for a pending gauge (`isPending`, up to 20 s), then builds the card from `heldSample(key)` through `analyseCard(..., given)`: no re-sampling, the entries printed with their `view`, the `Settled` schema (no `classified`), `SETTLED_INSTRUCTIONS` replacing the classifying rule — so `card.sentiment` is the bar's split exactly. Only without a sample does it read afresh and `rememberGaugeFromCard`. The client write-back is gone (`onGauge` removed from `createBar`, `content.ts` and `site.ts`; the `gauge` message dropped from `Embed.tsx` and `ui.ts`). `sourcesFor` now puts X everywhere (`["youtube","hn","bluesky","x"]`; links `["hn","bluesky","x"]`; a video `["youtube","x"]`) and `card.ts` uses it directly. Test: `server/tests/reading.test.mjs`.
 

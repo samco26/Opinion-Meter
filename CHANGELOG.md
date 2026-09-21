@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.0 — 21 September 2026
+
+- Version one. Everything below under 0.17.0 — one reading, the badge on every site, "Analyse this page's subject" — is the product as the owner wanted it, and is called 1.0.
+- Beside every Google result the verdict now says what it is a verdict on: "63% positive opinion of Sony Australia", clipped to the result's column when the name is long, never running over Google's dots.
+- The badge's two collapse ×s are gone: a press on an open card (outside its lists), Escape or a press outside folds it, so the crosses only repeated what a press already does. The corner × that hides the badge on a page stays.
+
 ## 0.17.0 — 21 September 2026
 
 - **One reading.** The bar's rating no longer changes when "See recurring opinions" loads. The bar and the list were two separate readings (a quick model over one sample for the bar; a fuller model, with X, over a second sample for the list), and the list pushed its numbers back into the bar. Now the bar's quick reading is the reading: the server keeps the bar's sample — the entries and each one's verdict — for a quarter of an hour, and a card asked for in that time (the list, the prefetched card) is built from that very sample with the verdicts locked, so its numbers are the bar's to the digit. Nothing is sent back to the bar, on the page or in memory. A card asked for later, when the sample has aged out, is read afresh and becomes the subject's reading for the next search; a bar already on a page keeps what it shows. This keeps the first load exactly as quick as it was.
