@@ -42,7 +42,7 @@ Rules:
 - A subject is one specific named thing: a product or model (product), a film, series or album (film), a game (game), a book (book), an app or online service (app), a venue, hotel, restaurant or chain (place), a software library or developer tool (tool), a company or brand (company), a named individual, living or dead (person), a single named thing of any other kind (entity), or a broad class or question ("best headphones", "how to boil eggs") as topic.
 - A product page names the product; a review names the thing reviewed; a film's listing names the film; a person's profile or biography names the person; a company's own site names the company; an app store listing names the app; a video's page names what the video is about when that is one specific named thing, otherwise the video itself as article.
 - A news article or blog post names the thing it reports on when that is one specific named thing people hold views on (a company, a product, a person, a place, a film); otherwise it is article, named by its headline.
-- A page about nothing in particular — a sign-in page, a search results page, a category or listing page, a basket or checkout, an inbox, a settings page, a portal home page listing many unrelated things — is none.
+- A page about nothing in particular — a sign-in page, a search results page (an address with a query such as ?q= or /search, whatever was searched for), a category or listing page, a basket or checkout, an inbox, a settings page, a portal home page listing many unrelated things — is none. A page that merely lists or compares many things, or explains how to do something, is topic, never one of the things it lists.
 - Use the official canonical name people would search for, in normal capitalisation, without the year, the site name, "review" or marketing words: "Sony WH-1000XM6", not "Sony XM6 headphones". "X", not "X (formerly Twitter)". A person is named as they are publicly known.
 - aliases: up to two other names discussion uses for the same thing ("Twitter" for X, "XM6" for Sony WH-1000XM6); an empty list when there are none. Never a different thing.`;
 
@@ -60,13 +60,14 @@ const head = (req: PageRequest) => [
    fit; the model, reading the page, says "Sony WH-1000XM5". */
 export async function namePage(req: PageRequest, timeoutMs: number): Promise<Subject | null> {
   const m = memory();
-  const key = `pname:${hashKey(normaliseUrl(req.url) ?? req.url)}`;
+  const key = `pname2:${hashKey(normaliseUrl(req.url) ?? req.url)}`;
   const stored = await m.get<{ subject: Subject | null }>(key);
   if (stored) return stored.subject;
   const out = await structured(PageName, "page_subject", NAME_INSTRUCTIONS,
     `${head(req)}\n\nStart of the page's text:\n${req.text.slice(0, 3000)}`,
     { model: liteModel(), maxTokens: 300, timeoutMs });
-  let subject = toSubject(out.kind, out.name, req.url, true);
+  /* A topic (a listicle, a how-to, a search) is not a thing with reviews: for a page it counts as nothing in particular. */
+  let subject = out.kind === "topic" ? null : toSubject(out.kind, out.name, req.url);
   const aliases = [...new Set(out.aliases.map((alias) => alias.replace(/\s+/g, " ").trim()).filter((alias) => alias && alias.toLowerCase() !== out.name.trim().toLowerCase()))].slice(0, 2);
   if (subject && aliases.length) subject = { ...subject, aliases };
   await m.set(key, { subject }, NAME_TTL);

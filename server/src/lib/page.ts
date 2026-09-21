@@ -15,7 +15,7 @@ import { hashKey, normaliseUrl } from "./subject";
 import type { PageRequest, PageResponse } from "./types";
 
 /* Bumped whenever the page classifier changes, so old readings are not served. */
-const READING = 1;
+const READING = 2;
 const PAGE_TTL = 15 * 60;
 /* A page named as nothing in particular is remembered longer: a cheap answer. */
 const NOTHING_TTL = 6 * 3600;
