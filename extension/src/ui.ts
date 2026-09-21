@@ -791,14 +791,14 @@ export function createBar(opts: {
       const shift = host.style.right === "auto" ? Math.min(Math.max(0, EDGE + width - hostBox.right), Math.max(0, vw - EDGE - hostBox.right)) : 0;
       tray.style.width = `${width}px`; tray.style.right = shift ? `${-Math.round(shift)}px` : "";
     } else { tray.style.width = ""; tray.style.right = ""; }
-    /* Closing: the target is the strip alone, though the page card stays in view, fading, while the tray shrinks over it. */
-    if (!trayOpen) pagebody.style.display = "none";
+    /* Closing: the target is the strip alone, though the page card stays in view, fading, while the tray shrinks over it (taken out of the flow to measure, never hidden, so its fade is not reset). */
+    if (!trayOpen) pagebody.style.position = "absolute";
     if (trayOpen) {
       const over = tray.getBoundingClientRect().top + tray.offsetHeight + EDGE - (window.innerHeight || 768);
       if (over > 0 && pscroll.isConnected) pscroll.style.maxHeight = `${Math.max(MIN_SCROLL, pscroll.offsetHeight - over)}px`;
     }
     const to = tray.offsetHeight, toW = tray.offsetWidth;
-    pagebody.style.display = "";
+    pagebody.style.position = "";
     tray.style.height = `${from}px`; tray.style.width = `${fromW}px`;
     void tray.offsetHeight;
     tray.style.transition = "";
