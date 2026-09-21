@@ -439,6 +439,8 @@ export function createBar(opts: {
   const halo = el("div", "halo");
   card.append(who, head, dots, tagline, body);
   root.append(style, card, ...(site && opts.page ? [tray, halo] : []));
+  /* The tray's top padding is the resting pill's height, whenever that settles (a name or a verdict arriving); while the card grows or shrinks, grow() sets it to the card's target height instead. */
+  if (site && opts.page) new ResizeObserver(() => { if (state === "rest" && !closing) tray.style.setProperty("--tt", `${card.offsetHeight}px`); }).observe(card);
   /* The host's own box is the header's, so the pins measure the bar and never the grown card. */
   if (!site) {
     const mirror = () => {
@@ -615,7 +617,7 @@ export function createBar(opts: {
     }
     /* From the size it had to the size it needs, with the transitions on. */
     /* The tray's top padding is the card's height, so its rows start at the card's bottom edge and slide with it. */
-    if (site && opts.page) tray.style.setProperty("--tt", `${toH}px`);
+    if (site && opts.page) { tray.style.setProperty("--tt", `${toH}px`); if (!trayOpen) tray.style.height = ""; }
     card.style.width = `${fromW}px`; card.style.height = `${fromH}px`;
     if (site) card.style.padding = fromPadding;
     void card.offsetHeight;
@@ -775,6 +777,8 @@ export function createBar(opts: {
     /* The ring reaches the tray's bottom edge, whatever its height. */
     halo.style.bottom = `${-(to - (parseFloat(tray.style.getPropertyValue("--tt")) || card.offsetHeight) + 2)}px`;
   };
+  /* Settled, the tray's height is its own again, so it follows the card above as that grows or shrinks. */
+  tray.addEventListener("transitionend", (event) => { if (event.target === tray && event.propertyName === "height") tray.style.height = ""; });
   /* A press anywhere on the open page card but its pros and cons (or their words) folds it, as with the site's card; the strip itself pulls out a touch under the pointer. */
   tray.addEventListener("click", (event) => { event.stopPropagation(); if (!trayOpen) return; if ((event.target as HTMLElement).closest?.(".pscroll, button, a")) return; closeTray(); });
   analyse.addEventListener("mouseenter", () => tray.setAttribute("data-hover", ""));
