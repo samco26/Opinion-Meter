@@ -14,13 +14,13 @@ import { collectAdaptive } from "./sources/adaptive";
 import { hashKey, normaliseUrl } from "./subject";
 import type { PageRequest, PageResponse } from "./types";
 
-/* Bumped whenever the page classifier changes, so old readings are not served. */
-const READING = 4;
+/* Bumped whenever the page classifier or the wording of a held answer changes, so old readings are not served. */
+const READING = 5;
 const PAGE_TTL = 15 * 60;
 /* A page named as nothing in particular is remembered longer: a cheap answer. */
 const NOTHING_TTL = 6 * 3600;
 export const INSUFFICIENT = "Subject does not possess sufficient sentiment footprint";
-export const NOTHING = "This page seems to be about nothing in particular";
+export const NOTHING = "Cannot determine single subject";
 
 /* The hands cap the text at TEXT_MAX; anything past a little slack is a malformed request. */
 const TEXT_LIMIT = TEXT_MAX + 20_000;

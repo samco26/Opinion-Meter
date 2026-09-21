@@ -179,7 +179,8 @@ iframe{display:block;width:100%;height:100%;border:0;background:transparent;colo
 /* Open, the whole card tints under the pointer wherever a press would fold it (not over its lists); the site's card the same. */
 .tray[data-open]:hover:not(:has(.pscroll:hover)){background:var(--tile)}
 :host([data-site]) .card[data-state="open"]:hover:not(:has(.sheet:hover)){background:var(--tile)}
-.analyse[data-page="nothing"],.analyse[data-page="insufficient"]{cursor:default}
+/* An answer without a card — no single subject, or too few opinions — is a status line. The strip keeps the button's 30px for one line and grows to hold a second when the pill is narrow. */
+.analyse[data-page="nothing"],.analyse[data-page="insufficient"]{cursor:default;height:auto;min-height:30px;padding:6px 0}
 .analyse[data-page="nothing"]:hover::before,.analyse[data-page="insufficient"]:hover::before{background:transparent}
 .analyse[data-page="busy"]{color:var(--tb);cursor:progress}
 .analyse .name{font-size:12px;font-weight:500;color:var(--t1);flex:0 1 auto;min-width:0;max-width:220px;overflow:hidden;text-overflow:ellipsis}
@@ -188,7 +189,8 @@ iframe{display:block;width:100%;height:100%;border:0;background:transparent;colo
 :host([data-dark]) .analyse .label{color:var(--tb)}
 .analyse .lines{display:flex;flex-direction:column;gap:2px;min-width:0;line-height:1.3}
 .analyse .lines .sub{font-size:10px;line-height:1.4;color:var(--tl);white-space:normal;text-wrap:pretty;max-width:250px}
-.analyse .quiet{color:var(--tl)}
+/* "Cannot determine single subject": centred on its line, and on two balanced lines when it must wrap; no margin, so it sits in the middle of the strip. */
+.analyse .quiet{margin:0;font-size:11px;line-height:18px;color:var(--tl);white-space:normal;text-wrap:balance}
 /* The ring of light while the page is read: a rotating green-into-red sweep, shown through a
    ring-shaped mask that sits just outside the sheets (never inside them, which clips). Around the
    pill and the strip together while the pill is at rest; around the tray alone under a grown card,
@@ -821,6 +823,8 @@ export function createBar(opts: {
     void tray.offsetHeight;
     tray.style.transition = "";
     tray.style.height = `${to}px`; tray.style.width = trayOpen ? `${toW}px` : "";
+    /* Nothing to travel: no transition will end, so the height is its own again at once. */
+    if (to === from) tray.style.height = "";
     /* The page card is laid out at its final width from the first frame, so nothing re-wraps while the tray widens or narrows (as the site card does). */
     pagebody.style.width = trayOpen ? `${toW - 2 * 17 - 2}px` : "";
     /* The ring reaches the tray's bottom edge, whatever its height. */
@@ -987,6 +991,8 @@ export function createBar(opts: {
     if (!(await hooks.consented())) { pageView = { kind: "note" }; openTray(); return; }
     await run();
   };
+  /* A status line in place of the button may need a second line on a narrow pill: the strip's height is held while the line is drawn, then the tray goes to its new height the way it grows into the card. */
+  const settle = (next: PageState) => { tray.style.height = `${tray.offsetHeight}px`; pageState = next; renderAnalyse(); sizeTray(); };
   const run = async () => {
     const hooks = opts.page;
     if (!hooks) return;
@@ -997,8 +1003,8 @@ export function createBar(opts: {
       const response = await hooks.analyse();
       if (pageState.kind !== "busy") return;
       if (response.kind === "page") { pageState = { kind: "ready", page: response.page }; pageView = { kind: "columns" }; renderAnalyse(); openTray(); }
-      else if (response.kind === "insufficient") { pageState = { kind: "insufficient", subject: response.subject, message: response.message }; renderAnalyse(); }
-      else { pageState = { kind: "nothing", message: response.message }; renderAnalyse(); }
+      else if (response.kind === "insufficient") settle({ kind: "insufficient", subject: response.subject, message: response.message });
+      else settle({ kind: "nothing", message: response.message });
     } catch (err) {
       pageState = { kind: "error", message: /budget|allowance/i.test(String(err)) ? "Today's readings are used up" : "Couldn't read this page" };
       renderAnalyse();

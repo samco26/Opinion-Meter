@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.3 — 21 September 2026
+
+- When a page is read and no single subject can be named (a search page, a listing, a sign-in page), the strip under the badge now says "Cannot determine single subject", centred, in place of "This page seems to be about nothing in particular". It sits in the middle of the strip; on a pill too narrow for it on one line it wraps to two even lines and the strip grows to hold them (it had been cramped into the strip's fixed height, its second line against the edge). The same growth applies to "Subject does not possess sufficient sentiment footprint" under a named subject. The server's held "nothing" answers (kept six hours) are dropped, so no page shows the old words.
+
 ## 1.0.2 — 21 September 2026
 
 - Beside a Google result, the expanded card's favicon, site name, bar and "xx% positive opinion of xx" label are links to that result — the specific page Google lists, never the site's front door. A plain press goes there; Ctrl, Cmd or the middle button opens a new tab, as a link would. At rest nothing changes: a press still opens the card.
