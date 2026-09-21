@@ -156,7 +156,7 @@ iframe{display:block;width:100%;height:100%;border:0;background:transparent;colo
 :host([data-site]) .head{position:relative;cursor:pointer}
 :host([data-site]) .head::before{content:"";position:absolute;inset:calc(-1 * var(--pt)) calc(-1 * var(--px));z-index:-1;background:transparent;transition:background 160ms ease}
 :host([data-site]) .card[data-state="rest"] .head:hover::before{background:var(--tile)}
-.tray{display:none;position:absolute;left:auto;right:0;top:0;width:100%;z-index:0;box-sizing:border-box;padding:var(--tt,32px) 15px 0;border:1px solid var(--border);border-radius:17px;background:var(--card);box-shadow:var(--badge-shadow);overflow:hidden;white-space:nowrap;--px:15px;transition:height 340ms var(--ease),width 340ms var(--ease),padding 340ms var(--ease),transform 200ms ease,border-radius 200ms ease}
+.tray{display:none;position:absolute;left:auto;right:0;top:0;width:100%;z-index:0;box-sizing:border-box;padding:var(--tt,32px) 15px 0;border:1px solid var(--border);border-radius:17px;background:var(--card);box-shadow:var(--badge-shadow);overflow:hidden;white-space:nowrap;--px:15px;transition:height 340ms var(--ease),width 340ms var(--ease),padding 340ms var(--ease),transform 200ms ease,background 160ms ease,border-radius 200ms ease}
 :host([data-site]) .tray{display:flex;flex-direction:column}
 .card[data-state="hover"] ~ .tray,.card[data-state="open"] ~ .tray,.card.closing ~ .tray{border-radius:12px}
 .tray[data-open]{padding:var(--tt,32px) 17px 13px;--px:17px}
@@ -169,6 +169,14 @@ iframe{display:block;width:100%;height:100%;border:0;background:transparent;colo
 .analyse::before{content:"";position:absolute;inset:calc(-1 * var(--tt,32px)) calc(-1 * var(--px)) 0;z-index:-1;background:transparent;transition:background 160ms ease}
 .analyse:hover::before{background:var(--tile)}
 .tray[data-open] .analyse:hover::before{background:transparent}
+/* The strip's wording sits centred; the subject's row, once read, lines up like the pill's. */
+.analyse[data-page="button"],.analyse[data-page="busy"],.analyse[data-page="error"],.analyse[data-page="nothing"]{justify-content:center;text-align:center}
+/* The button is special: a faint green-into-red tint sweeps slowly across it, the loading sweep's colours at rest. */
+.analyse[data-page="button"]::after{content:"";position:absolute;top:calc(-1 * var(--tt,32px));bottom:0;left:calc(-1 * var(--px));width:45%;z-index:-1;pointer-events:none;background:linear-gradient(90deg,transparent 0%,rgba(126,201,143,.13) 40%,rgba(224,112,95,.13) 60%,transparent 100%);animation:sweep 4200ms ease-in-out infinite}
+@keyframes sweep{0%{transform:translateX(-110%)}100%{transform:translateX(calc(100% / .45 + 10%))}}
+/* Open, the whole card tints under the pointer wherever a press would fold it (not over its lists); the site's card the same. */
+.tray[data-open]:hover:not(:has(.pscroll:hover)){background:var(--tile)}
+:host([data-site]) .card[data-state="open"]:hover:not(:has(.sheet:hover)){background:var(--tile)}
 .analyse[data-page="nothing"],.analyse[data-page="insufficient"]{cursor:default}
 .analyse[data-page="nothing"]:hover::before,.analyse[data-page="insufficient"]:hover::before{background:transparent}
 .analyse[data-page="busy"]{color:var(--tb);cursor:progress}
@@ -612,7 +620,8 @@ export function createBar(opts: {
     } else {
       /* Back to the bar: its box wrapped in the padding (and the shift and rise it had), which drops away once the surface has faded. */
       const rest = restSize ?? { w: fromW, h: fromH };
-      if (site) { toW = rest.w; toH = rest.h; card.style.left = "0px"; }
+      /* The badge back to the pill: at the tray's width while the tray is open beneath it, else its own. */
+      if (site) { toW = trayOpen ? trayWidth() : rest.w; toH = rest.h; card.style.left = "0px"; }
       else ({ w: toW, h: toH } = wrapped(rest, parseFloat(head.style.marginLeft) || 0, Math.round(riseNow())));
     }
     /* From the size it had to the size it needs, with the transitions on. */
@@ -631,13 +640,18 @@ export function createBar(opts: {
     clearTimeout(relaxTimer);
     closing = false;
     card.classList.remove("closing");
-    card.style.width = ""; card.style.height = ""; card.style.left = ""; card.style.top = ""; card.style.padding = "";
+    card.style.width = site && trayOpen ? `${trayWidth()}px` : ""; card.style.height = ""; card.style.left = ""; card.style.top = ""; card.style.padding = "";
     head.style.marginLeft = ""; head.style.width = ""; body.style.width = ""; body.style.marginLeft = ""; dots.style.marginLeft = ""
     host.style.zIndex = "";
     if (restore) { const back = restore; restore = undefined; back(); }
   };
   /* The card's height settled: back to the bar, or, with the tray open beneath a card that just grew or shrank, the tray refitted to the window. */
-  card.addEventListener("transitionend", (event) => { if (event.target === card && event.propertyName === "height") { relax(); if (trayOpen) sizeTray(); } });
+  card.addEventListener("transitionend", (event) => {
+    if (event.target !== card) return;
+    if (event.propertyName === "height") { relax(); if (trayOpen) sizeTray(); }
+    /* The pill's width, stretched to the tray's or let go, is its own again once settled. */
+    if (event.propertyName === "width" && site && state === "rest" && !closing && !trayOpen) card.style.width = "";
+  });
   const setState = (next: CardState) => {
     if (state === next) return;
     /* Where the animation starts: the size the card has before anything changes. Leaving rest, that is the bar's own box. */
@@ -747,6 +761,20 @@ export function createBar(opts: {
   /* ---- the tray: the strip, or the page card ----
      The tray hangs from the card's bottom edge, so it rides with the card; its own height goes from the
      strip to the page card and back, the way the card grows, and never past the window's bottom. */
+  /* The tray's width open: the site card's, or what the window allows. */
+  const trayWidth = () => Math.min((document.documentElement.clientWidth || window.innerWidth || 1024) - 2 * EDGE, SITE_CARD_WIDTH);
+  /* The pill above the tray stretches to the tray's width as the tray opens, so the two line up, and lets go as it folds (the width settles, then is its own again). A grown card sets its own width. */
+  const pillTo = (width: number | null) => {
+    if (state !== "rest" || closing) return;
+    const from = card.offsetWidth;
+    card.style.transition = "none";
+    card.style.width = width === null ? "" : `${width}px`;
+    const to = card.offsetWidth;
+    card.style.width = `${from}px`;
+    void card.offsetHeight;
+    card.style.transition = "";
+    card.style.width = `${to}px`;
+  };
   const sizeTray = () => {
     const from = tray.offsetHeight, fromW = tray.offsetWidth;
     tray.style.transition = "none";
@@ -756,7 +784,7 @@ export function createBar(opts: {
        allows when the badge was dragged near its left edge); as the strip alone, as wide as whatever the pill is. */
     const vw = document.documentElement.clientWidth || window.innerWidth || 1024;
     if (trayOpen) {
-      const width = Math.min(vw - 2 * EDGE, SITE_CARD_WIDTH);
+      const width = trayWidth();
       const hostBox = host.getBoundingClientRect();
       /* Pushed right just enough to keep its left edge in the window, never past the window's right edge. */
       const shift = host.style.right === "auto" ? Math.min(Math.max(0, EDGE + width - hostBox.right), Math.max(0, vw - EDGE - hostBox.right)) : 0;
@@ -774,6 +802,8 @@ export function createBar(opts: {
     void tray.offsetHeight;
     tray.style.transition = "";
     tray.style.height = `${to}px`; tray.style.width = trayOpen ? `${toW}px` : "";
+    /* The page card is laid out at its final width from the first frame, so nothing re-wraps while the tray widens or narrows (as the site card does). */
+    pagebody.style.width = trayOpen ? `${toW - 2 * 17 - 2}px` : "";
     /* The ring reaches the tray's bottom edge, whatever its height. */
     halo.style.bottom = `${-(to - (parseFloat(tray.style.getPropertyValue("--tt")) || card.offsetHeight) + 2)}px`;
   };
@@ -794,6 +824,7 @@ export function createBar(opts: {
     renderAnalyse();
     listen();
     sizeTray();
+    pillTo(trayWidth());
   };
   const closeTray = () => {
     if (!trayOpen) return;
@@ -803,6 +834,7 @@ export function createBar(opts: {
     tray.classList.add("closing");
     renderAnalyse();
     sizeTray();
+    pillTo(null);
     clearTimeout(trayTimer);
     trayTimer = window.setTimeout(() => { tray.classList.remove("closing"); pagebody.classList.remove("detail"); }, 400);
     unlisten();
@@ -820,17 +852,13 @@ export function createBar(opts: {
     clearTimeout(closeTimer);
     closeTimer = window.setTimeout(() => { if (state === "hover") setState("rest"); }, CLOSE_DELAY);
   };
-  /* On the badge only the top half previews on hover, and only once the pointer rests on it: a pointer passing
-     through on its way to the second half keeps restarting the delay, so the button never moves from under it. */
-  (site ? head : host).addEventListener("mouseenter", hoverIn);
-  if (site) {
-    head.addEventListener("mousemove", hoverIn);
-    /* Leaving the top half before it opened: the pending open is off (the host's own mouseleave closes a card already grown). */
-    head.addEventListener("mouseleave", () => { if (state === "rest") clearTimeout(openTimer); });
+  /* The badge opens on a press alone: no preview on hover (its top row darkens under the pointer instead). The bars on Google keep their hover preview. */
+  if (!site) {
+    host.addEventListener("mouseenter", hoverIn);
+    host.addEventListener("mouseleave", hoverOut);
+    head.addEventListener("focus", () => { if (state === "rest" && current) setState("hover"); });
+    head.addEventListener("blur", () => { if (state === "hover") hoverOut(); });
   }
-  host.addEventListener("mouseleave", hoverOut);
-  head.addEventListener("focus", () => { if (state === "rest" && current) setState("hover"); });
-  head.addEventListener("blur", () => { if (state === "hover") hoverOut(); });
   head.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); if (state === "open") close(); else pin(); } });
   /* A bar must never act as the link it sits beside. */
   for (const type of SWALLOW) card.addEventListener(type, (event) => event.stopPropagation());
