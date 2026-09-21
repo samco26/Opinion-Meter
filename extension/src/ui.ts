@@ -30,7 +30,8 @@ const PLATFORM_NAMES: Record<string, string> = { youtube: "YouTube", x: "X", hn:
 const PLATFORMS = ["youtube", "x", "hn", "bluesky", "reddit"];
 
 const CSS = `
-:host{all:initial;position:absolute;display:block;pointer-events:auto;font-family:var(--om-font,Helvetica,Arial,sans-serif);--om-h:2px;--om-r:1px;
+/* One motion for every box that grows or shrinks (340 ms on one curve) and one for every surface, tint and fade (160 ms), badge and bars alike; the curve lives on the host so the tray and the ring, beside the card, share it. */
+:host{all:initial;position:absolute;display:block;pointer-events:auto;font-family:var(--om-font,Helvetica,Arial,sans-serif);--om-h:2px;--om-r:1px;--ease:cubic-bezier(.16,1,.3,1);
   --pos:#7ec98f;--neu:#7a7f84;--neg:#e0705f;
   --card:#ffffff;--row:#f6f7f8;--tile:#f0f1f2;--border:#dcdfe2;--divider:#e6e8ea;--track:#e6e8ea;
   --t1:#202122;--t2:#54595d;--tb:#3b4045;--tm:#72777d;--tl:#72777d;
@@ -42,12 +43,12 @@ const CSS = `
   --shadow:0 12px 32px rgba(0,0,0,.45);--badge-shadow:0 2px 10px rgba(0,0,0,.4)}
 :host([hidden]){display:none!important}
 :host([data-flow]){position:relative;display:block;min-height:18px;margin:14px 0 20px}
-:host([data-site]){position:fixed;top:12px;right:12px;z-index:2147483000;transition:opacity 280ms ease}
+:host([data-site]){position:fixed;top:12px;right:12px;z-index:2147483000;transition:opacity 340ms ease}
 :host([data-site][data-faint]){opacity:.22}
 :host([data-site][data-faint]:hover),:host([data-site][data-faint]:focus-within),:host([data-site][data-faint][data-state="open"]),:host([data-site][data-faint][data-tray]){opacity:1}
 /* The card: one box that grows. At rest it is the header alone, without
    surface; grown, it is the source card, offset so the header stays put. */
-.card{position:absolute;left:calc(-1 * var(--px) - 1px);top:calc(-1 * var(--pt) - 1px);box-sizing:border-box;display:flex;flex-direction:column;padding:var(--pt) var(--px) var(--pb);border-radius:0;border:1px solid transparent;background:transparent;overflow:hidden;white-space:nowrap;--px:0px;--pt:0px;--pb:0px;--ease:cubic-bezier(.16,1,.3,1);transition:width 340ms var(--ease),height 340ms var(--ease),background 200ms ease,box-shadow 200ms ease,border-color 200ms ease}
+.card{position:absolute;left:calc(-1 * var(--px) - 1px);top:calc(-1 * var(--pt) - 1px);box-sizing:border-box;display:flex;flex-direction:column;padding:var(--pt) var(--px) var(--pb);border-radius:0;border:1px solid transparent;background:transparent;overflow:hidden;white-space:nowrap;--px:0px;--pt:0px;--pb:0px;--ease:cubic-bezier(.16,1,.3,1);transition:width 340ms var(--ease),height 340ms var(--ease),background 160ms ease,box-shadow 160ms ease,border-color 160ms ease}
 /* At rest the box is transparent and square, so its corners never clip the bar's ends; the corners come with the surface. */
 .card[data-state="hover"],.card[data-state="open"],.card.closing{border-radius:12px}
 .card[data-state="hover"],.card[data-state="open"]{--px:18px;--pt:16px;--pb:14px;background:var(--card);border-color:var(--border);box-shadow:var(--shadow);z-index:1}
@@ -55,17 +56,17 @@ const CSS = `
 .card.closing{--px:18px;--pt:16px;--pb:14px}
 /* The query's line spans its host (the results column); the others are as wide as their header. */
 :host([data-shape="line"]) .card{width:calc(100% + 2px)}
-:host([data-site]) .card{--px:15px;--pt:8px;--pb:8px;left:0;top:0;position:relative;background:var(--card);border-color:var(--border);border-radius:17px;box-shadow:var(--badge-shadow);transition:width 340ms var(--ease),height 340ms var(--ease),padding 340ms var(--ease),left 340ms var(--ease),background 200ms ease,box-shadow 200ms ease,border-color 200ms ease,border-radius 200ms ease}
+:host([data-site]) .card{--px:15px;--pt:8px;--pb:8px;left:0;top:0;position:relative;background:var(--card);border-color:var(--border);border-radius:17px;box-shadow:var(--badge-shadow);transition:width 340ms var(--ease),height 340ms var(--ease),padding 340ms var(--ease),left 340ms var(--ease),background 160ms ease,box-shadow 160ms ease,border-color 160ms ease,border-radius 160ms ease}
 :host([data-site]) .card[data-state="hover"],:host([data-site]) .card[data-state="open"]{--px:17px;--pt:15px;--pb:13px;border-radius:12px}
 :host([data-site]) .card.closing{--px:17px;--pt:15px;--pb:13px}
 :host([data-pill]) .card{white-space:nowrap}
 .head{display:flex;align-items:center;gap:11px;min-width:0}
 .head.block{position:relative;display:grid;grid-template-columns:var(--om-indent,0px) auto 1fr auto;grid-template-rows:var(--om-line,20px) auto;grid-template-areas:"name label . x" "bar bar bar bar";row-gap:1px;column-gap:0;align-items:center}
 /* A copy of Google's favicon, drawn in its very place (to the left of the row, in the card's lead) once the card's surface hides the real one. */
-.head.block .icon{position:absolute;left:var(--om-icon-x,0px);top:var(--om-icon-y,0px);opacity:0;transition:opacity 200ms ease;pointer-events:none}
+.head.block .icon{position:absolute;left:var(--om-icon-x,0px);top:var(--om-icon-y,0px);opacity:0;transition:opacity 160ms ease;pointer-events:none}
 .card[data-state="hover"] .head.block .icon,.card[data-state="open"] .head.block .icon{opacity:1}
 :host([data-bare]) .head .label{display:none}
-.head.block .name{grid-area:name;overflow:hidden;text-overflow:clip;white-space:nowrap;font-size:12px;font-weight:400;color:var(--t2);opacity:0;transition:opacity 200ms ease}
+.head.block .name{grid-area:name;overflow:hidden;text-overflow:clip;white-space:nowrap;font-size:12px;font-weight:400;color:var(--t2);opacity:0;transition:opacity 160ms ease}
 .card[data-state="hover"] .head.block .name,.card[data-state="open"] .head.block .name{opacity:1}
 .head.block .label{grid-area:label;margin-left:3px}
 .head.block .seg{grid-area:bar;width:var(--om-block,100%)}
@@ -79,7 +80,7 @@ const CSS = `
 .head.line .label{color:var(--tb)}
 :host([data-site]) .head .label{color:var(--t2)}
 :host([data-site][data-dark]) .head .label{color:var(--tb)}
-.seg{display:flex;height:var(--om-h);border-radius:var(--om-r);overflow:hidden;background:var(--track);flex:none;width:var(--om-width,34px);transition:width 340ms cubic-bezier(.16,1,.3,1)}
+.seg{display:flex;height:var(--om-h);border-radius:var(--om-r);overflow:hidden;background:var(--track);flex:none;width:var(--om-width,34px);transition:width 340ms var(--ease)}
 .head.line .seg{min-width:32px;flex:1 1 auto;width:auto;--om-h:3px;--om-r:2px}
 /* On the badge the bar is the flexible part of each row: the names start at one edge, the verdicts end at the other, and the bars take up the difference. */
 :host([data-site]) .head .seg{flex:1 1 auto;width:auto;min-width:48px;--om-h:3px;--om-r:2px}
@@ -87,11 +88,11 @@ const CSS = `
 .seg span{display:block;height:100%}.seg .pos{background:var(--pos)}.seg .neu{background:var(--neu)}.seg .neg{background:var(--neg);flex:1}
 .seg.loading{position:relative}.seg.loading:before{content:"";position:absolute;inset:0;width:45%;border-radius:inherit;background:linear-gradient(90deg,var(--pos) 50%,var(--neg) 50%);animation:flow 1600ms ease-in-out infinite}
 @keyframes flow{0%{transform:translateX(-110%)}100%{transform:translateX(220%)}}
-.x{display:none;opacity:0;transition:opacity 200ms ease;width:18px;height:18px;border-radius:9px;border:0;padding:0;background:var(--tile);color:var(--tm);font-size:11px;line-height:18px;font-family:inherit;text-align:center;cursor:pointer;flex:none}
+.x{display:none;opacity:0;transition:opacity 160ms ease;width:18px;height:18px;border-radius:9px;border:0;padding:0;background:var(--tile);color:var(--tm);font-size:11px;line-height:18px;font-family:inherit;text-align:center;cursor:pointer;flex:none}
 .card[data-state="hover"] .x,.card[data-state="open"] .x{display:block;opacity:1}
 .card.closing .x{display:block}
 /* The badge's × grows in from nothing, so the verdict slides rather than jumps as the card opens, and back as it closes. */
-:host([data-site]) .x{display:block;width:0;height:0;margin-left:-11px;overflow:hidden;transition:width 340ms var(--ease),height 340ms var(--ease),margin-left 340ms var(--ease),opacity 200ms ease}
+:host([data-site]) .x{display:block;width:0;height:0;margin-left:-11px;overflow:hidden;transition:width 340ms var(--ease),height 340ms var(--ease),margin-left 340ms var(--ease),opacity 160ms ease}
 :host([data-site]) .card[data-state="hover"] .x,:host([data-site]) .card[data-state="open"] .x{width:18px;height:18px;margin-left:0}
 /* The query's line keeps the ×'s room at rest, so its bar never shifts (the badge, a line too, has no × at rest). */
 :host(:not([data-site])) .head.line .x{display:block;visibility:hidden}
@@ -106,12 +107,12 @@ const CSS = `
 :host([data-shape="line"]) .tagline:not(:empty){display:block}
 :host([data-shape="line"]) .body .summary{display:none}
 :host([data-shape="line"]) .body{padding-top:18px}
-.body{display:none;flex-direction:column;white-space:normal;opacity:1;transition:opacity 150ms ease}
+.body{display:none;flex-direction:column;white-space:normal;opacity:1;transition:opacity 160ms ease}
 .card[data-state="hover"] .body,.card[data-state="open"] .body{display:flex}
 .card.closing .body{display:flex;opacity:0}
 @starting-style{.card[data-state="hover"] .body,.card[data-state="open"] .body{opacity:0}}
 /* The figures, right under the bar on every card (as on the badge), sliding open with the card and folding away as it closes. */
-.dots{display:flex;flex:none;flex-wrap:wrap;gap:8px 16px;margin-top:0;max-height:0;width:0;overflow:hidden;opacity:0;font-size:10px;line-height:14px;color:var(--tl);white-space:nowrap;transition:max-height 340ms var(--ease),margin-top 340ms var(--ease),opacity 150ms ease}
+.dots{display:flex;flex:none;flex-wrap:wrap;gap:8px 16px;margin-top:0;max-height:0;width:0;overflow:hidden;opacity:0;font-size:10px;line-height:14px;color:var(--tl);white-space:nowrap;transition:max-height 340ms var(--ease),margin-top 340ms var(--ease),opacity 160ms ease}
 .card[data-state="hover"] .dots,.card[data-state="open"] .dots{width:auto;max-height:36px;margin-top:9px;opacity:1}
 .card.closing .dots{width:auto;max-height:0;margin-top:0;opacity:0}
 .dots span{display:inline-flex;align-items:center;gap:6px}.dots i{width:5px;height:5px;border-radius:3px;flex:none}
@@ -140,7 +141,7 @@ iframe{display:block;width:100%;height:100%;border:0;background:transparent;colo
 :host([data-site]) .divider{margin:11px calc(-1 * var(--px)) 9px}
 /* The footer: "How it works" on the left, the maker's mark on the right. */
 .footer{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.foot{font-size:10px;color:var(--tl);background:none;border:0;padding:0;font-family:inherit;cursor:pointer;text-align:left}.foot:hover{color:var(--t2)}
+.foot{font-size:10px;color:var(--tl);background:none;border:0;padding:0;font-family:inherit;cursor:pointer;text-align:left;transition:color 160ms ease}.foot:hover{color:var(--t2)}
 .credit{font-size:10px;color:var(--tl);white-space:nowrap}
 .bar{display:contents}
 .dismiss{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;border:0;padding:0;background:var(--tile);color:var(--t1);font-size:12px;line-height:20px;font-family:inherit;text-align:center;cursor:pointer;opacity:0;transition:opacity 160ms ease;z-index:2}
@@ -156,7 +157,7 @@ iframe{display:block;width:100%;height:100%;border:0;background:transparent;colo
 :host([data-site]) .head{position:relative;cursor:pointer}
 :host([data-site]) .head::before{content:"";position:absolute;inset:calc(-1 * var(--pt)) calc(-1 * var(--px));z-index:-1;background:transparent;transition:background 160ms ease}
 :host([data-site]) .card[data-state="rest"] .head:hover::before{background:var(--tile)}
-.tray{display:none;position:absolute;left:auto;right:0;top:0;width:100%;z-index:0;box-sizing:border-box;padding:var(--tt,32px) 15px 0;border:1px solid var(--border);border-radius:17px;background:var(--card);box-shadow:var(--badge-shadow);overflow:hidden;white-space:nowrap;--px:15px;transition:height 340ms var(--ease),width 340ms var(--ease),padding 340ms var(--ease),transform 200ms ease,background 160ms ease,border-radius 200ms ease}
+.tray{display:none;position:absolute;left:auto;right:0;top:0;width:100%;z-index:0;box-sizing:border-box;padding:var(--tt,32px) 15px 0;border:1px solid var(--border);border-radius:17px;background:var(--card);box-shadow:var(--badge-shadow);overflow:hidden;white-space:nowrap;--px:15px;transition:height 340ms var(--ease),width 340ms var(--ease),padding 340ms var(--ease),transform 160ms ease,background 160ms ease,border-radius 160ms ease}
 :host([data-site]) .tray{display:flex;flex-direction:column}
 .card[data-state="hover"] ~ .tray,.card[data-state="open"] ~ .tray,.card.closing ~ .tray{border-radius:12px}
 .tray[data-open]{padding:var(--tt,32px) 17px 13px;--px:17px}
@@ -172,7 +173,7 @@ iframe{display:block;width:100%;height:100%;border:0;background:transparent;colo
 /* The strip's wording sits centred; the subject's row, once read, lines up like the pill's. */
 .analyse[data-page="button"],.analyse[data-page="busy"],.analyse[data-page="error"],.analyse[data-page="nothing"]{justify-content:center;text-align:center}
 /* The button is special: a faint green-into-red tint sweeps slowly across it, the loading sweep's colours at rest. */
-.analyse[data-page="button"]::after{content:"";position:absolute;top:calc(-1 * var(--tt,32px));bottom:0;left:calc(-1 * var(--px));width:45%;z-index:-1;pointer-events:none;background:linear-gradient(90deg,transparent 0%,rgba(126,201,143,.13) 40%,rgba(224,112,95,.13) 60%,transparent 100%);animation:sweep 4200ms ease-in-out infinite}
+.analyse[data-page="button"]::after{content:"";position:absolute;top:calc(-1 * var(--tt,32px));bottom:0;left:calc(-1 * var(--px));width:45%;z-index:-1;pointer-events:none;background:linear-gradient(90deg,transparent 0%,rgba(126,201,143,.13) 40%,rgba(224,112,95,.13) 60%,transparent 100%);animation:sweep 4160ms ease-in-out infinite}
 @keyframes sweep{0%{transform:translateX(-110%)}100%{transform:translateX(calc(100% / .45 + 10%))}}
 /* Open, the whole card tints under the pointer wherever a press would fold it (not over its lists); the site's card the same. */
 .tray[data-open]:hover:not(:has(.pscroll:hover)){background:var(--tile)}
@@ -188,19 +189,19 @@ iframe{display:block;width:100%;height:100%;border:0;background:transparent;colo
 .analyse .lines .sub{font-size:10px;line-height:1.4;color:var(--tl);white-space:normal;text-wrap:pretty;max-width:250px}
 .analyse .quiet{color:var(--tl)}
 /* The tray's own ×, in from nothing as the tray opens (the pill's × slides the same way). */
-.analyse .x{display:block;width:0;height:0;margin-left:-10px;overflow:hidden;opacity:0;transition:width 340ms var(--ease),height 340ms var(--ease),margin-left 340ms var(--ease),opacity 200ms ease}
+.analyse .x{display:block;width:0;height:0;margin-left:-10px;overflow:hidden;opacity:0;transition:width 340ms var(--ease),height 340ms var(--ease),margin-left 340ms var(--ease),opacity 160ms ease}
 .tray[data-open] .analyse .x{width:18px;height:18px;margin-left:0;opacity:1}
 /* The ring of light while the page is read: a rotating green-into-red sweep, shown through a
    ring-shaped mask that sits just outside the sheets (never inside them, which clips). Around the
    pill and the strip together while the pill is at rest; around the tray alone under a grown card,
    its top band hidden behind the card. Just the outline: no glow under it. */
-.halo{display:none;position:absolute;left:-2px;right:-2px;top:-2px;bottom:-32px;z-index:0;border-radius:19px;pointer-events:none;overflow:hidden;padding:2px;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude;transition:top 340ms var(--ease),bottom 340ms var(--ease),border-radius 200ms ease}
+.halo{display:none;position:absolute;left:-2px;right:-2px;top:-2px;bottom:-32px;z-index:0;border-radius:19px;pointer-events:none;overflow:hidden;padding:2px;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude;transition:top 340ms var(--ease),bottom 340ms var(--ease),border-radius 160ms ease}
 .card[data-state="hover"] ~ .halo,.card[data-state="open"] ~ .halo,.card.closing ~ .halo{top:calc(100% - 2px);border-radius:14px}
 .halo::before{content:"";position:absolute;left:50%;top:50%;width:200%;padding-top:200%;margin:-100% 0 0 -100%;border-radius:50%;background:conic-gradient(from 0deg,transparent 0 52%,var(--pos) 70%,var(--neg) 88%,transparent 100%);animation:spin 1500ms linear infinite}
 :host([data-busy]) .halo{display:block}
 @keyframes spin{to{transform:rotate(360deg)}}
 /* ---- The page card, inside the tray ---- */
-.pagebody{display:none;flex-direction:column;white-space:normal;min-height:0;opacity:1;transition:opacity 150ms ease}
+.pagebody{display:none;flex-direction:column;white-space:normal;min-height:0;opacity:1;transition:opacity 160ms ease}
 .tray[data-open] .pagebody{display:flex}
 .tray.closing .pagebody{display:flex;opacity:0}
 @starting-style{.tray[data-open] .pagebody{opacity:0}}
@@ -227,7 +228,7 @@ iframe{display:block;width:100%;height:100%;border:0;background:transparent;colo
 .quiet{font-size:11px;line-height:1.5;color:var(--tl);white-space:normal;text-wrap:pretty;margin:0 0 6px}
 .note{font-size:12px;line-height:1.55;color:var(--tb);white-space:normal;text-wrap:pretty;margin:12px 0 14px}
 .choices{display:flex;gap:8px}
-@media(prefers-reduced-motion:reduce){.card,.seg{transition:none}.seg.loading:before{animation:none;width:100%;opacity:.6}.ring::before,.glow::before{animation:none;background:linear-gradient(90deg,var(--pos),var(--neg))}}
+@media(prefers-reduced-motion:reduce){.card,.seg,.tray,.halo,.dots,.x{transition:none}.seg.loading:before{animation:none;width:100%;opacity:.6}.halo::before{animation:none;background:linear-gradient(90deg,var(--pos),var(--neg))}.analyse[data-page="button"]::after{animation:none;display:none}}
 `;
 
 export type BarState = { kind: "loading" } | { kind: "ready"; gauge: Gauge } | { kind: "empty"; reason: string; thin?: boolean };
@@ -369,7 +370,7 @@ const CARD_WIDTH = 460, SITE_CARD_WIDTH = 360, MIN_SHEET = 120, MIN_SCROLL = 140
    the transitions that run while a new size is being measured: the surface
    fades from the first frame, the size is set by hand once known. */
 const PAD = { x: 18, t: 16, b: 14 }, SITE_PAD = { x: 17, t: 15, b: 13 }, SITE_PADDING = "15px 17px 13px", SITE_REST_PADDING = "8px 15px";
-const SURFACE = "background 200ms ease,box-shadow 200ms ease,border-color 200ms ease,border-radius 200ms ease";
+const SURFACE = "background 160ms ease,box-shadow 160ms ease,border-color 160ms ease,border-radius 160ms ease";
 export const ANALYSE_LABEL = "Analyse this page's subject";
 const NOTE = "This page's text is sent to Opinion Meter's server, once, to find the page's subject and the reviews written on it. Nothing is kept.";
 
