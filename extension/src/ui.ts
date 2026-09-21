@@ -627,7 +627,13 @@ export function createBar(opts: {
     }
     /* From the size it had to the size it needs, with the transitions on. */
     /* The tray's top padding is the card's height, so its rows start at the card's bottom edge and slide with it. */
-    if (site && opts.page) { tray.style.setProperty("--tt", `${toH}px`); if (!trayOpen) tray.style.height = ""; }
+    if (site && opts.page) {
+      /* An open tray whose height is still pinned from its own motion moves by the same amount, in step with the card; a settled one (height auto) follows the padding on its own. */
+      const wasTT = parseFloat(tray.style.getPropertyValue("--tt")) || toH;
+      tray.style.setProperty("--tt", `${toH}px`);
+      if (!trayOpen) tray.style.height = "";
+      else if (tray.style.height) tray.style.height = `${parseFloat(tray.style.height) + (toH - wasTT)}px`;
+    }
     card.style.width = `${fromW}px`; card.style.height = `${fromH}px`;
     if (site) card.style.padding = fromPadding;
     void card.offsetHeight;
