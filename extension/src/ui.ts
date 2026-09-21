@@ -72,7 +72,9 @@ const CSS = `
 .head.block .x{grid-area:x;justify-self:end}
 .name{font-size:13px;font-weight:500;color:var(--t1);white-space:nowrap}
 .head.line .name{min-width:0;white-space:normal;overflow-wrap:anywhere;font-size:11px;font-weight:400;color:var(--tl)}
-:host([data-site]) .head .name{font-size:12px;font-weight:500;color:var(--t1)}
+:host([data-site]) .head .name{font-size:12px;font-weight:500;color:var(--t1);white-space:nowrap;max-width:170px;overflow:hidden;text-overflow:ellipsis}
+/* Grown, the site's bar gives way first, so the chip and the × fit on the line without the name wrapping. */
+:host([data-site]) .card[data-state="hover"] .head .seg,:host([data-site]) .card[data-state="open"] .head .seg{min-width:24px}
 .label{font-size:11px;color:var(--tl);white-space:nowrap}
 .head.line .label{color:var(--tb)}
 :host([data-site]) .head .label{color:var(--t2)}
@@ -591,8 +593,9 @@ export function createBar(opts: {
         const over = hostBox.top + card.offsetHeight + EDGE - vh;
         if (over > 0) pscroll.style.maxHeight = `${Math.max(MIN_SCROLL, pscroll.offsetHeight - over)}px`;
       }
-      /* The badge's chip sits over the head's right end: the head keeps that much room, so the bar stops short of it. */
-      head.style.paddingRight = site && opts.page && mode === "site" ? `${analyse.offsetWidth + 8}px` : "";
+      /* The badge's chip sits between the verdict and the ×: the × keeps that much room to its left (its margin, which slides with it). */
+      const chipRoom = site && opts.page && mode === "site" ? analyse.offsetWidth + 8 : 0;
+      if (xBtn) xBtn.style.marginLeft = chipRoom ? `${chipRoom}px` : "";
       toW = card.offsetWidth; toH = card.offsetHeight;
       /* The contents are laid out at their final width from the first frame, so nothing re-wraps or slides while the box grows. */
       const inner = toW - 2 * pad.x - 2;
@@ -608,7 +611,7 @@ export function createBar(opts: {
       dots.style.transition = ""; dots.style.maxHeight = ""; dots.style.marginTop = ""; dots.style.opacity = "";
       if (xBtn) {
         if (from?.rest) { xBtn.style.width = "0px"; xBtn.style.height = "0px"; xBtn.style.marginLeft = "-11px"; void xBtn.offsetHeight; }
-        xBtn.style.transition = ""; xBtn.style.width = ""; xBtn.style.height = ""; xBtn.style.marginLeft = "";
+        xBtn.style.transition = ""; xBtn.style.width = ""; xBtn.style.height = ""; xBtn.style.marginLeft = chipRoom ? `${chipRoom}px` : "";
       }
     } else {
       /* Back to the bar: its box wrapped in the padding (and the shift and rise it had), which drops away once the surface has faded. */
@@ -631,7 +634,7 @@ export function createBar(opts: {
     closing = false;
     card.classList.remove("closing");
     card.style.width = ""; card.style.height = ""; card.style.left = ""; card.style.top = ""; card.style.padding = "";
-    head.style.marginLeft = ""; head.style.width = ""; head.style.paddingRight = ""; body.style.width = ""; body.style.marginLeft = ""; dots.style.marginLeft = "";
+    head.style.marginLeft = ""; head.style.width = ""; body.style.width = ""; body.style.marginLeft = ""; dots.style.marginLeft = "";
     host.style.zIndex = "";
     setMode("site");
     if (restore) { const back = restore; restore = undefined; back(); }
@@ -654,7 +657,7 @@ export function createBar(opts: {
     clearTimeout(relaxTimer);
     closing = next === "rest";
     card.classList.toggle("closing", closing);
-    if (closing) head.style.paddingRight = "";
+    if (closing) { const xBtn = head.querySelector<HTMLElement>(".x"); if (xBtn) xBtn.style.marginLeft = ""; }
     state = next;
     card.dataset.state = next;
     host.setAttribute("data-state", next);
