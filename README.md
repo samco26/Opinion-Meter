@@ -316,7 +316,7 @@ opinion-extension/
 | `/api/gauge?keys=a,b` | GET | The poll for pending subjects: memory only. |
 | `/api/card?key=` or POST `{ key, context: { query, results } }` | GET / POST | Full card computed on click within a bounded budget. POST recovers missing subjects from the original query or single result. X is read here only. |
 | `/api/config` | GET | The settings the extension reads on start, including the kill switch. Override instantly by writing JSON to the memory key `config:override`. |
-| `/api/page` | POST `{ url, title, site?, description?, text, data? }` | One reading of the page the reader is on, from its subject: the page named (a rule for listing sites, else the model), then the platforms swept and the page read for its own reviews at the same time, then one pass over both; a page review weighs three platform posts. Sent only on the badge button's press; the text is never kept; the finished reading is held 15 minutes. Needs the AI key. |
+| `/api/page` | POST `{ url, title, site?, description?, text, data? }` | One reading of the page the reader is on, from its subject: the page named by the model (a topic, a search or a listing is nothing in particular), then the platforms swept and the page read for its own reviews at the same time, then one pass over both; a page review weighs three platform posts. Sent only on the badge button's press; the text is never kept; the finished reading is held 15 minutes. Needs the AI key. |
 | `/embed?key=` | page | The card the drawer frames. |
 | `/api/health` | GET | AI/source configuration and memory reachability; no credentials. |
 | `/dev` | page | Pretend to be the extension and knock on the gauge door. |
