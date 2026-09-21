@@ -79,7 +79,8 @@ const CSS = `
 :host([data-site][data-dark]) .head .label{color:var(--tb)}
 .seg{display:flex;height:var(--om-h);border-radius:var(--om-r);overflow:hidden;background:var(--track);flex:none;width:var(--om-width,34px);transition:width 340ms cubic-bezier(.16,1,.3,1)}
 .head.line .seg{min-width:32px;flex:1 1 auto;width:auto;--om-h:3px;--om-r:2px}
-:host([data-site]) .head .seg{flex:none;width:48px;--om-h:3px;--om-r:2px}
+/* On the badge the bar is the flexible part of each row: the names start at one edge, the verdicts end at the other, and the bars take up the difference. */
+:host([data-site]) .head .seg{flex:1 1 auto;width:auto;min-width:48px;--om-h:3px;--om-r:2px}
 :host([data-site]) .card[data-state="hover"] .head .seg,:host([data-site]) .card[data-state="open"] .head .seg,:host([data-site]) .card.closing .head .seg{flex:1 1 auto;width:auto}
 .seg span{display:block;height:100%}.seg .pos{background:var(--pos)}.seg .neu{background:var(--neu)}.seg .neg{background:var(--neg);flex:1}
 .seg.loading{position:relative}.seg.loading:before{content:"";position:absolute;inset:0;width:45%;border-radius:inherit;background:linear-gradient(90deg,var(--pos) 50%,var(--neg) 50%);animation:flow 1600ms ease-in-out infinite}
@@ -150,7 +151,7 @@ iframe{display:block;width:100%;height:100%;border:0;background:transparent;colo
    under the half's text (a pseudo-element at z-index -1 inside the card's own stacking context),
    reaching the card's edges, clipped by the card's corners. */
 :host([data-site]) .card{isolation:isolate}
-:host([data-site]) .head{position:relative}
+:host([data-site]) .head{position:relative;cursor:pointer}
 :host([data-site]) .head::before{content:"";position:absolute;inset:calc(-1 * var(--pt)) calc(-1 * var(--px)) -8px;z-index:-1;background:transparent;transition:background 160ms ease}
 :host([data-site]) .card[data-state="rest"] .head:hover::before{background:var(--tile)}
 .split{display:none;flex:none;height:1px;margin:8px calc(-1 * var(--px)) 0;background:var(--divider)}
@@ -166,12 +167,20 @@ iframe{display:block;width:100%;height:100%;border:0;background:transparent;colo
 .analyse[data-page="busy"]{color:var(--tb);cursor:progress}
 .analyse .go{margin-left:auto;color:var(--tl)}
 .analyse .name{font-size:12px;font-weight:500;color:var(--t1);flex:0 1 auto;min-width:0;max-width:220px;overflow:hidden;text-overflow:ellipsis}
-.analyse .seg{flex:1 1 auto;width:auto;min-width:40px;--om-h:3px;--om-r:2px}
+.analyse .seg{flex:1 1 auto;width:auto;min-width:48px;--om-h:3px;--om-r:2px}
 .analyse .label{color:var(--t2)}
 :host([data-dark]) .analyse .label{color:var(--tb)}
 .analyse .lines{display:flex;flex-direction:column;gap:2px;min-width:0;line-height:1.3}
 .analyse .lines .sub{font-size:10px;line-height:1.4;color:var(--tl);white-space:normal;text-wrap:pretty;max-width:250px}
 .analyse .quiet{color:var(--tl)}
+.analyse .short{display:none}
+/* While the site's own card is grown, the button shrinks into a chip at the top right, on the site's line just left of the ×, so the figures and the summary below stay as they are; the head keeps room for it (set as the card grows). */
+.card[data-mode="site"][data-state="hover"] .analyse,.card[data-mode="site"][data-state="open"] .analyse{position:absolute;top:var(--pt);right:calc(var(--px) + 26px);margin:0;padding:0 8px;height:18px;box-sizing:border-box;gap:6px;align-self:auto;border:1px solid var(--border);border-radius:9px;background:var(--card);font-size:10px;line-height:16px;z-index:2}
+.card[data-mode="site"][data-state="hover"] .analyse::before,.card[data-mode="site"][data-state="open"] .analyse::before{inset:-1px;border-radius:inherit}
+.card[data-mode="site"][data-state="hover"] .split,.card[data-mode="site"][data-state="open"] .split,.card[data-mode="site"][data-state="hover"] .analyse .seg,.card[data-mode="site"][data-state="open"] .analyse .seg,.card[data-mode="site"][data-state="hover"] .analyse .full,.card[data-mode="site"][data-state="open"] .analyse .full,.card[data-mode="site"][data-state="hover"] .analyse .quiet,.card[data-mode="site"][data-state="open"] .analyse .quiet,.card[data-mode="site"][data-state="hover"] .analyse .lines .sub,.card[data-mode="site"][data-state="open"] .analyse .lines .sub{display:none}
+.card[data-mode="site"][data-state="hover"] .analyse .short,.card[data-mode="site"][data-state="open"] .analyse .short{display:inline}
+.card[data-mode="site"][data-state="hover"] .analyse .name,.card[data-mode="site"][data-state="open"] .analyse .name{max-width:90px;font-size:10px}
+.card[data-mode="site"][data-state="hover"] .analyse .label,.card[data-mode="site"][data-state="open"] .analyse .label{font-size:10px}
 /* The ring of light while the page is read: a rotating green-into-red sweep around the whole
    badge, shown through a ring-shaped mask that sits just outside the card, with a soft glow of
    the same under it. Both live beside the card (never inside it, which clips), and only while
@@ -582,6 +591,8 @@ export function createBar(opts: {
         const over = hostBox.top + card.offsetHeight + EDGE - vh;
         if (over > 0) pscroll.style.maxHeight = `${Math.max(MIN_SCROLL, pscroll.offsetHeight - over)}px`;
       }
+      /* The badge's chip sits over the head's right end: the head keeps that much room, so the bar stops short of it. */
+      head.style.paddingRight = site && opts.page && mode === "site" ? `${analyse.offsetWidth + 8}px` : "";
       toW = card.offsetWidth; toH = card.offsetHeight;
       /* The contents are laid out at their final width from the first frame, so nothing re-wraps or slides while the box grows. */
       const inner = toW - 2 * pad.x - 2;
@@ -620,7 +631,7 @@ export function createBar(opts: {
     closing = false;
     card.classList.remove("closing");
     card.style.width = ""; card.style.height = ""; card.style.left = ""; card.style.top = ""; card.style.padding = "";
-    head.style.marginLeft = ""; head.style.width = ""; body.style.width = ""; body.style.marginLeft = ""; dots.style.marginLeft = "";
+    head.style.marginLeft = ""; head.style.width = ""; head.style.paddingRight = ""; body.style.width = ""; body.style.marginLeft = ""; dots.style.marginLeft = "";
     host.style.zIndex = "";
     setMode("site");
     if (restore) { const back = restore; restore = undefined; back(); }
@@ -643,6 +654,7 @@ export function createBar(opts: {
     clearTimeout(relaxTimer);
     closing = next === "rest";
     card.classList.toggle("closing", closing);
+    if (closing) head.style.paddingRight = "";
     state = next;
     card.dataset.state = next;
     host.setAttribute("data-state", next);
@@ -827,10 +839,11 @@ export function createBar(opts: {
     host.toggleAttribute("data-busy", s.kind === "busy");
     analyse.disabled = false;
     if (s.kind === "button" || s.kind === "error") {
-      analyse.append(el("span", undefined, s.kind === "error" ? `${s.message} · try again` : ANALYSE_LABEL), el("span", "go", "›"));
+      /* Each wording twice: in full for the row, short for the chip (the stylesheet shows one or the other). */
+      analyse.append(el("span", "full", s.kind === "error" ? `${s.message} · try again` : ANALYSE_LABEL), el("span", "short", s.kind === "error" ? "Try again" : "Analyse page"), el("span", "go", "›"));
       analyse.setAttribute("aria-label", ANALYSE_LABEL);
     } else if (s.kind === "busy") {
-      analyse.append(el("span", undefined, "Analysing this page…"));
+      analyse.append(el("span", "full", "Analysing this page…"), el("span", "short", "Analysing…"));
       analyse.setAttribute("aria-busy", "true");
       analyse.setAttribute("aria-label", "Analysing this page's subject");
     } else if (s.kind === "ready") {
@@ -843,7 +856,7 @@ export function createBar(opts: {
       analyse.append(lines);
       analyse.setAttribute("aria-label", `${s.subject}: ${s.message}`);
     } else {
-      analyse.append(el("span", "quiet", s.message));
+      analyse.append(el("span", "quiet", s.message), el("span", "short", "Nothing to analyse"));
       analyse.setAttribute("aria-label", s.message);
     }
   };
