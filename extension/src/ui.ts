@@ -759,7 +759,11 @@ export function createBar(opts: {
   /* On the badge only the top half previews on hover, and only once the pointer rests on it: a pointer passing
      through on its way to the second half keeps restarting the delay, so the button never moves from under it. */
   (site ? head : host).addEventListener("mouseenter", hoverIn);
-  if (site) head.addEventListener("mousemove", hoverIn);
+  if (site) {
+    head.addEventListener("mousemove", hoverIn);
+    /* Leaving the top half before it opened: the pending open is off (the host's own mouseleave closes a card already grown). */
+    head.addEventListener("mouseleave", () => { if (state === "rest") clearTimeout(openTimer); });
+  }
   host.addEventListener("mouseleave", hoverOut);
   head.addEventListener("focus", () => { if (state === "rest" && current) { setMode("site"); setState("hover"); } });
   head.addEventListener("blur", () => { if (state === "hover") hoverOut(); });
