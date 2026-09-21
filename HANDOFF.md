@@ -1,6 +1,10 @@
-# Handoff — 21 September 2026 (v1.0.1)
+# Handoff — 21 September 2026 (v1.0.2)
 
 Where Opinion Meter is up to, for whoever (or whatever) picks it up next. README.md is the specification; AGENTS.md the rules; CHANGELOG.md the version history; this is the state.
+
+## v1.0.2 — 21 September 2026 (evening): links in the result card, the ring around the whole badge
+
+The owner asked for both. (1) `createBar` takes `link` (content.ts passes `result.url`, the result's destination after `destination()`, so Google's redirect is already unwrapped); the host carries `data-link`; `followLink()` in the card's click handler (and an `auxclick` listener for the middle button) sends a press on `.icon`, `.name`, `.seg` or `.label` inside the head to that address when the card is grown (hover or open) and not closing — `location.assign`, or `window.open` with Ctrl/Cmd/middle. At rest a press still pins the card. CSS: those elements take a pointer and the name and label underline under the pointer; the favicon copy, `pointer-events:none` at rest, accepts them grown. Not seen running (needs a live Google page): check that a press on the name in an open card leaves for the result, and that a rest press still opens the card. (2) The halo: the rule that moved `.halo`'s top to the card's bottom under a grown card is gone; the ring now runs from the card's top to the tray's bottom (its bottom is set by `renderAnalyse`/`sizeTray` as before), with 14 px corners while grown. Seen on the stub.
 
 ## v1.0.1 — 21 September 2026 (evening): two fixes from the owner's screenshot, and a debug audit
 

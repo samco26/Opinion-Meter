@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.2 — 21 September 2026
+
+- Beside a Google result, the expanded card's favicon, site name, bar and "xx% positive opinion of xx" label are links to that result — the specific page Google lists, never the site's front door. A plain press goes there; Ctrl, Cmd or the middle button opens a new tab, as a link would. At rest nothing changes: a press still opens the card.
+- The ring of light while a page is read circles the whole badge: the pill (or its open card) and the tray together. It had wrapped the tray alone under an open card.
+
 ## 1.0.1 — 21 September 2026
 
 - The summary in a site's card no longer ends in a cut ("…becomes less trust…"). When a subject's reading came from a full card, the server kept the summary's first sentence but cut it at 160 characters with an ellipsis; the card wraps, so the whole sentence goes now. A reading already in memory keeps its cut sentence until it ages out (a day at most).

@@ -358,7 +358,7 @@ function scan() {
   for (const result of found) {
     placements.get(result.anchor)?.bar.remove();
     const context = { query, results: [{ url: result.url, title: result.title, ...(result.site ? { site: result.site } : {}) }] };
-    hold(result, createBar({ shape: result.placement === "block" ? "block" : "story", title: result.site ?? result.title, dark, drawer: drawerFor(context) }));
+    hold(result, createBar({ shape: result.placement === "block" ? "block" : "story", title: result.site ?? result.title, dark, drawer: drawerFor(context), link: result.url }));
   }
   if (!queryBar && config.google.queryBar && queryPlacement(config)) {
     queryBar = createBar({ shape: "line", title: query, dark, drawer: drawerFor({ query, results: [] }), relocate: liftQuery });

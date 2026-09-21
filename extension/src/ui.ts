@@ -64,6 +64,10 @@ const CSS = `
 .head.block{position:relative;display:grid;grid-template-columns:var(--om-indent,0px) auto 1fr auto;grid-template-rows:var(--om-line,20px) auto;grid-template-areas:"name label . x" "bar bar bar bar";row-gap:1px;column-gap:0;align-items:center}
 /* A copy of Google's favicon, drawn in its very place (to the left of the row, in the card's lead) once the card's surface hides the real one. */
 .head.block .icon{position:absolute;left:var(--om-icon-x,0px);top:var(--om-icon-y,0px);opacity:0;transition:opacity 160ms ease;pointer-events:none}
+/* Grown beside a Google result, the favicon, the name, the bar and the verdict are links to the result itself. */
+:host([data-link]) .card[data-state="hover"] .head :is(.icon,.name,.seg,.label),:host([data-link]) .card[data-state="open"] .head :is(.icon,.name,.seg,.label){cursor:pointer}
+:host([data-link]) .card[data-state="hover"] .head.block .icon,:host([data-link]) .card[data-state="open"] .head.block .icon{pointer-events:auto}
+:host([data-link]) .card[data-state="hover"] .head :is(.name,.label):hover,:host([data-link]) .card[data-state="open"] .head :is(.name,.label):hover{text-decoration:underline}
 .card[data-state="hover"] .head.block .icon,.card[data-state="open"] .head.block .icon{opacity:1}
 :host([data-bare]) .head .label{display:none}
 .head.block .name{grid-area:name;overflow:hidden;text-overflow:clip;white-space:nowrap;font-size:12px;font-weight:400;color:var(--t2);opacity:0;transition:opacity 160ms ease}
@@ -190,7 +194,8 @@ iframe{display:block;width:100%;height:100%;border:0;background:transparent;colo
    pill and the strip together while the pill is at rest; around the tray alone under a grown card,
    its top band hidden behind the card. Just the outline: no glow under it. */
 .halo{display:none;position:absolute;left:-2px;right:-2px;top:-2px;bottom:-32px;z-index:0;border-radius:19px;pointer-events:none;overflow:hidden;padding:2px;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude;transition:top 340ms var(--ease),bottom 340ms var(--ease),border-radius 160ms ease}
-.card[data-state="hover"] ~ .halo,.card[data-state="open"] ~ .halo,.card.closing ~ .halo{top:calc(100% - 2px);border-radius:14px}
+/* Busy, the ring wraps the whole badge — the pill (or its open card) and the tray together — never the tray alone. Grown, its corners follow the card's. */
+.card[data-state="hover"] ~ .halo,.card[data-state="open"] ~ .halo,.card.closing ~ .halo{border-radius:14px}
 .halo::before{content:"";position:absolute;left:50%;top:50%;width:200%;padding-top:200%;margin:-100% 0 0 -100%;border-radius:50%;background:conic-gradient(from 0deg,transparent 0 52%,var(--pos) 70%,var(--neg) 88%,transparent 100%);animation:spin 1500ms linear infinite}
 :host([data-busy]) .halo{display:block}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -387,6 +392,8 @@ export function createBar(opts: {
   drawer: (gauge: Gauge | undefined) => string | null;
   relocate?: () => (() => void) | undefined;
   onDismiss?: () => void; onMove?: (pos: { left: number; top: number }) => void;
+  /* The address of the result a bar sits beside: grown, its favicon, name, bar and verdict lead there (the result's own page, never the site's front door). */
+  link?: string;
   page?: PageHooks;
 }): Bar {
   const site = opts.shape === "site";
@@ -395,6 +402,7 @@ export function createBar(opts: {
   host.setAttribute("data-shape", opts.shape);
   if (opts.dark) host.setAttribute("data-dark", "");
   if (site) host.setAttribute("data-site", "");
+  if (opts.link) host.setAttribute("data-link", "");
   if (opts.shape === "line" || opts.shape === "square" || site) host.setAttribute("data-pill", "");
   /* On Google the bars take the page's own type; the badge on other sites keeps the extension's own, whatever the site uses. */
   host.style.setProperty("--om-font", site ? UI_FONT : pageFont());
@@ -873,10 +881,21 @@ export function createBar(opts: {
   head.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); if (state === "open") close(); else pin(); } });
   /* A bar must never act as the link it sits beside. */
   for (const type of SWALLOW) card.addEventListener(type, (event) => event.stopPropagation());
+  /* Grown beside a Google result, a press on the favicon, the name, the bar or the verdict goes to the result (a new tab with Ctrl, Cmd or the middle button, as a link would). */
+  const followLink = (event: MouseEvent): boolean => {
+    if (!opts.link || state === "rest" || closing) return false;
+    const hit = (event.target as HTMLElement).closest?.(".icon, .name, .seg, .label");
+    if (!hit || !head.contains(hit)) return false;
+    if (event.ctrlKey || event.metaKey || event.button === 1) window.open(opts.link, "_blank", "noopener");
+    else location.assign(opts.link);
+    return true;
+  };
+  card.addEventListener("auxclick", (event) => { if (event.button === 1) followLink(event); });
   card.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
     if (suppress) { suppress = false; return; }
+    if (followLink(event)) return;
     if ((event.target as HTMLElement).closest?.(".x")) { close(); return; }
     /* Pinned: a click anywhere that is not a control shrinks it back. Hovering: a click pins. */
     if (state === "open") { close(); return; }
