@@ -200,7 +200,9 @@ iframe{display:block;width:100%;height:100%;border:0;background:transparent;colo
 .tray.closing .pagebody{display:flex;opacity:0}
 @starting-style{.tray[data-open] .pagebody{opacity:0}}
 /* Only the pros and the cons (or the words behind one) scroll; the figures, the summary and the sources above them, and the footer below, stay put. */
-.pscroll{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;margin:0 calc(-1 * var(--px));padding:0 var(--px);min-height:0}
+.pscroll{overflow-y:hidden;overscroll-behavior:contain;scrollbar-width:thin;margin:0 calc(-1 * var(--px));padding:0 var(--px);min-height:0}
+/* A scrollbar only when the lists really are taller than their room (decided as the tray is sized), never for a stray pixel. */
+.pscroll[data-scroll]{overflow-y:auto}
 .pdots{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:10px;font-size:10px;line-height:14px;color:var(--tl)}
 .pdots span{display:inline-flex;align-items:center;gap:6px}.pdots i{width:5px;height:5px;border-radius:3px;flex:none}
 .cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start;padding-top:2px}
@@ -797,8 +799,11 @@ export function createBar(opts: {
     if (trayOpen) {
       const over = tray.getBoundingClientRect().top + tray.offsetHeight + EDGE - (window.innerHeight || 768);
       if (over > 0 && pscroll.isConnected) pscroll.style.maxHeight = `${Math.max(MIN_SCROLL, pscroll.offsetHeight - over)}px`;
+      /* The lists scroll only when they really are taller than their room. */
+      pscroll.toggleAttribute("data-scroll", pscroll.scrollHeight > pscroll.clientHeight + 1);
     }
-    const to = tray.offsetHeight, toW = tray.offsetWidth;
+    /* Whole pixels, rounded up: a height a fraction short would squeeze the lists and summon a scrollbar for nothing. */
+    const to = Math.ceil(tray.getBoundingClientRect().height), toW = Math.ceil(tray.getBoundingClientRect().width);
     pagebody.style.position = "";
     tray.style.height = `${from}px`; tray.style.width = `${fromW}px`;
     void tray.offsetHeight;
