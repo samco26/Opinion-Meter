@@ -969,9 +969,11 @@ export function createBar(opts: {
       analyse.append(el("span", "quiet", s.message));
       analyse.setAttribute("aria-label", s.message);
     }
-    /* The ring reaches the tray's bottom edge, whatever the tray holds. */
+    /* The ring reaches the tray's bottom edge, whatever the tray holds. A folded tray shows the strip alone below the card (its box is
+       measured, not the tray's, whose padding may still be sliding); an open one is measured whole, past the card. */
     if (state === "rest" && !closing) tray.style.setProperty("--tt", `${card.offsetHeight}px`);
-    halo.style.bottom = `${-(tray.offsetHeight - (parseFloat(tray.style.getPropertyValue("--tt")) || card.offsetHeight) + 2)}px`;
+    const below = trayOpen ? tray.offsetHeight - (parseFloat(tray.style.getPropertyValue("--tt")) || card.offsetHeight) : analyse.offsetHeight + 2;
+    halo.style.bottom = `${-(below + 2)}px`;
   };
   /* The press: the note the first time, then the reading; a ready reading opens or closes the page card. */
   const analysePressed = async () => {
