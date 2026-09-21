@@ -605,11 +605,6 @@ export function createBar(opts: {
     host.setAttribute("data-mode", next);
   };
   setMode("site");
-| "page") => {
-    mode = next;
-    card.dataset.mode = next;
-    host.setAttribute("data-mode", next);
-  };
   const setState = (next: CardState) => {
     if (state === next) return;
     /* Where the animation starts: the size the card has before anything changes. Leaving rest, that is the bar's own box. */
