@@ -152,11 +152,11 @@ iframe{display:block;width:100%;height:100%;border:0;background:transparent;colo
    "Analyse this page's subject". It hangs from the card's bottom edge, so when the card
    grows into the site's card the strip rides down with it, and when the strip is pressed
    the tray grows into the page card. Each opens and closes on its own. */
-:host([data-site]) .card{isolation:isolate}
+:host([data-site]) .card{isolation:isolate;z-index:1}
 :host([data-site]) .head{position:relative;cursor:pointer}
 :host([data-site]) .head::before{content:"";position:absolute;inset:calc(-1 * var(--pt)) calc(-1 * var(--px));z-index:-1;background:transparent;transition:background 160ms ease}
 :host([data-site]) .card[data-state="rest"] .head:hover::before{background:var(--tile)}
-.tray{display:none;position:absolute;left:0;right:0;top:calc(100% - 14px);z-index:0;box-sizing:border-box;padding:14px 15px 0;border:1px solid var(--border);border-top:0;border-radius:0 0 17px 17px;background:var(--card);box-shadow:var(--badge-shadow);overflow:hidden;white-space:nowrap;--px:15px;transition:height 340ms var(--ease),padding 340ms var(--ease),border-radius 200ms ease}
+.tray{display:none;position:absolute;left:auto;right:0;width:100%;top:calc(100% - 14px);z-index:0;box-sizing:border-box;padding:14px 15px 0;border:1px solid var(--border);border-top:0;border-radius:0 0 17px 17px;background:var(--card);box-shadow:var(--badge-shadow);overflow:hidden;white-space:nowrap;--px:15px;transition:height 340ms var(--ease),width 340ms var(--ease),left 340ms var(--ease),padding 340ms var(--ease),border-radius 200ms ease}
 :host([data-site]) .tray{display:flex;flex-direction:column}
 .card[data-state="hover"] ~ .tray,.card[data-state="open"] ~ .tray,.card.closing ~ .tray{border-radius:0 0 12px 12px}
 .tray[data-open],.tray.closing{padding:14px 17px 13px;--px:17px}
@@ -742,25 +742,37 @@ export function createBar(opts: {
      The tray hangs from the card's bottom edge, so it rides with the card; its own height goes from the
      strip to the page card and back, the way the card grows, and never past the window's bottom. */
   const sizeTray = () => {
-    const from = tray.offsetHeight;
+    const from = tray.offsetHeight, fromW = tray.offsetWidth;
     tray.style.transition = "none";
     tray.style.height = "auto";
     pscroll.style.maxHeight = "";
+    /* Anchored to the badge's right edge: open, as wide as the site's card, growing leftwards (only as far as the window
+       allows when the badge was dragged near its left edge); as the strip alone, as wide as whatever the pill is. */
+    const vw = document.documentElement.clientWidth || window.innerWidth || 1024;
+    if (trayOpen) {
+      const width = Math.min(vw - 2 * EDGE, SITE_CARD_WIDTH);
+      const hostBox = host.getBoundingClientRect();
+      /* Pushed right just enough to keep its left edge in the window, never past the window's right edge. */
+      const shift = host.style.right === "auto" ? Math.min(Math.max(0, EDGE + width - hostBox.right), Math.max(0, vw - EDGE - hostBox.right)) : 0;
+      tray.style.width = `${width}px`; tray.style.right = shift ? `${-Math.round(shift)}px` : "";
+    } else { tray.style.width = ""; tray.style.right = ""; }
     /* Closing: the target is the strip alone, though the page card stays in view, fading, while the tray shrinks over it. */
     if (!trayOpen) pagebody.style.display = "none";
     if (trayOpen) {
       const over = tray.getBoundingClientRect().top + tray.offsetHeight + EDGE - (window.innerHeight || 768);
       if (over > 0 && pscroll.isConnected) pscroll.style.maxHeight = `${Math.max(MIN_SCROLL, pscroll.offsetHeight - over)}px`;
     }
-    const to = tray.offsetHeight;
+    const to = tray.offsetHeight, toW = tray.offsetWidth;
     pagebody.style.display = "";
-    tray.style.height = `${from}px`;
+    tray.style.height = `${from}px`; tray.style.width = `${fromW}px`;
     void tray.offsetHeight;
     tray.style.transition = "";
-    tray.style.height = `${to}px`;
+    tray.style.height = `${to}px`; tray.style.width = `${toW}px`;
     /* The ring reaches the tray's bottom edge, whatever its height. */
     halo.style.bottom = `${-(to - TUCK + 2)}px`;
   };
+  /* Settled as the strip, the tray follows the pill's width again. */
+  tray.addEventListener("transitionend", (event) => { if (event.target === tray && event.propertyName === "height" && !trayOpen) tray.style.width = ""; });
   const openTray = () => {
     if (trayOpen) return;
     clearTimeout(trayTimer);
