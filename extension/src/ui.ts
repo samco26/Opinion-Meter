@@ -154,12 +154,12 @@ iframe{display:block;width:100%;height:100%;border:0;background:transparent;colo
 .analyse[data-page="nothing"]:hover,.analyse[data-page="insufficient"]:hover{background:transparent}
 .analyse[data-page="busy"]{color:var(--tb);cursor:progress}
 .analyse .go{margin-left:auto;color:var(--tl)}
-.analyse .name{font-size:12px;font-weight:500;color:var(--t1)}
+.analyse .name{font-size:12px;font-weight:500;color:var(--t1);flex:0 1 auto;min-width:0;max-width:220px;overflow:hidden;text-overflow:ellipsis}
 .analyse .seg{flex:1 1 auto;width:auto;min-width:40px;--om-h:3px;--om-r:2px}
 .analyse .label{color:var(--t2)}
 :host([data-dark]) .analyse .label{color:var(--tb)}
 .analyse .lines{display:flex;flex-direction:column;gap:2px;min-width:0}
-.analyse .lines .sub{font-size:10px;color:var(--tl)}
+.analyse .lines .sub{font-size:10px;line-height:1.4;color:var(--tl);white-space:normal;text-wrap:pretty;max-width:250px}
 .analyse .quiet{color:var(--tl)}
 /* The ring of light while the page is read: a rotating green-into-red sweep, shown through a ring-shaped mask, with a soft glow of the same under it. */
 .ring,.glow{display:none;position:absolute;inset:-1px;border-radius:inherit;pointer-events:none;overflow:hidden}

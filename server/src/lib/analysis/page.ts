@@ -13,7 +13,7 @@ import { z } from "zod";
 import { cardModel, liteModel, structured } from "../ai";
 import { memory } from "../memory";
 import { normalise, verdictOf } from "../sentiment";
-import { hashKey, normaliseUrl, resolveByRule } from "../subject";
+import { hashKey, normaliseUrl } from "../subject";
 import { SOURCE_IDS, type Confidence, type OpinionSentiment, type PageCard, type PagePoint, type PageQuote, type PageRequest, type PageSource, type SearchWindow, type SentimentSplit, type SourceItem, type Subject } from "../types";
 import { reactionWeight, sourceUrl, type Classification } from "./evidence";
 import { toSubject } from "./name";
@@ -46,19 +46,19 @@ Rules:
 - Use the official canonical name people would search for, in normal capitalisation, without the year, the site name, "review" or marketing words: "Sony WH-1000XM6", not "Sony XM6 headphones". "X", not "X (formerly Twitter)". A person is named as they are publicly known.
 - aliases: up to two other names discussion uses for the same thing ("Twitter" for X, "XM6" for Sony WH-1000XM6); an empty list when there are none. Never a different thing.`;
 
-/* Sites whose addresses carry the thing's identity: named without a model. */
-const LISTING = /^(asin|imdb|rt|letterboxd|metacritic|apple-app|play|steam|github|npm|pypi|place|yelp|tripadvisor|goodreads):/;
-
 const head = (req: PageRequest) => [
   `Address: ${req.url}`, `Title: ${req.title}`,
   req.site ? `Site: ${req.site}` : null, req.description ? `Description: ${req.description}` : null,
   req.data ? `Structured data: ${req.data.slice(0, DATA_MAX)}` : null,
 ].filter(Boolean).join("\n");
 
-/* The page's subject: from its address where a rule knows the site, else from the model; remembered for a day per page. Null: nothing in particular. */
+/* The page's subject, named by the model from the page itself; remembered
+   for a day per page. Null: nothing in particular. The address rules that
+   name Google results are not used here: a shop's rule keeps the listing's
+   long title ("Sony WH-1000XM5 Wireless Industry Leading Noise Canceling
+   Headphones"), which the platforms cannot search for and the badge cannot
+   fit; the model, reading the page, says "Sony WH-1000XM5". */
 export async function namePage(req: PageRequest, timeoutMs: number): Promise<Subject | null> {
-  const rule = resolveByRule({ url: req.url, title: req.title });
-  if (rule && rule !== "ask" && LISTING.test(rule.key)) return rule;
   const m = memory();
   const key = `pname:${hashKey(normaliseUrl(req.url) ?? req.url)}`;
   const stored = await m.get<{ subject: Subject | null }>(key);
@@ -144,7 +144,7 @@ const ANALYSE_INSTRUCTIONS = `You read opinions of a subject from two places —
 Rules:
 - The page's own reviews and comments are first-hand and lead the reading: where they exist, the summary, the pros and the cons rest on them first; platform entries supplement, adding what the page lacks and confirming or qualifying what it says.
 - ${CLASSIFY_RULES}
-- The summary is one to three sentences, written the way a person who had read all of it would tell a friend what people think. The subject is the grammatical subject and the views are stated directly, as if they were your own: "The XM6 sounds superb and cancels noise better than anything, but the price and the folding hinge draw complaints." Never write about the opinions from the outside: not "Reviews are positive", not "People praise". Do not use the words opinion, sentiment, review, sample, commenters, evidence, posts or comments in the summary, and do not describe your analysis or its limits there.
+- The summary is one to three sentences, written the way a person who had read all of it would tell a friend what people think. The subject is the grammatical subject and the views are stated directly, as if they were your own: "The XM6 sounds superb and cancels noise better than anything, but the price and the folding hinge draw complaints." Never write about the opinions from the outside: not "Reviews are positive", not "People praise". Do not use the words opinion, sentiment, review, sample, commenters, evidence, entries, platforms, posts or comments in the summary, and never describe the entries, the platforms, the page or your analysis there — not what was found, not how much, not what kind, not what was missing; where the material is thin, say less, never say that it is thin (that belongs in confidence).
 - sentence: one sentence of at most 160 characters in the same voice, for the bar.
 - pros: up to ${POINTS_MAX} distinct recurring points in the subject's favour that people actually make, each one concise sentence of under 90 characters about the subject in general, with the numeric references that actually support it, page entries first. Require at least two independent entries per point. cons: likewise, the recurring complaints, shortcomings and reasons not to buy, go, watch or use. Combine paraphrases, do not force equal numbers, return fewer or none when the evidence is thin, and sort by recurrence. Never invent references or quotations.
 - Confidence is about the evidence: how much there is, how much of it is first-hand from the page, how consistent it is. Say why in one sentence.
