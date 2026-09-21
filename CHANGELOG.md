@@ -3,7 +3,7 @@
 ## 1.0.0 — 21 September 2026
 
 - Version one. Everything below under 0.17.0 — one reading, the badge on every site, "Analyse this page's subject" — is the product as the owner wanted it, and is called 1.0.
-- Beside every Google result the verdict now says what it is a verdict on: "63% positive opinion of Sony Australia", clipped to the result's column when the name is long, never running over Google's dots.
+- Beside every Google result the verdict now says what it is a verdict on: "63% positive opinion of Sony Australia", in full; the hairline under the row runs at least as far as the label.
 - The badge's two collapse ×s are gone: a press on an open card (outside its lists), Escape or a press outside folds it, so the crosses only repeated what a press already does. The corner × that hides the badge on a page stays.
 
 ## 0.17.0 — 21 September 2026

@@ -68,7 +68,7 @@ const CSS = `
 :host([data-bare]) .head .label{display:none}
 .head.block .name{grid-area:name;overflow:hidden;text-overflow:clip;white-space:nowrap;font-size:12px;font-weight:400;color:var(--t2);opacity:0;transition:opacity 160ms ease}
 .card[data-state="hover"] .head.block .name,.card[data-state="open"] .head.block .name{opacity:1}
-.head.block .label{grid-area:label;margin-left:3px;min-width:0;max-width:calc(var(--om-block,100%) - var(--om-indent,0px) - 3px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.head.block .label{grid-area:label;margin-left:3px;white-space:nowrap}
 .head.block .seg{grid-area:bar;width:var(--om-block,100%)}
 .head.block .x{grid-area:x;justify-self:end}
 .name{font-size:13px;font-weight:500;color:var(--t1);white-space:nowrap}
@@ -478,8 +478,8 @@ export function createBar(opts: {
     if (opts.shape !== "block") return;
     const label = head.querySelector<HTMLElement>(".label");
     const row = rowIndent + 3 + (label ? label.getBoundingClientRect().width : 0);
-    /* The column's width where it is known (a long label is clipped to it, never run over the dots); else the name-and-label row. */
-    host.style.setProperty("--om-block", `${Math.max(34, Math.round(rowBlock || row))}px`);
+    /* The column's width, or the name-and-label row's if that is longer, so the bar never stops short of its own label (the label reads in full: "63% positive opinion of Sony Australia"). */
+    host.style.setProperty("--om-block", `${Math.max(34, Math.round(Math.max(rowBlock, row)))}px`);
   };
   let state: CardState = "rest";
   /* The tray: open on the page card, or the strip alone. */
