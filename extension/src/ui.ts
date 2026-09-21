@@ -199,6 +199,8 @@ iframe{display:block;width:100%;height:100%;border:0;background:transparent;colo
 .card[data-mode="page"].closing .pagebody{display:flex;opacity:0}
 .card[data-mode="page"] .body,.card[data-mode="page"] .dots,.card[data-mode="page"] .heading,.card[data-mode="page"] .sheet{display:none!important}
 .card[data-mode="page"] .split{margin-top:9px}
+/* In the page card the subject's verdict ends where the site's does, short of the ×'s room. */
+.card[data-mode="page"][data-state="open"] .analyse,.card[data-mode="page"].closing .analyse{padding-right:29px}
 @starting-style{.card[data-mode="page"][data-state="open"] .pagebody{opacity:0}}
 /* Only the pros and the cons (or the words behind one) scroll; the figures, the summary and the sources above them, and the footer below, stay put. */
 .pscroll{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;margin:0 calc(-1 * var(--px));padding:0 var(--px);min-height:0}
