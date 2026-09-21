@@ -147,8 +147,6 @@ iframe{display:block;width:100%;height:100%;border:0;background:transparent;colo
 /* ---- The badge's second row: "Analyse this page's subject" ---- */
 .analyse{display:none;position:relative;align-self:stretch;align-items:center;gap:10px;min-width:0;margin-top:7px;padding:6px 10px;border:1px solid var(--border);border-radius:11px;background:transparent;color:var(--t2);font:11px/16px inherit;font-family:inherit;text-align:left;cursor:pointer;white-space:nowrap;transition:background 160ms ease,border-color 160ms ease}
 :host([data-site]) .analyse{display:flex}
-/* While the site's own card is grown the row steps aside; it is back in the box as the card shrinks. */
-:host([data-site]) .card[data-mode="site"][data-state="hover"] .analyse,:host([data-site]) .card[data-mode="site"][data-state="open"] .analyse{display:none}
 .analyse:hover{background:var(--tile)}
 .analyse[data-page="nothing"],.analyse[data-page="insufficient"]{cursor:default}
 .analyse[data-page="nothing"]:hover,.analyse[data-page="insufficient"]:hover{background:transparent}
@@ -402,9 +400,12 @@ export function createBar(opts: {
   /* The badge's second row and the page card it opens. */
   const analyse = el("button", "analyse");
   analyse.type = "button";
+  /* A press on the row is the row's alone: it never starts a drag of the badge, and the page never sees it. */
+  for (const type of SWALLOW) analyse.addEventListener(type, (event) => event.stopPropagation());
   const pagebody = el("div", "pagebody");
   const pscroll = el("div", "pscroll");
-  card.append(who, head, dots, tagline, body, ...(site && opts.page ? [analyse, pagebody] : []));
+  /* The badge's second row sits right under the head and its figures, before the site card's body: whatever grows, the button stays where it was. */
+  card.append(who, head, dots, tagline, ...(site && opts.page ? [analyse] : []), body, ...(site && opts.page ? [pagebody] : []));
   root.append(style, card);
   /* The host's own box is the header's, so the pins measure the bar and never the grown card. */
   if (!site) {
