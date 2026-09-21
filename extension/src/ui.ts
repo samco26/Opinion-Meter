@@ -156,15 +156,17 @@ iframe{display:block;width:100%;height:100%;border:0;background:transparent;colo
 :host([data-site]) .head{position:relative;cursor:pointer}
 :host([data-site]) .head::before{content:"";position:absolute;inset:calc(-1 * var(--pt)) calc(-1 * var(--px));z-index:-1;background:transparent;transition:background 160ms ease}
 :host([data-site]) .card[data-state="rest"] .head:hover::before{background:var(--tile)}
-.tray{display:none;position:absolute;left:auto;right:0;width:100%;top:calc(100% - 14px);z-index:0;box-sizing:border-box;padding:14px 15px 0;border:1px solid var(--border);border-top:0;border-radius:0 0 17px 17px;background:var(--card);box-shadow:var(--badge-shadow);overflow:hidden;white-space:nowrap;--px:15px;transition:height 340ms var(--ease),width 340ms var(--ease),left 340ms var(--ease),padding 340ms var(--ease),border-radius 200ms ease}
+.tray{display:none;position:absolute;left:auto;right:0;top:0;width:100%;z-index:0;box-sizing:border-box;padding:var(--tt,32px) 15px 0;border:1px solid var(--border);border-radius:17px;background:var(--card);box-shadow:var(--badge-shadow);overflow:hidden;white-space:nowrap;--px:15px;transition:height 340ms var(--ease),width 340ms var(--ease),padding 340ms var(--ease),transform 200ms ease,border-radius 200ms ease}
 :host([data-site]) .tray{display:flex;flex-direction:column}
-.card[data-state="hover"] ~ .tray,.card[data-state="open"] ~ .tray,.card.closing ~ .tray{border-radius:0 0 12px 12px}
-.tray[data-open]{padding:14px 17px 13px;--px:17px}
+.card[data-state="hover"] ~ .tray,.card[data-state="open"] ~ .tray,.card.closing ~ .tray{border-radius:12px}
+.tray[data-open]{padding:var(--tt,32px) 17px 13px;--px:17px}
 /* Closing, the page card fades under the shrinking tray; the strip it shrinks to has no bottom room. */
-.tray.closing{padding:14px 17px 0;--px:17px}
+.tray.closing{padding:var(--tt,32px) 17px 0;--px:17px}
+/* Under the pointer the strip pulls out a touch, a hint that it opens. */
+.tray[data-hover]:not([data-open]){transform:translateY(3px)}
 /* The strip: the tray's header row, pressed to read the page or to open and close its card. */
 .analyse{display:flex;position:relative;flex:none;align-items:center;gap:10px;min-width:0;width:100%;height:30px;padding:0;border:0;background:transparent;color:var(--t1);font-size:12px;line-height:18px;font-family:inherit;font-weight:500;text-align:left;cursor:pointer;white-space:nowrap;box-sizing:border-box}
-.analyse::before{content:"";position:absolute;inset:0 calc(-1 * var(--px));z-index:-1;background:transparent;transition:background 160ms ease}
+.analyse::before{content:"";position:absolute;inset:calc(-1 * var(--tt,32px)) calc(-1 * var(--px)) 0;z-index:-1;background:transparent;transition:background 160ms ease}
 .analyse:hover::before{background:var(--tile)}
 .tray[data-open] .analyse:hover::before{background:transparent}
 .analyse[data-page="nothing"],.analyse[data-page="insufficient"]{cursor:default}
@@ -185,7 +187,7 @@ iframe{display:block;width:100%;height:100%;border:0;background:transparent;colo
    pill and the strip together while the pill is at rest; around the tray alone under a grown card,
    its top band hidden behind the card. Just the outline: no glow under it. */
 .halo{display:none;position:absolute;left:-2px;right:-2px;top:-2px;bottom:-32px;z-index:0;border-radius:19px;pointer-events:none;overflow:hidden;padding:2px;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude;transition:top 340ms var(--ease),bottom 340ms var(--ease),border-radius 200ms ease}
-.card[data-state="hover"] ~ .halo,.card[data-state="open"] ~ .halo,.card.closing ~ .halo{top:calc(100% - 16px);border-radius:14px}
+.card[data-state="hover"] ~ .halo,.card[data-state="open"] ~ .halo,.card.closing ~ .halo{top:calc(100% - 2px);border-radius:14px}
 .halo::before{content:"";position:absolute;left:50%;top:50%;width:200%;padding-top:200%;margin:-100% 0 0 -100%;border-radius:50%;background:conic-gradient(from 0deg,transparent 0 52%,var(--pos) 70%,var(--neg) 88%,transparent 100%);animation:spin 1500ms linear infinite}
 :host([data-busy]) .halo{display:block}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -355,8 +357,6 @@ const compact = (n: number) => (n >= 1_000_000 ? `${(n / 1_000_000).toFixed(n >=
 const UI_FONT = '"Google Sans", Helvetica, "Helvetica Neue", Arial, sans-serif';
 
 const CARD_WIDTH = 460, SITE_CARD_WIDTH = 360, MIN_SHEET = 120, MIN_SCROLL = 140, EDGE = 12, OPEN_DELAY = 300, CLOSE_DELAY = 200;
-/* How far the tray tucks under the pill (the strip below it is what shows). */
-const TUCK = 14;
 /* The grown card's padding (the badge's, too, and the badge's at rest), and
    the transitions that run while a new size is being measured: the surface
    fades from the first frame, the size is set by hand once known. */
@@ -614,6 +614,8 @@ export function createBar(opts: {
       else ({ w: toW, h: toH } = wrapped(rest, parseFloat(head.style.marginLeft) || 0, Math.round(riseNow())));
     }
     /* From the size it had to the size it needs, with the transitions on. */
+    /* The tray's top padding is the card's height, so its rows start at the card's bottom edge and slide with it. */
+    if (site && opts.page) tray.style.setProperty("--tt", `${toH}px`);
     card.style.width = `${fromW}px`; card.style.height = `${fromH}px`;
     if (site) card.style.padding = fromPadding;
     void card.offsetHeight;
@@ -769,12 +771,14 @@ export function createBar(opts: {
     tray.style.height = `${from}px`; tray.style.width = `${fromW}px`;
     void tray.offsetHeight;
     tray.style.transition = "";
-    tray.style.height = `${to}px`; tray.style.width = `${toW}px`;
+    tray.style.height = `${to}px`; tray.style.width = trayOpen ? `${toW}px` : "";
     /* The ring reaches the tray's bottom edge, whatever its height. */
-    halo.style.bottom = `${-(to - TUCK + 2)}px`;
+    halo.style.bottom = `${-(to - (parseFloat(tray.style.getPropertyValue("--tt")) || card.offsetHeight) + 2)}px`;
   };
-  /* Settled as the strip, the tray follows the pill's width again. */
-  tray.addEventListener("transitionend", (event) => { if (event.target === tray && event.propertyName === "height" && !trayOpen) tray.style.width = ""; });
+  /* A press anywhere on the open page card but its pros and cons (or their words) folds it, as with the site's card; the strip itself pulls out a touch under the pointer. */
+  tray.addEventListener("click", (event) => { event.stopPropagation(); if (!trayOpen) return; if ((event.target as HTMLElement).closest?.(".pscroll, button, a")) return; closeTray(); });
+  analyse.addEventListener("mouseenter", () => tray.setAttribute("data-hover", ""));
+  analyse.addEventListener("mouseleave", () => tray.removeAttribute("data-hover"));
   const openTray = () => {
     if (trayOpen) return;
     clearTimeout(trayTimer);
@@ -908,7 +912,8 @@ export function createBar(opts: {
       analyse.setAttribute("aria-label", s.message);
     }
     /* The ring reaches the tray's bottom edge, whatever the tray holds. */
-    halo.style.bottom = `${-(tray.offsetHeight - TUCK + 2)}px`;
+    if (state === "rest" && !closing) tray.style.setProperty("--tt", `${card.offsetHeight}px`);
+    halo.style.bottom = `${-(tray.offsetHeight - (parseFloat(tray.style.getPropertyValue("--tt")) || card.offsetHeight) + 2)}px`;
   };
   /* The press: the note the first time, then the reading; a ready reading opens or closes the page card. */
   const analysePressed = async () => {
