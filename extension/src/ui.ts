@@ -44,7 +44,7 @@ const CSS = `
 :host([data-flow]){position:relative;display:block;min-height:18px;margin:14px 0 20px}
 :host([data-site]){position:fixed;top:12px;right:12px;z-index:2147483000;transition:opacity 280ms ease}
 :host([data-site][data-faint]){opacity:.22}
-:host([data-site][data-faint]:hover),:host([data-site][data-faint]:focus-within),:host([data-site][data-faint][data-state="open"]){opacity:1}
+:host([data-site][data-faint]:hover),:host([data-site][data-faint]:focus-within),:host([data-site][data-faint][data-state="open"]),:host([data-site][data-faint][data-tray]){opacity:1}
 /* The card: one box that grows. At rest it is the header alone, without
    surface; grown, it is the source card, offset so the header stays put. */
 .card{position:absolute;left:calc(-1 * var(--px) - 1px);top:calc(-1 * var(--pt) - 1px);box-sizing:border-box;display:flex;flex-direction:column;padding:var(--pt) var(--px) var(--pb);border-radius:0;border:1px solid transparent;background:transparent;overflow:hidden;white-space:nowrap;--px:0px;--pt:0px;--pb:0px;--ease:cubic-bezier(.16,1,.3,1);transition:width 340ms var(--ease),height 340ms var(--ease),background 200ms ease,box-shadow 200ms ease,border-color 200ms ease}
@@ -147,27 +147,27 @@ iframe{display:block;width:100%;height:100%;border:0;background:transparent;colo
 :host(:hover) .dismiss,.dismiss:focus-visible{opacity:1}
 :host([data-dragging]) .card{cursor:grabbing}
 .head[tabindex]:focus-visible{outline:2px solid var(--tm);outline-offset:4px;border-radius:4px}
-/* ---- The badge's two halves: the site's reading above, "Analyse this page's subject" below ----
-   One box cut in two by a line across its middle; each half starts at the same edge, has the same
-   room, and darkens under the pointer to say it can be pressed. The darkening is a layer painted
-   under the half's text (a pseudo-element at z-index -1 inside the card's own stacking context),
-   reaching the card's edges, clipped by the card's corners. */
+/* ---- The badge's two sheets: the site's pill above, the page's tray behind it ----
+   The tray is a second sheet tucked under the pill, its lower strip showing beneath it:
+   "Analyse this page's subject". It hangs from the card's bottom edge, so when the card
+   grows into the site's card the strip rides down with it, and when the strip is pressed
+   the tray grows into the page card. Each opens and closes on its own. */
 :host([data-site]) .card{isolation:isolate}
 :host([data-site]) .head{position:relative;cursor:pointer}
-:host([data-site]) .head::before{content:"";position:absolute;inset:calc(-1 * var(--pt)) calc(-1 * var(--px)) -8px;z-index:-1;background:transparent;transition:background 160ms ease}
+:host([data-site]) .head::before{content:"";position:absolute;inset:calc(-1 * var(--pt)) calc(-1 * var(--px));z-index:-1;background:transparent;transition:background 160ms ease}
 :host([data-site]) .card[data-state="rest"] .head:hover::before{background:var(--tile)}
-.split{display:none;flex:none;height:1px;margin:8px calc(-1 * var(--px)) 0;background:var(--divider)}
-:host([data-site]) .split{display:block}
-.analyse{display:none;position:relative;align-self:stretch;align-items:center;gap:10px;min-width:0;margin-top:8px;padding:0;border:0;background:transparent;color:var(--t1);font-size:12px;line-height:18px;font-family:inherit;font-weight:500;text-align:left;cursor:pointer;white-space:nowrap}
-:host([data-site]) .analyse{display:flex}
-.analyse::before{content:"";position:absolute;inset:-8px calc(-1 * var(--px)) calc(-1 * var(--pb));z-index:-1;background:transparent;transition:background 160ms ease}
-/* Inside a grown card the half is a row among others: its darkening keeps to its own box. */
-.card[data-state="hover"] .analyse::before,.card[data-state="open"] .analyse::before,.card.closing .analyse::before{inset:-5px -8px;border-radius:8px}
+.tray{display:none;position:absolute;left:0;right:0;top:calc(100% - 14px);z-index:0;box-sizing:border-box;padding:14px 15px 0;border:1px solid var(--border);border-top:0;border-radius:0 0 17px 17px;background:var(--card);box-shadow:var(--badge-shadow);overflow:hidden;white-space:nowrap;--px:15px;transition:height 340ms var(--ease),padding 340ms var(--ease),border-radius 200ms ease}
+:host([data-site]) .tray{display:flex;flex-direction:column}
+.card[data-state="hover"] ~ .tray,.card[data-state="open"] ~ .tray,.card.closing ~ .tray{border-radius:0 0 12px 12px}
+.tray[data-open],.tray.closing{padding:14px 17px 13px;--px:17px}
+/* The strip: the tray's header row, pressed to read the page or to open and close its card. */
+.analyse{display:flex;position:relative;flex:none;align-items:center;gap:10px;min-width:0;width:100%;height:30px;padding:0;border:0;background:transparent;color:var(--t1);font-size:12px;line-height:18px;font-family:inherit;font-weight:500;text-align:left;cursor:pointer;white-space:nowrap;box-sizing:border-box}
+.analyse::before{content:"";position:absolute;inset:0 calc(-1 * var(--px));z-index:-1;background:transparent;transition:background 160ms ease}
 .analyse:hover::before{background:var(--tile)}
+.tray[data-open] .analyse:hover::before{background:transparent}
 .analyse[data-page="nothing"],.analyse[data-page="insufficient"]{cursor:default}
 .analyse[data-page="nothing"]:hover::before,.analyse[data-page="insufficient"]:hover::before{background:transparent}
 .analyse[data-page="busy"]{color:var(--tb);cursor:progress}
-/* The chip's wording, hidden until the chip is shown. */
 .analyse .name{font-size:12px;font-weight:500;color:var(--t1);flex:0 1 auto;min-width:0;max-width:220px;overflow:hidden;text-overflow:ellipsis}
 .analyse .seg{flex:1 1 auto;width:auto;min-width:48px;--om-h:3px;--om-r:2px}
 .analyse .label{color:var(--t2)}
@@ -175,31 +175,23 @@ iframe{display:block;width:100%;height:100%;border:0;background:transparent;colo
 .analyse .lines{display:flex;flex-direction:column;gap:2px;min-width:0;line-height:1.3}
 .analyse .lines .sub{font-size:10px;line-height:1.4;color:var(--tl);white-space:normal;text-wrap:pretty;max-width:250px}
 .analyse .quiet{color:var(--tl)}
-.analyse .short{display:none}
-/* While the site's own card is grown, the button shrinks into a chip at the top right, on the site's line just left of the ×, so the figures and the summary below stay as they are; the head keeps room for it (set as the card grows). */
-.card[data-mode="site"][data-state="hover"] .analyse,.card[data-mode="site"][data-state="open"] .analyse{position:absolute;top:calc(var(--pt) + 23px);right:var(--px);margin:0;padding:0 7px;height:20px;box-sizing:border-box;gap:6px;align-self:auto;border:1px solid var(--border);border-radius:10px;background:var(--card);font-size:12px;line-height:18px;z-index:2}
-.card[data-mode="site"][data-state="hover"] .analyse::before,.card[data-mode="site"][data-state="open"] .analyse::before{inset:-1px;border-radius:inherit}
-.card[data-mode="site"][data-state="hover"] .split,.card[data-mode="site"][data-state="open"] .split,.card[data-mode="site"][data-state="hover"] .analyse .seg,.card[data-mode="site"][data-state="open"] .analyse .seg,.card[data-mode="site"][data-state="hover"] .analyse .full,.card[data-mode="site"][data-state="open"] .analyse .full,.card[data-mode="site"][data-state="hover"] .analyse .quiet,.card[data-mode="site"][data-state="open"] .analyse .quiet,.card[data-mode="site"][data-state="hover"] .analyse .lines .sub,.card[data-mode="site"][data-state="open"] .analyse .lines .sub{display:none}
-.card[data-mode="site"][data-state="hover"] .analyse .short,.card[data-mode="site"][data-state="open"] .analyse .short{display:inline}
-.card[data-mode="site"][data-state="hover"] .analyse .name,.card[data-mode="site"][data-state="open"] .analyse .name{max-width:90px;font-size:10px}
-.card[data-mode="site"][data-state="hover"] .analyse .label,.card[data-mode="site"][data-state="open"] .analyse .label{font-size:10px}
-/* The ring of light while the page is read: a rotating green-into-red sweep around the whole
-   badge, shown through a ring-shaped mask that sits just outside the card (never inside it,
-   which clips), and only while the badge is at rest. Just the outline: no glow under it. */
-.halo{display:none;position:absolute;inset:-2px;border-radius:19px;pointer-events:none;overflow:hidden}
-.halo{padding:2px;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude}
+/* The tray's own ×, in from nothing as the tray opens (the pill's × slides the same way). */
+.analyse .x{display:block;width:0;height:0;margin-left:-10px;overflow:hidden;opacity:0;transition:width 340ms var(--ease),height 340ms var(--ease),margin-left 340ms var(--ease),opacity 200ms ease}
+.tray[data-open] .analyse .x{width:18px;height:18px;margin-left:0;opacity:1}
+/* The ring of light while the page is read: a rotating green-into-red sweep, shown through a
+   ring-shaped mask that sits just outside the sheets (never inside them, which clips). Around the
+   pill and the strip together while the pill is at rest; around the tray alone under a grown card,
+   its top band hidden behind the card. Just the outline: no glow under it. */
+.halo{display:none;position:absolute;left:-2px;right:-2px;top:-2px;bottom:-32px;z-index:0;border-radius:19px;pointer-events:none;overflow:hidden;padding:2px;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude;transition:top 340ms var(--ease),bottom 340ms var(--ease),border-radius 200ms ease}
+.card[data-state="hover"] ~ .halo,.card[data-state="open"] ~ .halo,.card.closing ~ .halo{top:calc(100% - 16px);border-radius:14px}
 .halo::before{content:"";position:absolute;left:50%;top:50%;width:200%;padding-top:200%;margin:-100% 0 0 -100%;border-radius:50%;background:conic-gradient(from 0deg,transparent 0 52%,var(--pos) 70%,var(--neg) 88%,transparent 100%);animation:spin 1500ms linear infinite}
-:host([data-busy]:not([data-state="hover"]):not([data-state="open"])) .halo{display:block}
+:host([data-busy]) .halo{display:block}
 @keyframes spin{to{transform:rotate(360deg)}}
-/* ---- The page card ---- */
+/* ---- The page card, inside the tray ---- */
 .pagebody{display:none;flex-direction:column;white-space:normal;min-height:0;opacity:1;transition:opacity 150ms ease}
-.card[data-mode="page"][data-state="open"] .pagebody{display:flex}
-.card[data-mode="page"].closing .pagebody{display:flex;opacity:0}
-.card[data-mode="page"] .body,.card[data-mode="page"] .dots,.card[data-mode="page"] .heading,.card[data-mode="page"] .sheet{display:none!important}
-.card[data-mode="page"] .split{margin-top:9px}
-/* In the page card the subject's verdict ends where the site's does, short of the ×'s room. */
-.card[data-mode="page"][data-state="open"] .analyse,.card[data-mode="page"].closing .analyse{padding-right:29px}
-@starting-style{.card[data-mode="page"][data-state="open"] .pagebody{opacity:0}}
+.tray[data-open] .pagebody{display:flex}
+.tray.closing .pagebody{display:flex;opacity:0}
+@starting-style{.tray[data-open] .pagebody{opacity:0}}
 /* Only the pros and the cons (or the words behind one) scroll; the figures, the summary and the sources above them, and the footer below, stay put. */
 .pscroll{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;margin:0 calc(-1 * var(--px));padding:0 var(--px);min-height:0}
 .pdots{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:10px;font-size:10px;line-height:14px;color:var(--tl)}
@@ -253,8 +245,8 @@ export interface Bar {
   name(text: string, indent: number, more?: NameMore): void;
   remove(): void;
   state(): CardState;
-  /* Which card the box holds while grown: the site's, or the page's. */
-  mode(): "site" | "page";
+  /* Whether the tray below the badge is open on the page card. */
+  pageOpen(): boolean;
   close(): void;
   /* The badge's second row, and the page card behind it (a ready reading opens it). */
   page(state: PageState): void;
@@ -361,6 +353,8 @@ const compact = (n: number) => (n >= 1_000_000 ? `${(n / 1_000_000).toFixed(n >=
 const UI_FONT = '"Google Sans", Helvetica, "Helvetica Neue", Arial, sans-serif';
 
 const CARD_WIDTH = 460, SITE_CARD_WIDTH = 360, MIN_SHEET = 120, MIN_SCROLL = 140, EDGE = 12, OPEN_DELAY = 300, CLOSE_DELAY = 200;
+/* How far the tray tucks under the pill (the strip below it is what shows). */
+const TUCK = 14;
 /* The grown card's padding (the badge's, too, and the badge's at rest), and
    the transitions that run while a new size is being measured: the surface
    fades from the first frame, the size is set by hand once known. */
@@ -436,12 +430,13 @@ export function createBar(opts: {
   for (const type of SWALLOW) analyse.addEventListener(type, (event) => event.stopPropagation());
   const pagebody = el("div", "pagebody");
   const pscroll = el("div", "pscroll");
-  /* The line across the badge's middle, and the ring of light around it while a page is read. */
-  const split = el("div", "split");
+  /* The tray behind the pill (the strip, then the page card) and the ring of light around it while a page is read. */
+  const tray = el("div", "tray");
+  tray.append(analyse, pagebody);
+  for (const type of SWALLOW) tray.addEventListener(type, (event) => event.stopPropagation());
   const halo = el("div", "halo");
-  /* The badge's second row sits right under the head and its figures, before the site card's body: whatever grows, the button stays where it was. */
-  card.append(who, head, dots, tagline, ...(site && opts.page ? [split, analyse] : []), body, ...(site && opts.page ? [pagebody] : []));
-  root.append(style, card, ...(site && opts.page ? [halo] : []));
+  card.append(who, head, dots, tagline, body);
+  root.append(style, card, ...(site && opts.page ? [tray, halo] : []));
   /* The host's own box is the header's, so the pins measure the bar and never the grown card. */
   if (!site) {
     const mirror = () => {
@@ -479,8 +474,9 @@ export function createBar(opts: {
     host.style.setProperty("--om-block", `${Math.max(34, Math.round(Math.max(rowBlock, row)))}px`);
   };
   let state: CardState = "rest";
-  /* Which card the grown box holds: the site's reading, or the page's. */
-  let mode: "site" | "page" = "site";
+  /* The tray: open on the page card, or the strip alone. */
+  let trayOpen = false;
+  let trayTimer: number | undefined;
   let pageState: PageState = { kind: "button" };
   /* The page card's inner view: the columns, or the words behind one point, one source, or "how it works". */
   let pageView: { kind: "columns" } | { kind: "point"; point: PagePoint; side: "pro" | "con" } | { kind: "source"; source: PageSource } | { kind: "how" } | { kind: "note" } = { kind: "columns" };
@@ -503,7 +499,7 @@ export function createBar(opts: {
   let wantedView: string | null = null;
   const tellView = () => { if (frame && ready && wantedView) frame.contentWindow?.postMessage({ om: true, type: "view", view: wantedView }, frameOrigin); };
   const openView = (view: string) => {
-    if (state !== "open" || mode !== "site") pin();
+    if (state !== "open") pin();
     if (!listOpen) showList(true);
     wantedView = view;
     tellView();
@@ -586,21 +582,12 @@ export function createBar(opts: {
         body.style.marginLeft = `${lead}px`;
         dots.style.marginLeft = `${lead}px`;
       }
-      if (state === "open" && mode === "site" && listOpen) {
+      if (state === "open" && listOpen) {
         const rowBox = head.getBoundingClientRect();
         const room = vh - rowBox.bottom - EDGE - (card.offsetHeight - sheet.offsetHeight - head.offsetHeight);
         const cap = Math.max(MIN_SHEET, Math.floor(room));
         if (sheetHeight > cap) { sheetHeight = cap; sheet.style.height = `${cap}px`; }
       }
-      if (state === "open" && mode === "page") {
-        /* The page card never runs past the window's bottom: its scrolling part gives way, down to a minimum. */
-        pscroll.style.maxHeight = "";
-        const over = hostBox.top + card.offsetHeight + EDGE - vh;
-        if (over > 0) pscroll.style.maxHeight = `${Math.max(MIN_SCROLL, pscroll.offsetHeight - over)}px`;
-      }
-      /* The badge's chip sits at the right end of the figures' line: the figures keep that much room, wrapping if they must. */
-      const chipRoom = site && opts.page && mode === "site" ? analyse.offsetWidth + 6 : 0;
-      dots.style.paddingRight = chipRoom ? `${chipRoom}px` : "";
       toW = card.offsetWidth; toH = card.offsetHeight;
       /* The contents are laid out at their final width from the first frame, so nothing re-wraps or slides while the box grows. */
       const inner = toW - 2 * pad.x - 2;
@@ -639,18 +626,12 @@ export function createBar(opts: {
     closing = false;
     card.classList.remove("closing");
     card.style.width = ""; card.style.height = ""; card.style.left = ""; card.style.top = ""; card.style.padding = "";
-    head.style.marginLeft = ""; head.style.width = ""; body.style.width = ""; body.style.marginLeft = ""; dots.style.marginLeft = ""; dots.style.paddingRight = "";
+    head.style.marginLeft = ""; head.style.width = ""; body.style.width = ""; body.style.marginLeft = ""; dots.style.marginLeft = ""
     host.style.zIndex = "";
-    setMode("site");
     if (restore) { const back = restore; restore = undefined; back(); }
   };
-  card.addEventListener("transitionend", (event) => { if (event.target === card && event.propertyName === "height") relax(); });
-  const setMode = (next: "site" | "page") => {
-    mode = next;
-    card.dataset.mode = next;
-    host.setAttribute("data-mode", next);
-  };
-  setMode("site");
+  /* The card's height settled: back to the bar, or, with the tray open beneath a card that just grew or shrank, the tray refitted to the window. */
+  card.addEventListener("transitionend", (event) => { if (event.target === card && event.propertyName === "height") { relax(); if (trayOpen) sizeTray(); } });
   const setState = (next: CardState) => {
     if (state === next) return;
     /* Where the animation starts: the size the card has before anything changes. Leaving rest, that is the bar's own box. */
@@ -662,11 +643,10 @@ export function createBar(opts: {
     clearTimeout(relaxTimer);
     closing = next === "rest";
     card.classList.toggle("closing", closing);
-    if (closing) dots.style.paddingRight = "";
     state = next;
     card.dataset.state = next;
     host.setAttribute("data-state", next);
-    if (next !== "rest") { if (!site) host.style.zIndex = "1"; if (mode === "page") fillPage(); else fillCard(); }
+    if (next !== "rest") { if (!site) host.style.zIndex = "1"; fillCard(); }
     if (site && opts.page) renderAnalyse();
     grow(from);
     if (next === "rest") relaxTimer = window.setTimeout(relax, 400);
@@ -726,48 +706,90 @@ export function createBar(opts: {
     chip.textContent = "See recurring opinions";
     chip.classList.remove("on");
   };
-  chip.addEventListener("click", (event) => { event.stopPropagation(); if (state !== "open" || mode !== "site") pin(); showList(!listOpen); });
+  chip.addEventListener("click", (event) => { event.stopPropagation(); if (state !== "open") pin(); showList(!listOpen); });
 
   /* ---- states ---- */
-  const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") close(); };
-  const onOutside = (event: Event) => { if (!event.composedPath().includes(host)) close(); };
+  /* Escape closes the topmost open thing: the site's card, else the tray; a press outside closes both. */
+  const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") { if (state !== "rest") close(); else closeTray(); } };
+  const onOutside = (event: Event) => { if (!event.composedPath().includes(host)) { close(); closeTray(); } };
   const listen = () => {
     window.addEventListener("keydown", onKey);
     document.addEventListener("pointerdown", onOutside, true);
   };
-  /* The site's card, pinned; from the page card, the box changes over without closing. */
+  /* The listeners go once nothing is open: neither the card nor the tray. */
+  const unlisten = () => {
+    if (state !== "rest" || trayOpen) return;
+    window.removeEventListener("keydown", onKey);
+    document.removeEventListener("pointerdown", onOutside, true);
+  };
+  /* The site's card, pinned. */
   const pin = () => {
-    if (still || !current) return;
-    if (state === "open" && mode === "site") return;
+    if (still || !current || state === "open") return;
     clearTimeout(openTimer); clearTimeout(closeTimer);
     listen();
-    if (state === "open") { switchTo("site"); return; }
-    setMode("site");
     setState("open");
   };
+  /* The site's card back to the bar; the tray beneath is its own affair. */
   const close = () => {
     clearTimeout(openTimer); clearTimeout(closeTimer);
     if (state === "rest") return;
-    window.removeEventListener("keydown", onKey);
-    document.removeEventListener("pointerdown", onOutside, true);
     if (frame) dropList();
     hoverArmed = false;
     setState("rest");
+    unlisten();
   };
-  /* The other card in the same box: the contents change and the box grows or shrinks to them, the header staying put. */
-  const switchTo = (next: "site" | "page") => {
-    const from = { w: card.offsetWidth, h: card.offsetHeight, padding: getComputedStyle(card).padding };
-    if (next === "site" && frame) dropList();
-    setMode(next);
-    if (next === "page") fillPage(); else fillCard();
+  /* ---- the tray: the strip, or the page card ----
+     The tray hangs from the card's bottom edge, so it rides with the card; its own height goes from the
+     strip to the page card and back, the way the card grows, and never past the window's bottom. */
+  const sizeTray = () => {
+    const from = tray.offsetHeight;
+    tray.style.transition = "none";
+    tray.style.height = "auto";
+    pscroll.style.maxHeight = "";
+    /* Closing: the target is the strip alone, though the page card stays in view, fading, while the tray shrinks over it. */
+    if (!trayOpen) pagebody.style.display = "none";
+    if (trayOpen) {
+      const over = tray.getBoundingClientRect().top + tray.offsetHeight + EDGE - (window.innerHeight || 768);
+      if (over > 0 && pscroll.isConnected) pscroll.style.maxHeight = `${Math.max(MIN_SCROLL, pscroll.offsetHeight - over)}px`;
+    }
+    const to = tray.offsetHeight;
+    pagebody.style.display = "";
+    tray.style.height = `${from}px`;
+    void tray.offsetHeight;
+    tray.style.transition = "";
+    tray.style.height = `${to}px`;
+    /* The ring reaches the tray's bottom edge, whatever its height. */
+    halo.style.bottom = `${-(to - TUCK + 2)}px`;
+  };
+  const openTray = () => {
+    if (trayOpen) return;
+    clearTimeout(trayTimer);
+    trayOpen = true;
+    tray.classList.remove("closing");
+    tray.setAttribute("data-open", "");
+    host.setAttribute("data-tray", "");
+    fillPage();
     renderAnalyse();
-    grow(from);
+    listen();
+    sizeTray();
+  };
+  const closeTray = () => {
+    if (!trayOpen) return;
+    trayOpen = false;
+    tray.removeAttribute("data-open");
+    host.removeAttribute("data-tray");
+    tray.classList.add("closing");
+    renderAnalyse();
+    sizeTray();
+    clearTimeout(trayTimer);
+    trayTimer = window.setTimeout(() => { tray.classList.remove("closing"); pagebody.classList.remove("detail"); }, 400);
+    unlisten();
   };
   const hoverIn = () => {
     if (!hoverArmed || state !== "rest" || !current || host.hasAttribute("data-dragging")) return;
     clearTimeout(closeTimer);
     clearTimeout(openTimer);
-    openTimer = window.setTimeout(() => { if (state === "rest" && hoverArmed) { setMode("site"); setState("hover"); } }, OPEN_DELAY);
+    openTimer = window.setTimeout(() => { if (state === "rest" && hoverArmed) setState("hover"); }, OPEN_DELAY);
   };
   const hoverOut = () => {
     clearTimeout(openTimer);
@@ -785,9 +807,9 @@ export function createBar(opts: {
     head.addEventListener("mouseleave", () => { if (state === "rest") clearTimeout(openTimer); });
   }
   host.addEventListener("mouseleave", hoverOut);
-  head.addEventListener("focus", () => { if (state === "rest" && current) { setMode("site"); setState("hover"); } });
+  head.addEventListener("focus", () => { if (state === "rest" && current) setState("hover"); });
   head.addEventListener("blur", () => { if (state === "hover") hoverOut(); });
-  head.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); if (state === "open" && mode === "site") close(); else pin(); } });
+  head.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); if (state === "open") close(); else pin(); } });
   /* A bar must never act as the link it sits beside. */
   for (const type of SWALLOW) card.addEventListener(type, (event) => event.stopPropagation());
   card.addEventListener("click", (event) => {
@@ -847,26 +869,32 @@ export function createBar(opts: {
     host.toggleAttribute("data-busy", s.kind === "busy");
     analyse.disabled = false;
     if (s.kind === "button" || s.kind === "error") {
-      /* Each wording twice: in full for the row, short for the chip (the stylesheet shows one or the other). */
-      analyse.append(el("span", "full", s.kind === "error" ? `${s.message} · try again` : ANALYSE_LABEL), el("span", "short", s.kind === "error" ? "Try again" : "Analyse page"));
+      analyse.append(el("span", undefined, s.kind === "error" ? `${s.message} · try again` : ANALYSE_LABEL));
       analyse.setAttribute("aria-label", ANALYSE_LABEL);
     } else if (s.kind === "busy") {
-      analyse.append(el("span", "full", "Analysing this page…"), el("span", "short", "Analysing…"));
+      analyse.append(el("span", undefined, "Analysing this page…"));
       analyse.setAttribute("aria-busy", "true");
       analyse.setAttribute("aria-label", "Analysing this page's subject");
     } else if (s.kind === "ready") {
-      const seg = segments(s.page, state === "rest" ? 2 : 3);
-      analyse.append(el("span", "name", s.page.subject), seg, el("span", "label", verdict(s.page)));
-      analyse.setAttribute("aria-label", `${verdict(s.page)} sentiment for ${s.page.subject}, the subject of this page. ${state === "open" && mode === "page" ? "Close" : "Open"} the page card.`);
+      /* The subject's row, and the tray's own × once it is open. */
+      const seg = segments(s.page, trayOpen ? 3 : 2);
+      const x = el("button", "x", "×");
+      x.type = "button";
+      x.setAttribute("aria-label", "Close the page card");
+      x.addEventListener("click", (event) => { event.stopPropagation(); closeTray(); });
+      analyse.append(el("span", "name", s.page.subject), seg, el("span", "label", verdict(s.page)), x);
+      analyse.setAttribute("aria-label", `${verdict(s.page)} sentiment for ${s.page.subject}, the subject of this page. ${trayOpen ? "Close" : "Open"} the page card.`);
     } else if (s.kind === "insufficient") {
       const lines = el("span", "lines");
       lines.append(el("span", "name", s.subject), el("span", "sub", s.message));
       analyse.append(lines);
       analyse.setAttribute("aria-label", `${s.subject}: ${s.message}`);
     } else {
-      analyse.append(el("span", "quiet", s.message), el("span", "short", "Nothing to analyse"));
+      analyse.append(el("span", "quiet", s.message));
       analyse.setAttribute("aria-label", s.message);
     }
+    /* The ring reaches the tray's bottom edge, whatever the tray holds. */
+    halo.style.bottom = `${-(tray.offsetHeight - TUCK + 2)}px`;
   };
   /* The press: the note the first time, then the reading; a ready reading opens or closes the page card. */
   const analysePressed = async () => {
@@ -874,23 +902,22 @@ export function createBar(opts: {
     if (!hooks) return;
     if (pageState.kind === "busy" || pageState.kind === "nothing" || pageState.kind === "insufficient") return;
     if (pageState.kind === "ready") {
-      if (state === "open" && mode === "page") close();
-      else openPage();
+      if (trayOpen) closeTray(); else openTray();
       return;
     }
-    if (!(await hooks.consented())) { pageView = { kind: "note" }; openPage(); return; }
+    if (!(await hooks.consented())) { pageView = { kind: "note" }; openTray(); return; }
     await run();
   };
   const run = async () => {
     const hooks = opts.page;
     if (!hooks) return;
-    if (state !== "rest") close();
+    if (trayOpen) closeTray();
     pageState = { kind: "busy" };
     renderAnalyse();
     try {
       const response = await hooks.analyse();
       if (pageState.kind !== "busy") return;
-      if (response.kind === "page") { pageState = { kind: "ready", page: response.page }; pageView = { kind: "columns" }; renderAnalyse(); openPage(); }
+      if (response.kind === "page") { pageState = { kind: "ready", page: response.page }; pageView = { kind: "columns" }; renderAnalyse(); openTray(); }
       else if (response.kind === "insufficient") { pageState = { kind: "insufficient", subject: response.subject, message: response.message }; renderAnalyse(); }
       else { pageState = { kind: "nothing", message: response.message }; renderAnalyse(); }
     } catch (err) {
@@ -899,14 +926,6 @@ export function createBar(opts: {
     }
   };
   analyse.addEventListener("click", (event) => { event.stopPropagation(); void analysePressed(); });
-  /* The page card, pinned open (a click elsewhere in the box, Escape, an outside click or the × shrinks it back). */
-  const openPage = () => {
-    clearTimeout(openTimer); clearTimeout(closeTimer);
-    listen();
-    if (state === "open") { switchTo("page"); return; }
-    setMode("page");
-    setState("open");
-  };
 
   /* ---- the page card ---- */
   const platformTile = (source: string, onClick: () => void) => {
@@ -951,7 +970,7 @@ export function createBar(opts: {
       const go = el("button", "chip", "Continue"), no = el("button", "chip", "Not now");
       go.type = "button"; no.type = "button";
       go.addEventListener("click", (event) => { event.stopPropagation(); void hooks.consent().then(() => { pageView = { kind: "columns" }; void run(); }); });
-      no.addEventListener("click", (event) => { event.stopPropagation(); pageView = { kind: "columns" }; close(); });
+      no.addEventListener("click", (event) => { event.stopPropagation(); pageView = { kind: "columns" }; closeTray(); });
       choices.append(go, no);
       pagebody.append(note, choices);
       return;
@@ -1002,7 +1021,7 @@ export function createBar(opts: {
     pdetail.replaceChildren();
     const back = el("button", "back", "← Back");
     back.type = "button";
-    back.addEventListener("click", (event) => { event.stopPropagation(); pageView = { kind: "columns" }; pagebody.classList.remove("detail"); pscroll.scrollTop = 0; grow(); });
+    back.addEventListener("click", (event) => { event.stopPropagation(); pageView = { kind: "columns" }; pagebody.classList.remove("detail"); pscroll.scrollTop = 0; sizeTray(); });
     pdetail.append(back);
     if (view.kind === "point") {
       pdetail.append(el("p", "ptitle", view.point.sentence));
@@ -1024,7 +1043,7 @@ export function createBar(opts: {
     }
     pagebody.classList.add("detail");
     pscroll.scrollTop = 0;
-    if (state === "open") grow();
+    if (trayOpen) sizeTray();
   };
 
   /* ---- the header for each shape ---- */
@@ -1067,7 +1086,7 @@ export function createBar(opts: {
     renderHead(s);
     fitBar();
     if (opts.shape === "line") tagline.textContent = s.kind === "ready" ? s.gauge.sentence : "";
-    if (state !== "rest" && mode === "site") { fillCard(); grow(); }
+    if (state !== "rest") { fillCard(); grow(); }
   };
   render({ kind: "loading" });
   if (site && opts.page) renderAnalyse();
@@ -1099,16 +1118,15 @@ export function createBar(opts: {
       if (more.block !== undefined) { rowBlock = more.block; fitBar(); }
     },
     state: () => state,
-    mode: () => mode,
+    pageOpen: () => trayOpen,
     close,
     page: (s) => {
-      /* A ready reading arriving from outside opens the card; anything else only changes the row. */
+      /* A ready reading arriving from outside opens the tray; anything else only changes the strip (and folds an open tray). */
       pageState = s;
-      if (s.kind !== "ready") pageView = { kind: "columns" };
-      if (state !== "rest" && mode === "page" && s.kind !== "ready") close();
+      if (s.kind !== "ready") { pageView = { kind: "columns" }; closeTray(); }
       renderAnalyse();
-      if (s.kind === "ready") { pageView = { kind: "columns" }; openPage(); }
+      if (s.kind === "ready") { pageView = { kind: "columns" }; openTray(); }
     },
-    remove: () => { close(); host.remove(); },
+    remove: () => { close(); closeTray(); host.remove(); },
   };
 }

@@ -97,7 +97,7 @@ async function main() {
   const faint = (event?: Event) => {
     const box = event && event.target !== document && event.target !== window ? event.target : document.scrollingElement;
     const scrolled = window.scrollY > 0 || (box instanceof Element && box.scrollTop > 0);
-    if (scrolled && bar.state() === "open" && bar.mode() !== "page") bar.close();
+    if (scrolled && bar.state() === "open") bar.close();
     bar.host.toggleAttribute("data-faint", scrolled);
   };
   document.addEventListener("scroll", faint, { capture: true, passive: true });
