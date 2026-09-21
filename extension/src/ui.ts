@@ -87,7 +87,7 @@ const CSS = `
 .seg span{display:block;height:100%}.seg .pos{background:var(--pos)}.seg .neu{background:var(--neu)}.seg .neg{background:var(--neg);flex:1}
 .seg.loading{position:relative}.seg.loading:before{content:"";position:absolute;inset:0;width:45%;border-radius:inherit;background:linear-gradient(90deg,var(--pos) 50%,var(--neg) 50%);animation:flow 1600ms ease-in-out infinite}
 @keyframes flow{0%{transform:translateX(-110%)}100%{transform:translateX(220%)}}
-.x{display:none;opacity:0;transition:opacity 200ms ease;width:18px;height:18px;border-radius:9px;border:0;padding:0;background:var(--tile);color:var(--tm);font:11px/18px inherit;font-family:inherit;text-align:center;cursor:pointer;flex:none}
+.x{display:none;opacity:0;transition:opacity 200ms ease;width:18px;height:18px;border-radius:9px;border:0;padding:0;background:var(--tile);color:var(--tm);font-size:11px;line-height:18px;font-family:inherit;text-align:center;cursor:pointer;flex:none}
 .card[data-state="hover"] .x,.card[data-state="open"] .x{display:block;opacity:1}
 .card.closing .x{display:block}
 /* The badge's × grows in from nothing, so the verdict slides rather than jumps as the card opens, and back as it closes. */
@@ -117,7 +117,7 @@ const CSS = `
 .dots span{display:inline-flex;align-items:center;gap:6px}.dots i{width:5px;height:5px;border-radius:3px;flex:none}
 .summary{overflow-wrap:anywhere;font-size:13px;line-height:1.6;color:var(--tb);margin:16px 0 18px;text-wrap:pretty;max-width:62ch}
 :host([data-site]) .summary{font-size:12px;margin:14px 0 16px}
-:host([data-site]) .dots{gap:14px}:host([data-site]) .card[data-state="hover"] .dots,:host([data-site]) .card[data-state="open"] .dots{margin-top:8px}
+:host([data-site]) .dots{gap:8px 12px}:host([data-site]) .card[data-state="hover"] .dots,:host([data-site]) .card[data-state="open"] .dots{margin-top:8px}
 .actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .tiles{display:flex;gap:6px}
 .tile{width:24px;height:24px;border-radius:7px;border:0;padding:0;background:var(--tile);display:grid;place-items:center;cursor:pointer;color:var(--t2);transition:background 160ms ease}.tile:hover{background:var(--border)}
@@ -143,7 +143,7 @@ iframe{display:block;width:100%;height:100%;border:0;background:transparent;colo
 .foot{font-size:10px;color:var(--tl);background:none;border:0;padding:0;font-family:inherit;cursor:pointer;text-align:left}.foot:hover{color:var(--t2)}
 .credit{font-size:10px;color:var(--tl);white-space:nowrap}
 .bar{display:contents}
-.dismiss{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;border:0;padding:0;background:var(--tile);color:var(--t1);font:12px/20px inherit;font-family:inherit;text-align:center;cursor:pointer;opacity:0;transition:opacity 160ms ease;z-index:2}
+.dismiss{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;border:0;padding:0;background:var(--tile);color:var(--t1);font-size:12px;line-height:20px;font-family:inherit;text-align:center;cursor:pointer;opacity:0;transition:opacity 160ms ease;z-index:2}
 :host(:hover) .dismiss,.dismiss:focus-visible{opacity:1}
 :host([data-dragging]) .card{cursor:grabbing}
 .head[tabindex]:focus-visible{outline:2px solid var(--tm);outline-offset:4px;border-radius:4px}
@@ -158,7 +158,7 @@ iframe{display:block;width:100%;height:100%;border:0;background:transparent;colo
 :host([data-site]) .card[data-state="rest"] .head:hover::before{background:var(--tile)}
 .split{display:none;flex:none;height:1px;margin:8px calc(-1 * var(--px)) 0;background:var(--divider)}
 :host([data-site]) .split{display:block}
-.analyse{display:none;position:relative;align-self:stretch;align-items:center;gap:10px;min-width:0;margin-top:8px;padding:0;border:0;background:transparent;color:var(--t1);font:12px/18px inherit;font-family:inherit;font-weight:500;text-align:left;cursor:pointer;white-space:nowrap}
+.analyse{display:none;position:relative;align-self:stretch;align-items:center;gap:10px;min-width:0;margin-top:8px;padding:0;border:0;background:transparent;color:var(--t1);font-size:12px;line-height:18px;font-family:inherit;font-weight:500;text-align:left;cursor:pointer;white-space:nowrap}
 :host([data-site]) .analyse{display:flex}
 .analyse::before{content:"";position:absolute;inset:-8px calc(-1 * var(--px)) calc(-1 * var(--pb));z-index:-1;background:transparent;transition:background 160ms ease}
 /* Inside a grown card the half is a row among others: its darkening keeps to its own box. */
@@ -177,7 +177,7 @@ iframe{display:block;width:100%;height:100%;border:0;background:transparent;colo
 .analyse .quiet{color:var(--tl)}
 .analyse .short{display:none}
 /* While the site's own card is grown, the button shrinks into a chip at the top right, on the site's line just left of the ×, so the figures and the summary below stay as they are; the head keeps room for it (set as the card grows). */
-.card[data-mode="site"][data-state="hover"] .analyse,.card[data-mode="site"][data-state="open"] .analyse{position:absolute;top:calc(var(--pt) + 23px);right:var(--px);margin:0;padding:0 9px;height:20px;box-sizing:border-box;gap:6px;align-self:auto;border:1px solid var(--border);border-radius:10px;background:var(--card);font-size:12px;line-height:18px;z-index:2}
+.card[data-mode="site"][data-state="hover"] .analyse,.card[data-mode="site"][data-state="open"] .analyse{position:absolute;top:calc(var(--pt) + 23px);right:var(--px);margin:0;padding:0 7px;height:20px;box-sizing:border-box;gap:6px;align-self:auto;border:1px solid var(--border);border-radius:10px;background:var(--card);font-size:12px;line-height:18px;z-index:2}
 .card[data-mode="site"][data-state="hover"] .analyse::before,.card[data-mode="site"][data-state="open"] .analyse::before{inset:-1px;border-radius:inherit}
 .card[data-mode="site"][data-state="hover"] .split,.card[data-mode="site"][data-state="open"] .split,.card[data-mode="site"][data-state="hover"] .analyse .seg,.card[data-mode="site"][data-state="open"] .analyse .seg,.card[data-mode="site"][data-state="hover"] .analyse .full,.card[data-mode="site"][data-state="open"] .analyse .full,.card[data-mode="site"][data-state="hover"] .analyse .quiet,.card[data-mode="site"][data-state="open"] .analyse .quiet,.card[data-mode="site"][data-state="hover"] .analyse .lines .sub,.card[data-mode="site"][data-state="open"] .analyse .lines .sub{display:none}
 .card[data-mode="site"][data-state="hover"] .analyse .short,.card[data-mode="site"][data-state="open"] .analyse .short{display:inline}
@@ -206,14 +206,14 @@ iframe{display:block;width:100%;height:100%;border:0;background:transparent;colo
 .pdots span{display:inline-flex;align-items:center;gap:6px}.pdots i{width:5px;height:5px;border-radius:3px;flex:none}
 .cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start;padding-top:2px}
 .col h4{margin:0 0 8px;font-size:10px;font-weight:500;letter-spacing:.8px;text-transform:uppercase;color:var(--tl)}
-.bubble{display:block;width:100%;box-sizing:border-box;text-align:left;margin:0 0 6px;padding:7px 10px;border-radius:12px;border:0;font:11px/1.45 inherit;font-family:inherit;cursor:pointer;white-space:normal;text-wrap:pretty;overflow-wrap:anywhere;transition:filter 160ms ease,transform 160ms ease}
+.bubble{display:block;width:100%;box-sizing:border-box;text-align:left;margin:0 0 6px;padding:7px 10px;border-radius:12px;border:0;font-size:11px;line-height:1.45;font-family:inherit;cursor:pointer;white-space:normal;text-wrap:pretty;overflow-wrap:anywhere;transition:filter 160ms ease,transform 160ms ease}
 .bubble.pro{background:var(--pro-bg);color:var(--pro-ink)}.bubble.con{background:var(--con-bg);color:var(--con-ink)}
 .bubble:hover{filter:brightness(.96)}:host([data-dark]) .bubble:hover{filter:brightness(1.12)}
 .bubble .n{opacity:.7;font-size:10px;margin-left:4px}
 .none{font-size:11px;color:var(--tl);margin:2px 0 6px}
 .pdetail{display:none;flex-direction:column;margin-top:12px}
 .pagebody.detail .cols{display:none}.pagebody.detail .pdetail{display:flex}
-.back{align-self:flex-start;background:none;border:0;padding:0;margin:0 0 10px;font:11px inherit;font-family:inherit;color:var(--t2);cursor:pointer}.back:hover{color:var(--t1)}
+.back{align-self:flex-start;background:none;border:0;padding:0;margin:0 0 10px;font-size:11px;font-family:inherit;color:var(--t2);cursor:pointer}.back:hover{color:var(--t1)}
 .ptitle{font-size:12px;font-weight:500;color:var(--t1);margin:0 0 4px;white-space:normal;text-wrap:pretty}
 .quote{padding:8px 0;border-top:1px solid var(--divider);font-size:11px;line-height:1.5;color:var(--tb);white-space:normal;text-wrap:pretty;overflow-wrap:anywhere}
 .quote:first-of-type{border-top:0}
@@ -599,7 +599,7 @@ export function createBar(opts: {
         if (over > 0) pscroll.style.maxHeight = `${Math.max(MIN_SCROLL, pscroll.offsetHeight - over)}px`;
       }
       /* The badge's chip sits at the right end of the figures' line: the figures keep that much room, wrapping if they must. */
-      const chipRoom = site && opts.page && mode === "site" ? analyse.offsetWidth + 8 : 0;
+      const chipRoom = site && opts.page && mode === "site" ? analyse.offsetWidth + 6 : 0;
       dots.style.paddingRight = chipRoom ? `${chipRoom}px` : "";
       toW = card.offsetWidth; toH = card.offsetHeight;
       /* The contents are laid out at their final width from the first frame, so nothing re-wraps or slides while the box grows. */
