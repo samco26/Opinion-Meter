@@ -144,40 +144,56 @@ iframe{display:block;width:100%;height:100%;border:0;background:transparent;colo
 :host(:hover) .dismiss,.dismiss:focus-visible{opacity:1}
 :host([data-dragging]) .card{cursor:grabbing}
 .head[tabindex]:focus-visible{outline:2px solid var(--tm);outline-offset:4px;border-radius:4px}
-/* ---- The badge's second row: "Analyse this page's subject" ---- */
-.analyse{display:none;position:relative;align-self:stretch;align-items:center;gap:10px;min-width:0;margin-top:7px;padding:6px 10px;border:1px solid var(--border);border-radius:11px;background:transparent;color:var(--t2);font:11px/16px inherit;font-family:inherit;text-align:left;cursor:pointer;white-space:nowrap;transition:background 160ms ease,border-color 160ms ease}
+/* ---- The badge's two halves: the site's reading above, "Analyse this page's subject" below ----
+   One box cut in two by a line across its middle; each half starts at the same edge, has the same
+   room, and darkens under the pointer to say it can be pressed. The darkening is a layer painted
+   under the half's text (a pseudo-element at z-index -1 inside the card's own stacking context),
+   reaching the card's edges, clipped by the card's corners. */
+:host([data-site]) .card{isolation:isolate}
+:host([data-site]) .head{position:relative}
+:host([data-site]) .head::before{content:"";position:absolute;inset:calc(-1 * var(--pt)) calc(-1 * var(--px)) -8px;z-index:-1;background:transparent;transition:background 160ms ease}
+:host([data-site]) .card[data-state="rest"] .head:hover::before{background:var(--tile)}
+.split{display:none;flex:none;height:1px;margin:8px calc(-1 * var(--px)) 0;background:var(--divider)}
+:host([data-site]) .split{display:block}
+.analyse{display:none;position:relative;align-self:stretch;align-items:center;gap:10px;min-width:0;margin-top:8px;padding:0;border:0;background:transparent;color:var(--t2);font:11px/18px inherit;font-family:inherit;text-align:left;cursor:pointer;white-space:nowrap}
 :host([data-site]) .analyse{display:flex}
-.analyse:hover{background:var(--tile)}
+.analyse::before{content:"";position:absolute;inset:-8px calc(-1 * var(--px)) calc(-1 * var(--pb));z-index:-1;background:transparent;transition:background 160ms ease}
+/* Inside a grown card the half is a row among others: its darkening keeps to its own box. */
+.card[data-state="hover"] .analyse::before,.card[data-state="open"] .analyse::before,.card.closing .analyse::before{inset:-5px -8px;border-radius:8px}
+.analyse:hover::before{background:var(--tile)}
 .analyse[data-page="nothing"],.analyse[data-page="insufficient"]{cursor:default}
-.analyse[data-page="nothing"]:hover,.analyse[data-page="insufficient"]:hover{background:transparent}
+.analyse[data-page="nothing"]:hover::before,.analyse[data-page="insufficient"]:hover::before{background:transparent}
 .analyse[data-page="busy"]{color:var(--tb);cursor:progress}
 .analyse .go{margin-left:auto;color:var(--tl)}
 .analyse .name{font-size:12px;font-weight:500;color:var(--t1);flex:0 1 auto;min-width:0;max-width:220px;overflow:hidden;text-overflow:ellipsis}
 .analyse .seg{flex:1 1 auto;width:auto;min-width:40px;--om-h:3px;--om-r:2px}
 .analyse .label{color:var(--t2)}
 :host([data-dark]) .analyse .label{color:var(--tb)}
-.analyse .lines{display:flex;flex-direction:column;gap:2px;min-width:0}
+.analyse .lines{display:flex;flex-direction:column;gap:2px;min-width:0;line-height:1.3}
 .analyse .lines .sub{font-size:10px;line-height:1.4;color:var(--tl);white-space:normal;text-wrap:pretty;max-width:250px}
 .analyse .quiet{color:var(--tl)}
-/* The ring of light while the page is read: a rotating green-into-red sweep, shown through a ring-shaped mask, with a soft glow of the same under it. */
-.ring,.glow{display:none;position:absolute;inset:-1px;border-radius:inherit;pointer-events:none;overflow:hidden}
-.ring{padding:1.5px;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude}
-.glow{inset:-4px;filter:blur(7px);opacity:.5}
-.ring::before,.glow::before{content:"";position:absolute;left:50%;top:50%;width:200%;padding-top:200%;margin:-100% 0 0 -100%;border-radius:50%;background:conic-gradient(from 0deg,transparent 0 52%,var(--pos) 70%,var(--neg) 88%,transparent 100%);animation:spin 1500ms linear infinite}
-.analyse[data-page="busy"] .ring,.analyse[data-page="busy"] .glow{display:block}
-.analyse[data-page="busy"]{border-color:transparent}
+/* The ring of light while the page is read: a rotating green-into-red sweep around the whole
+   badge, shown through a ring-shaped mask that sits just outside the card, with a soft glow of
+   the same under it. Both live beside the card (never inside it, which clips), and only while
+   the badge is at rest. */
+.halo,.haloglow{display:none;position:absolute;inset:-2px;border-radius:19px;pointer-events:none;overflow:hidden}
+.halo{padding:2px;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude}
+.haloglow{inset:-5px;border-radius:22px;filter:blur(8px);opacity:.55}
+.halo::before,.haloglow::before{content:"";position:absolute;left:50%;top:50%;width:200%;padding-top:200%;margin:-100% 0 0 -100%;border-radius:50%;background:conic-gradient(from 0deg,transparent 0 52%,var(--pos) 70%,var(--neg) 88%,transparent 100%);animation:spin 1500ms linear infinite}
+:host([data-busy]:not([data-state="hover"]):not([data-state="open"])) .halo,:host([data-busy]:not([data-state="hover"]):not([data-state="open"])) .haloglow{display:block}
 @keyframes spin{to{transform:rotate(360deg)}}
 /* ---- The page card ---- */
 .pagebody{display:none;flex-direction:column;white-space:normal;min-height:0;opacity:1;transition:opacity 150ms ease}
 .card[data-mode="page"][data-state="open"] .pagebody{display:flex}
 .card[data-mode="page"].closing .pagebody{display:flex;opacity:0}
 .card[data-mode="page"] .body,.card[data-mode="page"] .dots,.card[data-mode="page"] .heading,.card[data-mode="page"] .sheet{display:none!important}
-.card[data-mode="page"] .analyse{margin-top:9px}
+.card[data-mode="page"] .split{margin-top:9px}
 @starting-style{.card[data-mode="page"][data-state="open"] .pagebody{opacity:0}}
-.pscroll{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;margin:0 calc(-1 * var(--px));padding:0 var(--px)}
+/* Only the pros and the cons (or the words behind one) scroll; the figures, the summary and the sources above them, and the footer below, stay put. */
+.pscroll{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;margin:0 calc(-1 * var(--px));padding:0 var(--px);min-height:0}
 .pdots{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:10px;font-size:10px;line-height:14px;color:var(--tl)}
 .pdots span{display:inline-flex;align-items:center;gap:6px}.pdots i{width:5px;height:5px;border-radius:3px;flex:none}
-.cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start;margin-top:14px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start;padding-top:2px}
 .col h4{margin:0 0 8px;font-size:10px;font-weight:500;letter-spacing:.8px;text-transform:uppercase;color:var(--tl)}
 .bubble{display:block;width:100%;box-sizing:border-box;text-align:left;margin:0 0 6px;padding:7px 10px;border-radius:12px;border:0;font:11px/1.45 inherit;font-family:inherit;cursor:pointer;white-space:normal;text-wrap:pretty;overflow-wrap:anywhere;transition:filter 160ms ease,transform 160ms ease}
 .bubble.pro{background:var(--pro-bg);color:var(--pro-ink)}.bubble.con{background:var(--con-bg);color:var(--con-ink)}
@@ -404,9 +420,12 @@ export function createBar(opts: {
   for (const type of SWALLOW) analyse.addEventListener(type, (event) => event.stopPropagation());
   const pagebody = el("div", "pagebody");
   const pscroll = el("div", "pscroll");
+  /* The line across the badge's middle, and the ring of light around it while a page is read. */
+  const split = el("div", "split");
+  const halo = el("div", "halo"), haloglow = el("div", "haloglow");
   /* The badge's second row sits right under the head and its figures, before the site card's body: whatever grows, the button stays where it was. */
-  card.append(who, head, dots, tagline, ...(site && opts.page ? [analyse] : []), body, ...(site && opts.page ? [pagebody] : []));
-  root.append(style, card);
+  card.append(who, head, dots, tagline, ...(site && opts.page ? [split, analyse] : []), body, ...(site && opts.page ? [pagebody] : []));
+  root.append(style, card, ...(site && opts.page ? [haloglow, halo] : []));
   /* The host's own box is the header's, so the pins measure the bar and never the grown card. */
   if (!site) {
     const mirror = () => {
@@ -792,12 +811,13 @@ export function createBar(opts: {
     analyse.dataset.page = s.kind;
     analyse.replaceChildren();
     analyse.removeAttribute("aria-busy");
+    host.toggleAttribute("data-busy", s.kind === "busy");
     analyse.disabled = false;
     if (s.kind === "button" || s.kind === "error") {
       analyse.append(el("span", undefined, s.kind === "error" ? `${s.message} · try again` : ANALYSE_LABEL), el("span", "go", "›"));
       analyse.setAttribute("aria-label", ANALYSE_LABEL);
     } else if (s.kind === "busy") {
-      analyse.append(el("span", "ring"), el("span", "glow"), el("span", undefined, "Analysing this page…"));
+      analyse.append(el("span", undefined, "Analysing this page…"));
       analyse.setAttribute("aria-busy", "true");
       analyse.setAttribute("aria-label", "Analysing this page's subject");
     } else if (s.kind === "ready") {
@@ -929,13 +949,13 @@ export function createBar(opts: {
       cols.append(col);
     }
     const pdetail = el("div", "pdetail");
-    pscroll.append(pdots, psummary, pactions, el("div", "divider"), cols, pdetail);
+    pscroll.append(cols, pdetail);
     const pfoot = el("button", "foot", "How it works · sources and confidence");
     pfoot.type = "button";
     pfoot.addEventListener("click", (event) => { event.stopPropagation(); showDetail({ kind: "how" }); });
     const pfooter = el("div", "footer");
     pfooter.append(pfoot, el("span", "credit", "Built by samco"));
-    pagebody.append(pscroll, el("div", "divider"), pfooter);
+    pagebody.append(pdots, psummary, pactions, el("div", "divider"), pscroll, el("div", "divider"), pfooter);
     if (pageView.kind !== "columns") showDetail(pageView);
   };
   /* The words behind a point, a source's quotes, or the explainer, in place of the columns; Back returns. */
