@@ -22,7 +22,7 @@ export function normaliseUrl(raw: string): string | null {
     if (!/^https?:$/.test(u.protocol)) return null;
     u.hash = "";
     u.hostname = u.hostname.toLowerCase().replace(/^(www|m|amp)\./, "");
-    for (const key of [...u.searchParams.keys()]) if (/^(utm_|fbclid|gclid|yclid|mc_|ref$|ref_|si$|feature$|ved$|sr_share)/.test(key)) u.searchParams.delete(key);
+    for (const key of [...u.searchParams.keys()]) if (/^(utm_|fbclid|gclid|yclid|mc_|ref$|ref_|si$|feature$|ved$|sr_share|pd_rd_|pf_rd_|content-id$|crid$|dib$|dib_tag$|qid$|sprefix$|sr$)/.test(key)) u.searchParams.delete(key);
     u.pathname = u.pathname.replace(/\/+$/, "") || "/";
     return u.toString();
   } catch {

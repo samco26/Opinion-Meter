@@ -40,6 +40,12 @@ test("news is an article found by link; utility pages are nothing; the rest is a
 test("addresses lose tracking parameters and mobile prefixes; names slug cleanly", () => {
   assert.equal(normaliseUrl("https://m.example.com/a/b/?utm_campaign=x&id=5&fbclid=y#top"), "https://example.com/a/b?id=5");
   assert.equal(normaliseUrl("not a url"), null);
+  /* A shop's carousel hangs its own placement on the address; the same product reached two ways is one page, read once. A variant selector is not tracking and stays. */
+  assert.equal(
+    normaliseUrl("https://www.amazon.com.au/Tersely-Memory-Reader/dp/B08YMM9WX1?pd_rd_w=J2sls&content-id=amzn1.sym.d7d187f6&pf_rd_p=d7d187f6&pf_rd_r=HZSV29Q9WDQ&th=1"),
+    "https://amazon.com.au/Tersely-Memory-Reader/dp/B08YMM9WX1?th=1",
+  );
+  assert.equal(normaliseUrl("https://www.amazon.com.au/dp/B09ZFDYKP3?crid=2X&qid=1758&sprefix=sony&sr=8-1&psc=1"), "https://amazon.com.au/dp/B09ZFDYKP3?psc=1");
   assert.equal(slug("Sony WH-1000XM6 (Black)"), "sony-wh-1000xm6-black");
   assert.equal(slug("Café Été"), "cafe-ete");
   assert.equal(shorten("Sony WH-1000XM6 Wireless Headphones, Industry Leading Noise Cancelling with Auto Optimizer"), "Sony WH-1000XM6 Wireless Headphones");

@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { liteGauge } from "../src/lib/analysis/lite.ts";
 import { analyseCard } from "../src/lib/analysis/analyse.ts";
-import { countPage, pageEntries, pointsFrom, verifyQuotes, readAggregate, likedShare, aggregateWeight, withRating, PAGE_WEIGHT, AGGREGATE_MAX } from "../src/lib/analysis/page.ts";
+import { countPage, pageEntries, pointsFrom, verifyQuotes, readAggregate, likedShare, aggregateWeight, withRating, toAggregate, PAGE_WEIGHT, AGGREGATE_MAX } from "../src/lib/analysis/page.ts";
 import { readPageRequest } from "../src/lib/page.ts";
 import { verdictOf } from "../src/lib/sentiment.ts";
 import { firstSentence } from "../src/lib/gauge.ts";
@@ -110,4 +110,21 @@ test("a card's first sentence reaches the bar whole, never cut short with an ell
   assert.ok(!firstSentence(long).endsWith("…"));
   assert.equal(firstSentence("Is it any good? Mostly, yes."), "Is it any good?");
   assert.equal(firstSentence("No full stop at all"), "No full stop at all");
+});
+
+test("a rating the model read off a page is kept only where it is a rating at all", () => {
+  /* Amazon publishes no structured data, so a shop page's stars reach the meter only this way. */
+  assert.deepEqual(toAggregate({ value: 4.3, best: 5, count: 519 }), { value: 4.3, best: 5, count: 519 });
+  assert.deepEqual(toAggregate({ value: 8.4, best: 10, count: 502000 }), { value: 8.4, best: 10, count: 502000 });
+  /* A scale that is not one of five, ten or a hundred is read as the nearest of them. */
+  assert.deepEqual(toAggregate({ value: 3, best: 4, count: 10 }), { value: 3, best: 5, count: 10 });
+  assert.equal(toAggregate(null), null);
+  assert.equal(toAggregate(undefined), null);
+  assert.equal(toAggregate({ value: 6, best: 5, count: 10 }), null, "a value past the top of its scale is not a rating");
+  assert.equal(toAggregate({ value: -1, best: 5, count: 10 }), null);
+  assert.equal(toAggregate({ value: 4, best: 0, count: 10 }), null);
+  assert.equal(toAggregate({ value: Number.NaN, best: 5, count: 10 }), null);
+  /* A page that prints no count still stands for a block of votes, not none. */
+  assert.equal(aggregateWeight(toAggregate({ value: 4.3, best: 5, count: 0 })), 50);
+  assert.equal(aggregateWeight(toAggregate({ value: 4.3, best: 5, count: 519 })), 519);
 });

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.4 — 23 September 2026
+
+- **A page that cannot be read now says so, instead of guessing.** On an Amazon product page "Analyse this page's subject" could come back with a verdict drawn from a handful of posts elsewhere while the page's own reviews and its star rating were quietly dropped: the card then read "0 on this page", as though the page held nothing, and a reader with 519 ratings at 4.3 stars was called 81% negative on the strength of eight videos. One slow or over-long read of the page did that, and nothing said so. Three changes: the page's own star rating is now read by a separate, quick call that the long read cannot starve; the long read is tried a second time, shorter, when the first does not land; and when nothing at all comes back from the page the server answers plainly, so the strip reads "Couldn't read this page · try again" and can be pressed again. This matters most on shops: Amazon publishes no machine-readable rating, so its "4.3 out of 5 from 519 ratings" reaches the meter through that reading or not at all.
+- The same product reached from a shop's carousel is one page again. The placement parameters a shop hangs on an address (`pd_rd_…`, `pf_rd_…`, `content-id`, and a search's `qid`, `crid`, `sr`, `sprefix`) no longer make it a different page, to be read afresh and answered differently. A variant selector (`th`, `psc`) still counts, because it chooses a different item.
+
 ## 1.0.3 — 21 September 2026
 
 - When a page is read and no single subject can be named (a search page, a listing, a sign-in page), the strip under the badge now says "Cannot determine single subject", centred, in place of "This page seems to be about nothing in particular". It sits in the middle of the strip; on a pill too narrow for it on one line it wraps to two even lines and the strip grows to hold them (it had been cramped into the strip's fixed height, its second line against the edge). The same growth applies to "Subject does not possess sufficient sentiment footprint" under a named subject. The server's held "nothing" answers (kept six hours) are dropped, so no page shows the old words.
