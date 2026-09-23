@@ -1,9 +1,11 @@
-/* The page reading behind "Analyse this page's subject": three model
+/* The page reading behind "Analyse this page's subject": four model
    calls. First the page is named — the one specific thing it is about, or
    nothing in particular. Then, while the platforms are swept for that
    subject, the page's own text is read for the opinions written on it
    (reviews, comments), copied verbatim and checked against the page here,
-   so no quote is ever invented. Last, page opinions and platform posts go
+   so no quote is ever invented, and — in a small call of its own, which
+   that long read cannot starve — the page is read for the one overall
+   rating it prints. Last, page opinions and platform posts go
    to the model together: it classifies every entry, writes the summary and
    draws the pros and the cons; the numbers are counted here, a page review
    weighing as much as three platform posts (the owner's choice of
